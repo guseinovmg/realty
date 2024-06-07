@@ -1,17 +1,33 @@
 package handlers
 
 import (
+	"encoding/json"
+	"io"
 	"net/http"
+	"realty/dto"
 	"realty/utils"
 )
 
 func TextError(recovered any, rd *utils.RequestData, writer http.ResponseWriter, request *http.Request) {
 	writer.WriteHeader(500)
-	writer.Write(utils.UnsafeStringToBytes("Internal errore"))
+	writer.Write(utils.UnsafeStringToBytes("Internal error"))
 }
 
 func Login(rd *utils.RequestData, writer http.ResponseWriter, request *http.Request) {
-	panic("hahaha")
+	body, err := io.ReadAll(request.Body)
+	if err != nil {
+		panic(err)
+	}
+	login := dto.LoginRequestDTO{}
+	err = json.Unmarshal(body, &login)
+	if err != nil {
+		panic(err)
+	}
+	if login.Username != "Murad" {
+		panic("not murad")
+	}
+
+	writer.Write(utils.UnsafeStringToBytes("OK"))
 }
 
 func LogoutMe(rd *utils.RequestData, writer http.ResponseWriter, request *http.Request) {

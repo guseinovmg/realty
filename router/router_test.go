@@ -1,11 +1,13 @@
 package router
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"net/http/httptest"
+	"realty/dto"
 	"realty/utils"
 	"strings"
 	"testing"
@@ -14,21 +16,26 @@ import (
 func TestAuth(t *testing.T) {
 	handler := Initialize()
 
-	type args struct {
-		req *http.Request
-	}
-
 	tests := []struct {
-		name      string
-		request   *http.Request
-		wantCode  int
-		checkBody func(body string, t *testing.T)
+		name          string
+		request       *http.Request
+		wantCode      int
+		checkResponse func(resp *httptest.ResponseRecorder, t *testing.T)
 	}{
 		{
-			name:      "must return http.StatusUnauthorized",
-			request:   NewRequest("POST", nil, "/login", nil, nil, ""),
-			wantCode:  http.StatusUnauthorized,
-			checkBody: nil,
+			name:          "must return http.StatusUnauthorized",
+			request:       NewRequest("POST", nil, "/login", nil, nil, nil),
+			wantCode:      http.StatusUnauthorized,
+			checkResponse: nil,
+		},
+		{
+			name: "must return http.StatusOK",
+			request: NewRequest("POST", nil, "/login", nil, nil, &dto.LoginRequestDTO{
+				Username: "Murad",
+				Password: "Password",
+			}),
+			wantCode:      http.StatusOK,
+			checkResponse: nil,
 		},
 	}
 
@@ -40,14 +47,14 @@ func TestAuth(t *testing.T) {
 			if resp.Result().StatusCode != tt.wantCode {
 				t.Fatalf("the status code should be [%d] but received [%d]", tt.wantCode, resp.Result().StatusCode)
 			}
-			if tt.checkBody != nil {
-				tt.checkBody(resp.Body.String(), t)
+			if tt.checkResponse != nil {
+				tt.checkResponse(resp, t)
 			}
 		})
 	}
 }
 
-func NewRequest(method string, headers utils.H, url string, pathParams utils.H, queryParams utils.H, body string) *http.Request {
+func NewRequest(method string, headers utils.H, url string, pathParams utils.H, queryParams utils.H, body any) *http.Request {
 	if pathParams != nil {
 		for k, v := range pathParams {
 			url = strings.Replace(url, k, "{"+v+"}", 1)
@@ -58,8 +65,12 @@ func NewRequest(method string, headers utils.H, url string, pathParams utils.H, 
 		panic("неправильно сформирован путь " + url)
 	}
 	var buf io.Reader
-	if body != "" {
-		buf = strings.NewReader(body)
+	if body != nil {
+		bytes, err := json.Marshal(body)
+		if err != nil {
+			panic(err)
+		}
+		buf = strings.NewReader(string(bytes))
 	}
 
 	req, err := http.NewRequest(method, url, buf)
