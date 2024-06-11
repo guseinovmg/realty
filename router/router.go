@@ -35,4 +35,5 @@ func Initialize() *http.ServeMux {
 	go log.Fatal(http.ListenAndServe(config.GetHttpServerPort(), mux))
 
 	return mux
+
 }
