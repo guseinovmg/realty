@@ -1,11 +1,48 @@
 package db
 
 import (
+	"database/sql"
+	"log"
+	"realty/config"
 	"realty/models"
+
+	_ "modernc.org/sqlite"
 )
 
-func Initialize() {
+var DB *sql.DB
 
+func Initialize() {
+	db, err := sql.Open("sqlite", config.GetDbPath())
+	if err != nil {
+		log.Fatal(err)
+	}
+	rows, err := db.Query(`SELECT * FROM users;`)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer func(rows *sql.Rows) {
+		err := rows.Close()
+		if err != nil {
+
+		}
+	}(rows)
+	for rows.Next() {
+		var (
+			id int64
+		)
+		if err := rows.Scan(&id); err != nil {
+			log.Fatal(err)
+		}
+		log.Printf("id %d", id)
+	}
+	result, err := db.Exec(`INSERT INTO users (id) VALUES (55)`)
+	if err != nil {
+		log.Fatal(err)
+	}
+	li, _ := result.LastInsertId()
+	ra, _ := result.RowsAffected()
+	log.Println(li, ra)
+	DB = db
 }
 
 func ReadDb() ([]models.User, []models.Adv, error) {

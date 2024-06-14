@@ -14,7 +14,7 @@ func Initialize() *http.ServeMux {
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir(config.GetStaticFilesPath()))))
 	mux.Handle("GET /uploaded/", http.StripPrefix("/uploaded/", http.FileServer(http.Dir(config.GetUploadedFilesPath()))))
 
-	mux.Handle("POST /login", utils.Handler(handlers.Login).OnPanic(handlers.TextError))
+	mux.Handle("POST /login", utils.Handler(handlers.Login, mw.RenewUpdateToken).OnPanic(handlers.TextError))
 	mux.Handle("GET /logout/me", utils.Handler(handlers.LogoutMe))
 	mux.Handle("GET /logout/all", utils.Handler(mw.Auth, handlers.LogoutAll))
 	mux.Handle("POST /registration", utils.Handler(handlers.Registration))

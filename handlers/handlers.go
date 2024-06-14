@@ -1,9 +1,11 @@
 package handlers
 
 import (
+	"bytes"
 	"encoding/json"
 	"io"
 	"net/http"
+	"realty/cache"
 	"realty/dto"
 	"realty/utils"
 )
@@ -16,16 +18,31 @@ func TextError(recovered any, rd *utils.RequestData, writer http.ResponseWriter,
 func Login(rd *utils.RequestData, writer http.ResponseWriter, request *http.Request) {
 	body, err := io.ReadAll(request.Body)
 	if err != nil {
-		panic(err)
+		rd.Stop()
+		return
 	}
 	login := dto.LoginRequestDTO{}
 	err = json.Unmarshal(body, &login)
 	if err != nil {
-		panic(err)
+		rd.Stop()
+		return
 	}
-	if login.Username != "Murad" {
-		panic("not murad")
+	user := cache.FindUserByLogin(login.Email)
+	if user == nil {
+		rd.Stop()
+		http.Error(writer, "", 401)
+		writer.WriteHeader(401)
+		writer.Write(utils.UnsafeStringToBytes("пользователь не найден"))
+		return
 	}
+	if !bytes.Equal(utils.GeneratePasswordHash(login.Password), user.PasswordHash) {
+		rd.Stop()
+		writer.WriteHeader(401)
+		writer.Write(utils.UnsafeStringToBytes("пароль не верен"))
+		return
+	}
+
+	rd.User = user
 
 	writer.Write(utils.UnsafeStringToBytes("OK"))
 }
@@ -33,6 +50,7 @@ func Login(rd *utils.RequestData, writer http.ResponseWriter, request *http.Requ
 func LogoutMe(rd *utils.RequestData, writer http.ResponseWriter, request *http.Request) {
 
 }
+
 func LogoutAll(rd *utils.RequestData, writer http.ResponseWriter, request *http.Request) {
 
 }

@@ -31,7 +31,7 @@ func TestAuth(t *testing.T) {
 		{
 			name: "must return http.StatusOK",
 			request: NewRequest("POST", nil, "/login", nil, nil, &dto.LoginRequestDTO{
-				Username: "Murad",
+				Email:    "guseinovmg@gmail.com",
 				Password: "Password",
 			}),
 			wantCode:      http.StatusOK,

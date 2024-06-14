@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"crypto/sha1"
 	"reflect"
 	"unsafe"
 )
@@ -57,4 +58,11 @@ func NormalizeSlice(s []any) {
 			s[i] = nil
 		}
 	}
+}
+
+func GeneratePasswordHash(password string) []byte {
+	hash := sha1.New()
+	hash.Write(UnsafeStringToBytes(password))
+	hash.Write(UnsafeStringToBytes("bla bla secret 36464663464"))
+	return hash.Sum(nil)
 }

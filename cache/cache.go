@@ -22,6 +22,15 @@ func FindUserById(id uint64) *models.User {
 	return nil
 }
 
+func FindUserByLogin(email string) *models.User {
+	for i := 0; i < len(users); i++ {
+		if users[i].Email == email {
+			return &users[i]
+		}
+	}
+	return nil
+}
+
 func FindAdvById(id uint64) *models.Adv {
 	for i := 0; i < len(advs); i++ {
 		if advs[i].Id == id {

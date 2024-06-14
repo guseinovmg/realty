@@ -1,11 +1,11 @@
 package dto
 
 type LoginRequestDTO struct {
-	Username string `json:"username"`
+	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 
 type RegisterRequestDTO struct {
-	Username string `json:"username"`
+	Email    string `json:"email"`
 	Password string `json:"password"`
 }

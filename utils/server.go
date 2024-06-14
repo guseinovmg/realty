@@ -12,12 +12,13 @@ type RequestData struct {
 	User *models.User
 }
 
+type HandlerFunction func(rd *RequestData, writer http.ResponseWriter, request *http.Request)
+
+type PanicHandlerFunction func(recovered any, rd *RequestData, writer http.ResponseWriter, request *http.Request)
+
 func (rd *RequestData) Stop() {
 	rd.stop = true
 }
-
-type HandlerFunction func(rd *RequestData, writer http.ResponseWriter, request *http.Request)
-type PanicHandlerFunction func(recovered any, rd *RequestData, writer http.ResponseWriter, request *http.Request)
 
 type Chain struct {
 	onPanic  PanicHandlerFunction
@@ -27,7 +28,7 @@ type Chain struct {
 func (m *Chain) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	rd := &RequestData{}
 	defer func() {
-		if err := recover(); err != nil {
+		if err := recover(); err != nil { //todo при некоторых паниках нужно действительно дать серверу перазагрузиться
 			if m.onPanic != nil {
 				m.onPanic(err, rd, w, r)
 			} else {
