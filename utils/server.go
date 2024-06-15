@@ -35,8 +35,8 @@ func (m *Chain) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(500)
 				_, _ = w.Write([]byte("Internal error"))
 			}
-
 		}
+		//todo в любом случае нужно создать оповещение админу(sms или email)
 	}()
 	for _, f := range m.handlers {
 		f(rd, w, r)

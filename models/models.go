@@ -16,9 +16,9 @@ type User struct {
 }
 
 type Invite struct {
-	Id      uint64
+	Id      int64
 	Company string
-	Uuid    string
+	Code    int64
 	Used    bool
 }
 

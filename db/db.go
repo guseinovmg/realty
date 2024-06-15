@@ -35,7 +35,7 @@ func Initialize() {
 		}
 		log.Printf("id %d", id)
 	}
-	result, err := db.Exec(`INSERT INTO users (id) VALUES (55)`)
+	result, err := db.Exec(`INSERT INTO users (id) VALUES (88)`)
 	if err != nil {
 		log.Fatal(err)
 	}
