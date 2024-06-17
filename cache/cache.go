@@ -29,8 +29,10 @@ func Initialize() {
 			for i := 0; i < len(advs); i++ {
 				if advs[i].oldAdv != advs[i].currentAdv {
 					err := db.UpdateAdvChanges(&advs[i].oldAdv, &advs[i].currentAdv)
-					if err != nil {
-						return
+					if err == nil {
+						advs[i].oldAdv = advs[i].currentAdv
+					} else {
+						//todo
 					}
 				}
 			}
@@ -38,8 +40,10 @@ func Initialize() {
 			for i := 0; i < len(users); i++ {
 				if !usersAreEqual(&users[i].oldUser, &users[i].currentUser) {
 					err := db.UpdateUserChanges(&users[i].oldUser, &users[i].currentUser)
-					if err != nil {
-						return
+					if err == nil {
+						users[i].oldUser = users[i].currentUser
+					} else {
+						//todo
 					}
 				}
 			}
