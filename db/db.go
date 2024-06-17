@@ -1,6 +1,7 @@
 package db
 
 import (
+	"bytes"
 	"database/sql"
 	"log"
 	"realty/config"
@@ -243,6 +244,161 @@ func UpdateAdvChanges(oldAdv, newAdv *models.Adv) error {
 
 func DeleteAdv(id int64) error {
 	query := "DELETE FROM advs WHERE id = ?"
+	_, err := db.Exec(query, id)
+	return err
+}
+
+func CreateUser(user *models.User) error {
+
+	query := `
+		INSERT INTO users (
+			email, name, password_hash, session_secret, invite_id, trusted,
+			enabled, balance, created, description
+		) VALUES (
+			?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+		)
+	`
+	result, err := db.Exec(query,
+		user.Email, user.Name, user.PasswordHash, user.SessionSecret,
+		user.InviteId, user.Trusted, user.Enabled, user.Balance,
+		user.Created, user.Description,
+	)
+	if err != nil {
+		return err
+	}
+
+	id, err := result.LastInsertId()
+	if err != nil {
+		return err
+	}
+	user.Id = id
+
+	return nil
+}
+
+func GetUser(id int64) (*models.User, error) {
+	user := &models.User{}
+	query := "SELECT * FROM users WHERE id = ?"
+	err := db.QueryRow(query, id).Scan(
+		&user.Id, &user.Email, &user.Name, &user.PasswordHash,
+		&user.SessionSecret, &user.InviteId, &user.Trusted, &user.Enabled,
+		&user.Balance, &user.Created, &user.Description,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
+
+func UpdateUser(user *models.User) error {
+	query := `
+		UPDATE users SET
+			email = ?,
+			name = ?,
+			password_hash = ?,
+			session_secret = ?,
+			invite_id = ?,
+			trusted = ?,
+			enabled = ?,
+			balance = ?,
+			created = ?,
+			description = ?
+		WHERE id = ?
+	`
+	_, err := db.Exec(query,
+		user.Email, user.Name, user.PasswordHash, user.SessionSecret,
+		user.InviteId, user.Trusted, user.Enabled, user.Balance,
+		user.Created, user.Description, user.Id,
+	)
+
+	return err
+}
+
+func UpdateUserChanges(oldUser, newUser *models.User) error {
+
+	args := make([]interface{}, 0, 9)
+	setClauses := make([]string, 0, 9)
+
+	if oldUser.Email != newUser.Email {
+		setClauses = append(setClauses, "email = ?")
+		args = append(args, newUser.Email)
+	}
+	if oldUser.Name != newUser.Name {
+		setClauses = append(setClauses, "name = ?")
+		args = append(args, newUser.Name)
+	}
+	if !bytes.Equal(oldUser.PasswordHash, newUser.PasswordHash) {
+		setClauses = append(setClauses, "password_hash = ?")
+		args = append(args, newUser.PasswordHash)
+	}
+	if !bytes.Equal(oldUser.SessionSecret[:], newUser.SessionSecret[:]) {
+		setClauses = append(setClauses, "session_secret = ?")
+		args = append(args, newUser.SessionSecret)
+	}
+	if oldUser.InviteId != newUser.InviteId {
+		setClauses = append(setClauses, "invite_id = ?")
+		args = append(args, newUser.InviteId)
+	}
+	if oldUser.Trusted != newUser.Trusted {
+		setClauses = append(setClauses, "trusted = ?")
+		args = append(args, newUser.Trusted)
+	}
+	if oldUser.Enabled != newUser.Enabled {
+		setClauses = append(setClauses, "enabled = ?")
+		args = append(args, newUser.Enabled)
+	}
+	if oldUser.Balance != newUser.Balance {
+		setClauses = append(setClauses, "balance = ?")
+		args = append(args, newUser.Balance)
+	}
+	if !oldUser.Created.Equal(newUser.Created) {
+		setClauses = append(setClauses, "created = ?")
+		args = append(args, newUser.Created)
+	}
+	if oldUser.Description != newUser.Description {
+		setClauses = append(setClauses, "description = ?")
+		args = append(args, newUser.Description)
+	}
+
+	if len(setClauses) == 0 {
+		return nil
+	}
+
+	query := "UPDATE users SET " + strings.Join(setClauses, ", ") + " WHERE id = ?"
+	args = append(args, oldUser.Id)
+
+	_, err := db.Exec(query, args...)
+	return err
+}
+
+func GetUsers() ([]*models.User, error) {
+	rows, err := db.Query("SELECT * FROM users")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []*models.User
+
+	for rows.Next() {
+		user := &models.User{}
+		err := rows.Scan(
+			&user.Id, &user.Email, &user.Name, &user.PasswordHash,
+			&user.SessionSecret, &user.InviteId, &user.Trusted, &user.Enabled,
+			&user.Balance, &user.Created, &user.Description,
+		)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+
+	return users, nil
+}
+
+func DeleteUser(id int64) error {
+	query := "DELETE FROM users WHERE id = ?"
 	_, err := db.Exec(query, id)
 	return err
 }
