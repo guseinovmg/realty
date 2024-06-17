@@ -3,33 +3,34 @@ package models
 import "time"
 
 type User struct {
-	Id            uint64
+	Id            int64
 	Email         string
 	Name          string
 	PasswordHash  []byte
 	SessionSecret [24]byte //нужно перегенерить для выхода из всех устройств
 	Invite        *Invite
+	InviteId      int64
 	Balance       float64
 	Trusted       bool
 	Created       time.Time
 	Enabled       bool
+	Description   string
 }
 
 type Invite struct {
-	Id      int64
+	Id      string
 	Company string
-	Code    int64
 	Used    bool
 }
 
 type Photo struct {
-	Name uint64
+	Name int64
 	Ext  byte
 }
 
 type Adv struct {
-	Id                      uint64
-	UserId                  uint64
+	Id                      int64
+	UserId                  int64
 	User                    *User
 	Created                 time.Time
 	Updated                 time.Time
@@ -37,28 +38,22 @@ type Adv struct {
 	Lang                    int8
 	OriginLang              int8
 	TranslatedBy            int8
-	TranslatedToLangs       []int8
+	TranslatedTo            string
 	Title                   string
 	Description             string
-	Photos                  []Photo
-	Price                   uint64
+	Photos                  string
+	Price                   int64
 	Currency                string
 	Country                 string
 	City                    string
 	Address                 string
 	Latitude                float64
 	Longitude               float64
-	Watches                 uint64
-	PaidAdv                 uint64
+	Watches                 int64
+	PaidAdv                 int64
 	VisibleForSearchEngines bool
 	UserComment             string
 	AdminComment            string
-}
-
-type UserAction struct {
-	Type int
-	Time time.Time
-	User *User
 }
 
 type CurrencyRate struct {
