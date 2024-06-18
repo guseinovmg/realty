@@ -1,6 +1,9 @@
 package models
 
-import "time"
+import (
+	"sync/atomic"
+	"time"
+)
 
 type User struct {
 	Id            int64
@@ -29,35 +32,35 @@ type Photo struct {
 }
 
 type Adv struct {
-	Id                      int64
-	UserId                  int64
-	User                    *User
-	Created                 time.Time
-	Updated                 time.Time
-	Approved                bool
-	Lang                    int8
-	OriginLang              int8
-	TranslatedBy            int8
-	TranslatedTo            string
-	Title                   string
-	Description             string
-	Photos                  string
-	Price                   int64
-	Currency                string
-	Country                 string
-	City                    string
-	Address                 string
-	Latitude                float64
-	Longitude               float64
-	Watches                 int64
-	PaidAdv                 int64
-	VisibleForSearchEngines bool
-	UserComment             string
-	AdminComment            string
+	Id           int64
+	UserId       int64
+	User         *User
+	Created      time.Time
+	Updated      time.Time
+	Approved     bool
+	Lang         int8
+	OriginLang   int8
+	TranslatedBy int8
+	TranslatedTo string
+	Title        string
+	Description  string
+	Photos       string
+	Price        int64
+	Currency     string
+	DollarPrice  int64 //не хранится в БД
+	Country      string
+	City         string
+	Address      string
+	Latitude     float64
+	Longitude    float64
+	Watches      atomic.Int64
+	PaidAdv      int64
+	SeVisible    bool
+	UserComment  string
+	AdminComment string
 }
 
 type CurrencyRate struct {
 	Currency   string
 	DollarRate float64
-	EuroRate   float64
 }

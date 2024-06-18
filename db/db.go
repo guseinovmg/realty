@@ -30,7 +30,7 @@ func CreateAdv(adv *models.Adv) error {
 		INSERT INTO advs (
 			id, user_id, created, updated, approved, lang, origin_lang, title,
 			description, price, currency, country, city, address, latitude,
-			longitude, watches, paid_adv, visible_for_search_engines, user_comment,
+			longitude, watches, paid_adv, se_visible, user_comment,
 			admin_comment, translated_to, photos
 		) VALUES (
 			?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
@@ -40,7 +40,7 @@ func CreateAdv(adv *models.Adv) error {
 		adv.Id, adv.UserId, adv.Created, adv.Updated, adv.Approved, adv.Lang,
 		adv.OriginLang, adv.Title, adv.Description, adv.Price, adv.Currency,
 		adv.Country, adv.City, adv.Address, adv.Latitude, adv.Longitude,
-		adv.Watches, adv.PaidAdv, adv.VisibleForSearchEngines, adv.UserComment,
+		adv.Watches.Load(), adv.PaidAdv, adv.SeVisible, adv.UserComment,
 		adv.AdminComment, adv.TranslatedTo, adv.Photos,
 	)
 	if err != nil {
@@ -63,7 +63,7 @@ func GetAdv(id int64) (*models.Adv, error) {
 		&adv.Id, &adv.UserId, &adv.Created, &adv.Updated, &adv.Approved,
 		&adv.Lang, &adv.OriginLang, &adv.Title, &adv.Description, &adv.Price,
 		&adv.Currency, &adv.Country, &adv.City, &adv.Address, &adv.Latitude,
-		&adv.Longitude, &adv.Watches, &adv.PaidAdv, &adv.VisibleForSearchEngines,
+		&adv.Longitude, &adv.Watches, &adv.PaidAdv, &adv.SeVisible,
 		&adv.UserComment, &adv.AdminComment, &adv.TranslatedTo, &adv.Photos,
 	)
 	if err != nil {
@@ -88,7 +88,7 @@ func GetAdvs() ([]*models.Adv, error) {
 			&adv.Id, &adv.UserId, &adv.Created, &adv.Updated, &adv.Approved,
 			&adv.Lang, &adv.OriginLang, &adv.Title, &adv.Description, &adv.Price,
 			&adv.Currency, &adv.Country, &adv.City, &adv.Address, &adv.Latitude,
-			&adv.Longitude, &adv.Watches, &adv.PaidAdv, &adv.VisibleForSearchEngines,
+			&adv.Longitude, &adv.Watches, &adv.PaidAdv, &adv.SeVisible,
 			&adv.UserComment, &adv.AdminComment, &adv.TranslatedTo, &adv.Photos,
 		)
 		if err != nil {
@@ -120,7 +120,7 @@ func UpdateAdv(adv *models.Adv) error {
 			longitude = ?,
 			watches = ?,
 			paid_adv = ?,
-			visible_for_search_engines = ?,
+			se_visible = ?,
 			user_comment = ?,
 			admin_comment = ?,
 			translated_to = ?,
@@ -131,7 +131,7 @@ func UpdateAdv(adv *models.Adv) error {
 		adv.UserId, adv.Created, adv.Updated, adv.Approved, adv.Lang,
 		adv.OriginLang, adv.Title, adv.Description, adv.Price, adv.Currency,
 		adv.Country, adv.City, adv.Address, adv.Latitude, adv.Longitude,
-		adv.Watches, adv.PaidAdv, adv.VisibleForSearchEngines, adv.UserComment,
+		adv.Watches.Load(), adv.PaidAdv, adv.SeVisible, adv.UserComment,
 		adv.AdminComment, adv.TranslatedTo, adv.Photos, adv.Id,
 	)
 
@@ -204,15 +204,15 @@ func UpdateAdvChanges(oldAdv, newAdv *models.Adv) error {
 	}
 	if oldAdv.Watches != newAdv.Watches {
 		setClauses = append(setClauses, "watches = ?")
-		args = append(args, newAdv.Watches)
+		args = append(args, newAdv.Watches.Load())
 	}
 	if oldAdv.PaidAdv != newAdv.PaidAdv {
 		setClauses = append(setClauses, "paid_adv = ?")
 		args = append(args, newAdv.PaidAdv)
 	}
-	if oldAdv.VisibleForSearchEngines != newAdv.VisibleForSearchEngines {
-		setClauses = append(setClauses, "visible_for_search_engines = ?")
-		args = append(args, newAdv.VisibleForSearchEngines)
+	if oldAdv.SeVisible != newAdv.SeVisible {
+		setClauses = append(setClauses, "se_visible = ?")
+		args = append(args, newAdv.SeVisible)
 	}
 	if oldAdv.UserComment != newAdv.UserComment {
 		setClauses = append(setClauses, "user_comment = ?")

@@ -117,7 +117,7 @@ func FindAdvById(id int64) *models.Adv {
 	return nil
 }
 
-func FindAdvs(minPrice uint64, maxPrice uint64, currency string, minLongitude float64,
+func FindAdvs(minDollarPrice int64, maxDollarPrice int64, minLongitude float64,
 	maxLongitude float64, minLatitude float64, maxLatitude float64, countryCode string,
 	location string, offset int, limit int, firstCheap bool) []*models.Adv {
 	result := make([]*models.Adv, 0, limit)
@@ -133,8 +133,7 @@ func FindAdvs(minPrice uint64, maxPrice uint64, currency string, minLongitude fl
 	var adv *models.Adv
 	for ; i < length && i >= 0; i += step {
 		adv = &advs[i].currentAdv
-		price := CalcPrice(adv.Price, adv.Currency, currency)
-		if price >= minPrice && price <= maxPrice &&
+		if adv.DollarPrice >= minDollarPrice && adv.DollarPrice <= maxDollarPrice &&
 			adv.Longitude > minLongitude && adv.Longitude < maxLongitude &&
 			adv.Latitude > minLatitude && adv.Latitude < maxLatitude &&
 			(countryCode == "" || adv.Country == countryCode) &&
@@ -152,16 +151,4 @@ func FindAdvs(minPrice uint64, maxPrice uint64, currency string, minLongitude fl
 		}
 	}
 	return result
-}
-
-func CalcPrice(price int64, fromCurrency, toCurrency string) uint64 {
-	return 1
-}
-
-func ReloadAdvFromDb(id int64) error {
-	return nil
-}
-
-func ReloadUserFromDb(id int64) error {
-	return nil
 }
