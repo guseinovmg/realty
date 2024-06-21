@@ -65,16 +65,16 @@ func Auth(rd *utils.RequestData, writer http.ResponseWriter, request *http.Reque
 	rd.User = user
 }
 
-func RenewUpdateToken(rd *utils.RequestData, writer http.ResponseWriter, request *http.Request) {
+func SetAuthCookie(rd *utils.RequestData, writer http.ResponseWriter, request *http.Request) {
 	newTokenBytes := CreateToken(rd.User.Id, time.Now().Add(time.Hour*24*3), rd.User.SessionSecret)
 	newTokenBytes = Shuffle(newTokenBytes)
 	newTokenStr := base64.StdEncoding.EncodeToString(newTokenBytes[:])
 	writer.Header().Set("Cookie", newTokenStr)
 }
 
-func CreateToken(userId uint64, expireTime time.Time, sessionSecret [24]byte) [40]byte {
+func CreateToken(userId int64, expireTime time.Time, sessionSecret [24]byte) [40]byte {
 	userIdBytes := make([]byte, 8)
-	binary.LittleEndian.PutUint64(userIdBytes, userId)
+	binary.LittleEndian.PutUint64(userIdBytes, uint64(userId))
 	expireTimeBytes, _ := expireTime.MarshalBinary()
 	resultBytes := [40]byte{}
 	for i := 0; i < 8; i++ {
@@ -93,8 +93,8 @@ func CreateToken(userId uint64, expireTime time.Time, sessionSecret [24]byte) [4
 	return resultBytes
 }
 
-func UnpackToken(inputBytes [40]byte) (userId uint64, expireTime time.Time, err error) {
-	userId = binary.LittleEndian.Uint64(inputBytes[0:8])
+func UnpackToken(inputBytes [40]byte) (userId int64, expireTime time.Time, err error) {
+	userId = int64(binary.LittleEndian.Uint64(inputBytes[0:8]))
 	var timeBuf []byte
 	if inputBytes[8] == 1 { //todo надо решить по таймзоне
 		timeBuf = inputBytes[8:23]
