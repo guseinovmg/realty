@@ -21,7 +21,7 @@ func Login(rd *utils.RequestData, writer http.ResponseWriter, request *http.Requ
 		rd.Stop()
 		return
 	}
-	login := dto.LoginRequestDTO{}
+	login := dto.LoginRequest{}
 	err = json.Unmarshal(body, &login)
 	if err != nil {
 		rd.Stop()

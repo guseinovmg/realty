@@ -3,8 +3,10 @@ package cache
 import (
 	"bytes"
 	"realty/db"
+	"realty/dto"
 	"realty/models"
 	"strings"
+	"sync/atomic"
 	"time"
 )
 
@@ -27,6 +29,15 @@ func Initialize() {
 		for {
 			time.Sleep(time.Second)
 			for i := 0; i < len(advs); i++ {
+				if advs[i].oldAdv.Id == 0 {
+					err := db.CreateAdv(&advs[i].currentAdv)
+					if err == nil {
+						advs[i].oldAdv = advs[i].currentAdv
+					} else {
+						//todo
+					}
+					continue
+				}
 				if advs[i].oldAdv != advs[i].currentAdv {
 					err := db.UpdateAdvChanges(&advs[i].oldAdv, &advs[i].currentAdv)
 					if err == nil {
@@ -151,4 +162,57 @@ func FindAdvs(minDollarPrice int64, maxDollarPrice int64, minLongitude float64,
 		}
 	}
 	return result
+}
+
+func CreateAdv(user *models.User, request *dto.CreateAdvRequest) {
+	newAdv := &models.Adv{
+		Id:           time.Now().UnixMicro(),
+		UserId:       user.Id,
+		User:         user,
+		Created:      time.Now(),
+		Updated:      time.Now(),
+		Approved:     false,
+		Lang:         request.OriginLang,
+		OriginLang:   request.OriginLang,
+		TranslatedBy: request.TranslatedBy,
+		TranslatedTo: request.TranslatedTo,
+		Title:        request.Title,
+		Description:  request.Description,
+		Photos:       request.Photos,
+		Price:        request.Price,
+		Currency:     request.Currency,
+		DollarPrice:  0, //todo
+		Country:      request.Country,
+		City:         request.City,
+		Address:      request.Address,
+		Latitude:     request.Latitude,
+		Longitude:    request.Longitude,
+		Watches:      atomic.Int64{},
+		PaidAdv:      0,
+		SeVisible:    true,
+		UserComment:  request.UserComment,
+		AdminComment: "",
+	}
+	advCache := &AdvCache{
+		currentAdv: *newAdv,
+		oldAdv:     models.Adv{},
+	}
+	advs = append(advs, advCache)
+
+}
+
+func UpdateAdv(request *dto.UpdateAdvRequest) {
+
+}
+
+func CreateUser(request *dto.RegisterRequest) {
+
+}
+
+func UpdateUser(request *dto.UpdateUserRequest) {
+
+}
+
+func UpdatePassword(request *dto.UpdatePasswordRequest) {
+
 }

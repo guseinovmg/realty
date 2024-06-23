@@ -52,3 +52,13 @@ type UpdateAdvRequest struct {
 	Longitude    float64
 	UserComment  string
 }
+
+type UpdateUserRequest struct {
+	Name        string
+	Description string
+}
+
+type UpdatePasswordRequest struct {
+	OldPassword string
+	NewPassword string
+}
