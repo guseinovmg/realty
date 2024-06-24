@@ -2,7 +2,9 @@ package utils
 
 import (
 	"crypto/sha1"
+	"crypto/sha256"
 	"reflect"
+	"time"
 	"unsafe"
 )
 
@@ -65,4 +67,11 @@ func GeneratePasswordHash(password string) []byte {
 	hash.Write(UnsafeStringToBytes(password))
 	hash.Write(UnsafeStringToBytes("bla bla secret 36464663464"))
 	return hash.Sum(nil)
+}
+
+func GenerateSessionsSecret() [24]byte {
+	hash := sha256.New()
+	hash.Write(UnsafeStringToBytes(time.Now().String()))
+	hash.Write(UnsafeStringToBytes("bla bla secret 3645647"))
+	return [24]byte(hash.Sum(nil))
 }

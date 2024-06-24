@@ -46,27 +46,27 @@ func Auth(rd *utils.RequestData, writer http.ResponseWriter, request *http.Reque
 		rd.Stop()
 		return
 	}
-	user := cache.FindUserById(userId)
-	if user == nil {
+	userCache := cache.FindUserCacheById(userId)
+	if userCache == nil {
 		writer.WriteHeader(http.StatusNotFound)
 		rd.Stop()
 		return
 	}
-	if !user.Enabled {
+	if !userCache.CurrentUser.Enabled {
 		writer.WriteHeader(http.StatusForbidden)
 		rd.Stop()
 		return
 	}
-	if !IsValidToken(tokenBytesArr, user.SessionSecret) {
+	if !IsValidToken(tokenBytesArr, userCache.CurrentUser.SessionSecret) {
 		writer.WriteHeader(http.StatusBadRequest)
 		rd.Stop()
 		return
 	}
-	rd.User = user
+	rd.User = userCache
 }
 
 func SetAuthCookie(rd *utils.RequestData, writer http.ResponseWriter, request *http.Request) {
-	newTokenBytes := CreateToken(rd.User.Id, time.Now().Add(time.Hour*24*3), rd.User.SessionSecret)
+	newTokenBytes := CreateToken(rd.User.CurrentUser.Id, time.Now().Add(time.Hour*24*3), rd.User.CurrentUser.SessionSecret)
 	newTokenBytes = Shuffle(newTokenBytes)
 	newTokenStr := base64.StdEncoding.EncodeToString(newTokenBytes[:])
 	writer.Header().Set("Cookie", newTokenStr)

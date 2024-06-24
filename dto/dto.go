@@ -11,6 +11,7 @@ type LoginResponse struct {
 
 type RegisterRequest struct {
 	Email    string `json:"email"`
+	Name     string `json:"name"`
 	Password string `json:"password"`
 	InviteId string `json:"inviteId"`
 }

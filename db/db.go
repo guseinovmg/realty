@@ -36,7 +36,7 @@ func CreateAdv(adv *models.Adv) error {
 			?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 		)
 	`
-	result, err := db.Exec(query,
+	_, err := db.Exec(query,
 		adv.Id, adv.UserId, adv.Created, adv.Updated, adv.Approved, adv.Lang,
 		adv.OriginLang, adv.Title, adv.Description, adv.Price, adv.Currency,
 		adv.Country, adv.City, adv.Address, adv.Latitude, adv.Longitude,
@@ -46,12 +46,6 @@ func CreateAdv(adv *models.Adv) error {
 	if err != nil {
 		return err
 	}
-
-	id, err := result.LastInsertId()
-	if err != nil {
-		return err
-	}
-	adv.Id = id
 
 	return nil
 }
@@ -258,7 +252,7 @@ func CreateUser(user *models.User) error {
 			?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 		)
 	`
-	result, err := db.Exec(query,
+	_, err := db.Exec(query,
 		user.Email, user.Name, user.PasswordHash, user.SessionSecret,
 		user.InviteId, user.Trusted, user.Enabled, user.Balance,
 		user.Created, user.Description,
@@ -266,12 +260,6 @@ func CreateUser(user *models.User) error {
 	if err != nil {
 		return err
 	}
-
-	id, err := result.LastInsertId()
-	if err != nil {
-		return err
-	}
-	user.Id = id
 
 	return nil
 }

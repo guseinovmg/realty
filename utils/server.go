@@ -2,14 +2,14 @@ package utils
 
 import (
 	"net/http"
-	"realty/models"
+	"realty/cache"
 )
 
 // RequestData
 // можно расширять для передачи данных по цепочке обработчиков
 type RequestData struct {
 	stop bool
-	User *models.User
+	User *cache.UserCache
 }
 
 type HandlerFunction func(rd *RequestData, writer http.ResponseWriter, request *http.Request)

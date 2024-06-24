@@ -5,6 +5,7 @@ import (
 	"realty/db"
 	"realty/dto"
 	"realty/models"
+	"realty/utils"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -16,8 +17,8 @@ type AdvCache struct {
 }
 
 type UserCache struct {
-	currentUser models.User
-	oldUser     models.User
+	CurrentUser models.User
+	OldUser     models.User
 }
 
 var users []*UserCache
@@ -49,10 +50,19 @@ func Initialize() {
 			}
 			time.Sleep(time.Second)
 			for i := 0; i < len(users); i++ {
-				if !usersAreEqual(&users[i].oldUser, &users[i].currentUser) {
-					err := db.UpdateUserChanges(&users[i].oldUser, &users[i].currentUser)
+				if users[i].OldUser.Id == 0 {
+					err := db.CreateUser(&users[i].CurrentUser)
 					if err == nil {
-						users[i].oldUser = users[i].currentUser
+						users[i].OldUser = users[i].CurrentUser
+					} else {
+						//todo
+					}
+					continue
+				}
+				if !usersAreEqual(&users[i].OldUser, &users[i].CurrentUser) {
+					err := db.UpdateUserChanges(&users[i].OldUser, &users[i].CurrentUser)
+					if err == nil {
+						users[i].OldUser = users[i].CurrentUser
 					} else {
 						//todo
 					}
@@ -103,17 +113,26 @@ func usersAreEqual(u1, u2 *models.User) bool {
 
 func FindUserById(id int64) *models.User {
 	for i := 0; i < len(users); i++ {
-		if users[i].currentUser.Id == id {
-			return &users[i].currentUser
+		if users[i].CurrentUser.Id == id {
+			return &users[i].CurrentUser
 		}
 	}
 	return nil
 }
 
-func FindUserByLogin(email string) *models.User {
+func FindUserCacheById(id int64) *UserCache {
 	for i := 0; i < len(users); i++ {
-		if users[i].currentUser.Email == email {
-			return &users[i].currentUser
+		if users[i].CurrentUser.Id == id {
+			return users[i]
+		}
+	}
+	return nil
+}
+
+func FindUserCacheByLogin(email string) *UserCache {
+	for i := 0; i < len(users); i++ {
+		if users[i].CurrentUser.Email == email {
+			return users[i]
 		}
 	}
 	return nil
@@ -123,6 +142,15 @@ func FindAdvById(id int64) *models.Adv {
 	for i := 0; i < len(advs); i++ {
 		if advs[i].currentAdv.Id == id {
 			return &advs[i].currentAdv
+		}
+	}
+	return nil
+}
+
+func FindAdvCacheById(id int64) *AdvCache {
+	for i := 0; i < len(advs); i++ {
+		if advs[i].currentAdv.Id == id {
+			return advs[i]
 		}
 	}
 	return nil
@@ -201,18 +229,44 @@ func CreateAdv(user *models.User, request *dto.CreateAdvRequest) {
 
 }
 
-func UpdateAdv(request *dto.UpdateAdvRequest) {
-
+func UpdateAdv(advId int64, request *dto.UpdateAdvRequest) {
+	adv := FindAdvCacheById(advId)
+	if adv == nil {
+		return //todo
+	}
+	adv.currentAdv.OriginLang = request.OriginLang
+	adv.currentAdv.TranslatedBy = request.TranslatedBy
+	adv.currentAdv.TranslatedTo = request.TranslatedTo
+	adv.currentAdv.Title = request.Title
+	adv.currentAdv.Description = request.Description
+	adv.currentAdv.Photos = request.Photos
+	adv.currentAdv.Price = request.Price
+	adv.currentAdv.Currency = request.Currency
+	adv.currentAdv.Country = request.Country
+	adv.currentAdv.City = request.City
+	adv.currentAdv.Address = request.Address
+	adv.currentAdv.Latitude = request.Latitude
+	adv.currentAdv.Longitude = request.Longitude
+	adv.currentAdv.UserComment = request.UserComment
 }
 
 func CreateUser(request *dto.RegisterRequest) {
-
-}
-
-func UpdateUser(request *dto.UpdateUserRequest) {
-
-}
-
-func UpdatePassword(request *dto.UpdatePasswordRequest) {
-
+	newUser := &models.User{
+		Id:            time.Now().UnixMicro(),
+		Email:         request.Email,
+		Name:          request.Name,
+		PasswordHash:  utils.GeneratePasswordHash(request.Password),
+		SessionSecret: utils.GenerateSessionsSecret(),
+		InviteId:      request.InviteId,
+		Balance:       0,
+		Trusted:       false,
+		Created:       time.Now(),
+		Enabled:       true,
+		Description:   "",
+	}
+	userCache := &UserCache{
+		CurrentUser: *newUser,
+		OldUser:     models.User{},
+	}
+	users = append(users, userCache)
 }

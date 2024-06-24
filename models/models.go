@@ -11,8 +11,7 @@ type User struct {
 	Name          string
 	PasswordHash  []byte
 	SessionSecret [24]byte //нужно перегенерить для выхода из всех устройств
-	Invite        *Invite
-	InviteId      int64
+	InviteId      string
 	Balance       float64
 	Trusted       bool
 	Created       time.Time

@@ -27,22 +27,21 @@ func Login(rd *utils.RequestData, writer http.ResponseWriter, request *http.Requ
 		rd.Stop()
 		return
 	}
-	user := cache.FindUserByLogin(login.Email)
-	if user == nil {
+	userCache := cache.FindUserCacheByLogin(login.Email)
+	if userCache == nil {
 		rd.Stop()
-		http.Error(writer, "", 401)
 		writer.WriteHeader(401)
 		writer.Write(utils.UnsafeStringToBytes("пользователь не найден"))
 		return
 	}
-	if !bytes.Equal(utils.GeneratePasswordHash(login.Password), user.PasswordHash) {
+	if !bytes.Equal(utils.GeneratePasswordHash(login.Password), userCache.CurrentUser.PasswordHash) {
 		rd.Stop()
 		writer.WriteHeader(401)
 		writer.Write(utils.UnsafeStringToBytes("пароль не верен"))
 		return
 	}
 
-	rd.User = user
+	rd.User = userCache
 
 	writer.Write(utils.UnsafeStringToBytes("OK"))
 }
@@ -60,11 +59,53 @@ func Registration(rd *utils.RequestData, writer http.ResponseWriter, request *ht
 }
 
 func UpdatePassword(rd *utils.RequestData, writer http.ResponseWriter, request *http.Request) {
-
+	body, err := io.ReadAll(request.Body)
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			//todo
+		}
+	}(request.Body)
+	if err != nil {
+		http.Error(writer, err.Error(), http.StatusNoContent)
+		return
+	}
+	requestDto := &dto.UpdatePasswordRequest{}
+	err = json.Unmarshal(body, requestDto)
+	if err != nil {
+		http.Error(writer, err.Error(), http.StatusNoContent)
+		return
+	}
+	if !bytes.Equal(rd.User.CurrentUser.PasswordHash, utils.GeneratePasswordHash(requestDto.OldPassword)) {
+		http.Error(writer, "неверный пароль", http.StatusBadRequest)
+		return
+	}
+	rd.User.CurrentUser.PasswordHash = utils.GeneratePasswordHash(requestDto.NewPassword)
+	rd.User.CurrentUser.SessionSecret = utils.GenerateSessionsSecret()
+	writer.Write(utils.UnsafeStringToBytes("ok"))
 }
 
 func UpdateUser(rd *utils.RequestData, writer http.ResponseWriter, request *http.Request) {
-
+	body, err := io.ReadAll(request.Body)
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			//todo
+		}
+	}(request.Body)
+	if err != nil {
+		http.Error(writer, err.Error(), http.StatusNoContent)
+		return
+	}
+	requestDto := &dto.UpdateUserRequest{}
+	err = json.Unmarshal(body, requestDto)
+	if err != nil {
+		http.Error(writer, err.Error(), http.StatusNoContent)
+		return
+	}
+	rd.User.CurrentUser.Name = requestDto.Name
+	rd.User.CurrentUser.Description = requestDto.Description
+	writer.Write(utils.UnsafeStringToBytes("ok"))
 }
 
 func CreateAdv(rd *utils.RequestData, writer http.ResponseWriter, request *http.Request) {
