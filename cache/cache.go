@@ -12,13 +12,15 @@ import (
 )
 
 type AdvCache struct {
-	currentAdv models.Adv
-	oldAdv     models.Adv
+	CurrentAdv  models.Adv
+	OldAdv      models.Adv
+	UpdateCount atomic.Int64
 }
 
 type UserCache struct {
 	CurrentUser models.User
 	OldUser     models.User
+	UpdateCount atomic.Int64
 }
 
 var users []*UserCache
@@ -30,19 +32,20 @@ func Initialize() {
 		for {
 			time.Sleep(time.Second)
 			for i := 0; i < len(advs); i++ {
-				if advs[i].oldAdv.Id == 0 {
-					err := db.CreateAdv(&advs[i].currentAdv)
+				if advs[i].OldAdv.Id == 0 {
+					err := db.CreateAdv(&advs[i].CurrentAdv)
 					if err == nil {
-						advs[i].oldAdv = advs[i].currentAdv
+						advs[i].OldAdv = advs[i].CurrentAdv
 					} else {
 						//todo
 					}
 					continue
 				}
-				if advs[i].oldAdv != advs[i].currentAdv {
-					err := db.UpdateAdvChanges(&advs[i].oldAdv, &advs[i].currentAdv)
+				if advs[i].UpdateCount.Load() > 0 {
+					err := db.UpdateAdvChanges(&advs[i].OldAdv, &advs[i].CurrentAdv)
 					if err == nil {
-						advs[i].oldAdv = advs[i].currentAdv
+						advs[i].OldAdv = advs[i].CurrentAdv
+						advs[i].UpdateCount.Store(0)
 					} else {
 						//todo
 					}
@@ -59,10 +62,11 @@ func Initialize() {
 					}
 					continue
 				}
-				if !usersAreEqual(&users[i].OldUser, &users[i].CurrentUser) {
+				if users[i].UpdateCount.Load() > 0 {
 					err := db.UpdateUserChanges(&users[i].OldUser, &users[i].CurrentUser)
 					if err == nil {
 						users[i].OldUser = users[i].CurrentUser
+						users[i].UpdateCount.Store(0)
 					} else {
 						//todo
 					}
@@ -112,12 +116,11 @@ func usersAreEqual(u1, u2 *models.User) bool {
 }
 
 func FindUserById(id int64) *models.User {
-	for i := 0; i < len(users); i++ {
-		if users[i].CurrentUser.Id == id {
-			return &users[i].CurrentUser
-		}
+	userCache := FindUserCacheById(id)
+	if userCache == nil {
+		return nil
 	}
-	return nil
+	return &userCache.CurrentUser
 }
 
 func FindUserCacheById(id int64) *UserCache {
@@ -139,17 +142,16 @@ func FindUserCacheByLogin(email string) *UserCache {
 }
 
 func FindAdvById(id int64) *models.Adv {
-	for i := 0; i < len(advs); i++ {
-		if advs[i].currentAdv.Id == id {
-			return &advs[i].currentAdv
-		}
+	advCache := FindAdvCacheById(id)
+	if advCache == nil {
+		return nil
 	}
-	return nil
+	return &advCache.CurrentAdv
 }
 
 func FindAdvCacheById(id int64) *AdvCache {
 	for i := 0; i < len(advs); i++ {
-		if advs[i].currentAdv.Id == id {
+		if advs[i].CurrentAdv.Id == id {
 			return advs[i]
 		}
 	}
@@ -158,20 +160,20 @@ func FindAdvCacheById(id int64) *AdvCache {
 
 func FindAdvs(minDollarPrice int64, maxDollarPrice int64, minLongitude float64,
 	maxLongitude float64, minLatitude float64, maxLatitude float64, countryCode string,
-	location string, offset int, limit int, firstCheap bool) []*models.Adv {
+	location string, offset int, limit int, firstNew bool) []*models.Adv {
 	result := make([]*models.Adv, 0, limit)
 	var i, step int
 	length := len(advs)
-	if firstCheap {
-		i = 0
-		step = 1
-	} else {
+	if firstNew {
 		i = length - 1
 		step = -1
+	} else {
+		i = 0
+		step = 1
 	}
 	var adv *models.Adv
 	for ; i < length && i >= 0; i += step {
-		adv = &advs[i].currentAdv
+		adv = &advs[i].CurrentAdv
 		if adv.DollarPrice >= minDollarPrice && adv.DollarPrice <= maxDollarPrice &&
 			adv.Longitude > minLongitude && adv.Longitude < maxLongitude &&
 			adv.Latitude > minLatitude && adv.Latitude < maxLatitude &&
@@ -181,7 +183,7 @@ func FindAdvs(minDollarPrice int64, maxDollarPrice int64, minLongitude float64,
 				offset--
 				continue
 			}
-			result = append(result, &advs[i].currentAdv)
+			result = append(result, &advs[i].CurrentAdv)
 			if limit > 0 {
 				limit--
 			} else {
@@ -222,32 +224,29 @@ func CreateAdv(user *models.User, request *dto.CreateAdvRequest) {
 		AdminComment: "",
 	}
 	advCache := &AdvCache{
-		currentAdv: *newAdv,
-		oldAdv:     models.Adv{},
+		CurrentAdv: *newAdv,
+		OldAdv:     models.Adv{},
 	}
 	advs = append(advs, advCache)
 
 }
 
-func UpdateAdv(advId int64, request *dto.UpdateAdvRequest) {
-	adv := FindAdvCacheById(advId)
-	if adv == nil {
-		return //todo
-	}
-	adv.currentAdv.OriginLang = request.OriginLang
-	adv.currentAdv.TranslatedBy = request.TranslatedBy
-	adv.currentAdv.TranslatedTo = request.TranslatedTo
-	adv.currentAdv.Title = request.Title
-	adv.currentAdv.Description = request.Description
-	adv.currentAdv.Photos = request.Photos
-	adv.currentAdv.Price = request.Price
-	adv.currentAdv.Currency = request.Currency
-	adv.currentAdv.Country = request.Country
-	adv.currentAdv.City = request.City
-	adv.currentAdv.Address = request.Address
-	adv.currentAdv.Latitude = request.Latitude
-	adv.currentAdv.Longitude = request.Longitude
-	adv.currentAdv.UserComment = request.UserComment
+func UpdateAdv(adv *AdvCache, request *dto.UpdateAdvRequest) {
+	adv.CurrentAdv.OriginLang = request.OriginLang
+	adv.CurrentAdv.TranslatedBy = request.TranslatedBy
+	adv.CurrentAdv.TranslatedTo = request.TranslatedTo
+	adv.CurrentAdv.Title = request.Title
+	adv.CurrentAdv.Description = request.Description
+	adv.CurrentAdv.Photos = request.Photos
+	adv.CurrentAdv.Price = request.Price
+	adv.CurrentAdv.Currency = request.Currency
+	adv.CurrentAdv.Country = request.Country
+	adv.CurrentAdv.City = request.City
+	adv.CurrentAdv.Address = request.Address
+	adv.CurrentAdv.Latitude = request.Latitude
+	adv.CurrentAdv.Longitude = request.Longitude
+	adv.CurrentAdv.UserComment = request.UserComment
+	adv.UpdateCount.Add(1)
 }
 
 func CreateUser(request *dto.RegisterRequest) {

@@ -8,6 +8,7 @@ import (
 	"realty/cache"
 	"realty/dto"
 	"realty/utils"
+	"strconv"
 )
 
 func TextError(recovered any, rd *utils.RequestData, writer http.ResponseWriter, request *http.Request) {
@@ -82,6 +83,7 @@ func UpdatePassword(rd *utils.RequestData, writer http.ResponseWriter, request *
 	}
 	rd.User.CurrentUser.PasswordHash = utils.GeneratePasswordHash(requestDto.NewPassword)
 	rd.User.CurrentUser.SessionSecret = utils.GenerateSessionsSecret()
+	rd.User.UpdateCount.Add(1)
 	writer.Write(utils.UnsafeStringToBytes("ok"))
 }
 
@@ -105,6 +107,7 @@ func UpdateUser(rd *utils.RequestData, writer http.ResponseWriter, request *http
 	}
 	rd.User.CurrentUser.Name = requestDto.Name
 	rd.User.CurrentUser.Description = requestDto.Description
+	rd.User.UpdateCount.Add(1)
 	writer.Write(utils.UnsafeStringToBytes("ok"))
 }
 
@@ -129,7 +132,40 @@ func GetUsersAdvList(rd *utils.RequestData, writer http.ResponseWriter, request 
 }
 
 func UpdateAdv(rd *utils.RequestData, writer http.ResponseWriter, request *http.Request) {
-
+	body, err := io.ReadAll(request.Body)
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			//todo
+		}
+	}(request.Body)
+	if err != nil {
+		http.Error(writer, err.Error(), http.StatusNoContent)
+		return
+	}
+	requestDto := &dto.UpdateAdvRequest{}
+	err = json.Unmarshal(body, requestDto)
+	if err != nil {
+		http.Error(writer, err.Error(), http.StatusNoContent)
+		return
+	}
+	advIdStr := request.PathValue("id")
+	advId, errConv := strconv.ParseInt(advIdStr, 10, 64)
+	if errConv != nil {
+		http.Error(writer, errConv.Error(), http.StatusBadRequest)
+		return
+	}
+	adv := cache.FindAdvCacheById(advId)
+	if adv == nil {
+		http.Error(writer, "not found", http.StatusNotFound)
+		return
+	}
+	if adv.CurrentAdv.UserId != rd.User.CurrentUser.Id {
+		http.Error(writer, "forbidden", http.StatusForbidden)
+		return
+	}
+	cache.UpdateAdv(adv, requestDto)
+	writer.Write(utils.UnsafeStringToBytes("ok"))
 }
 
 func DeleteAdv(rd *utils.RequestData, writer http.ResponseWriter, request *http.Request) {
