@@ -52,7 +52,8 @@ func LogoutMe(rd *utils.RequestData, writer http.ResponseWriter, request *http.R
 }
 
 func LogoutAll(rd *utils.RequestData, writer http.ResponseWriter, request *http.Request) {
-
+	cache.UpdateSessionSecret(rd.User)
+	writer.Write(utils.UnsafeStringToBytes("ok"))
 }
 
 func Registration(rd *utils.RequestData, writer http.ResponseWriter, request *http.Request) {
