@@ -45,27 +45,17 @@ func Initialize() {
 					if err == nil {
 						adv.Deleted = true
 						adv.ToDelete = false
-					} else {
-						//todo
 					}
-					continue
-				}
-				if adv.OldAdv.Id == 0 {
+				} else if adv.OldAdv.Id == 0 {
 					err := db.CreateAdv(&adv.CurrentAdv)
 					if err == nil {
 						adv.OldAdv = adv.CurrentAdv
-					} else {
-						//todo
 					}
-					continue
-				}
-				if adv.UpdateCount > 0 {
+				} else if adv.UpdateCount > 0 {
 					err := db.UpdateAdvChanges(&adv.OldAdv, &adv.CurrentAdv)
 					if err == nil {
 						adv.OldAdv = adv.CurrentAdv
 						adv.UpdateCount = 0
-					} else {
-						//todo
 					}
 				}
 				adv.mu.Unlock()
@@ -80,28 +70,17 @@ func Initialize() {
 					if err == nil {
 						user.Deleted = true
 						user.ToDelete = false
-					} else {
-						//todo
 					}
-					continue
-				}
-				if user.OldUser.Id == 0 {
+				} else if user.OldUser.Id == 0 {
 					err := db.CreateUser(&user.CurrentUser)
 					if err == nil {
 						user.OldUser = user.CurrentUser
-					} else {
-						//todo
 					}
-					continue
-				}
-
-				if user.UpdateCount > 0 {
+				} else if user.UpdateCount > 0 {
 					err := db.UpdateUserChanges(&user.OldUser, &user.CurrentUser)
 					if err == nil {
 						user.OldUser = user.CurrentUser
 						user.UpdateCount++
-					} else {
-						//todo
 					}
 				}
 				user.mu.Unlock()
@@ -261,7 +240,9 @@ func UpdateAdv(adv *AdvCache, request *dto.UpdateAdvRequest) {
 func DeleteAdv(adv *AdvCache) {
 	adv.mu.Lock()
 	defer adv.mu.Unlock()
-	adv.ToDelete = true
+	if !adv.Deleted {
+		adv.ToDelete = true
+	}
 }
 
 func CreateUser(request *dto.RegisterRequest) {
@@ -301,8 +282,18 @@ func UpdatePassword(userCache *UserCache, request *dto.UpdatePasswordRequest) {
 	userCache.UpdateCount++
 }
 
+func UpdateSessionSecret(userCache *UserCache) {
+	userCache.mu.Lock()
+	defer userCache.mu.Unlock()
+	userCache.CurrentUser.SessionSecret = utils.GenerateSessionsSecret()
+	userCache.UpdateCount++
+}
+
 func DeleteUser(user *UserCache) {
 	user.mu.Lock()
 	defer user.mu.Unlock()
-	user.ToDelete = true
+	if !user.Deleted {
+		user.ToDelete = true
+	}
+
 }
