@@ -181,7 +181,7 @@ func FindAdvs(minDollarPrice int64, maxDollarPrice int64, minLongitude float64,
 			continue
 		}
 		adv = &advs[i].CurrentAdv
-		if adv.Id != 0 && adv.DollarPrice >= minDollarPrice && adv.DollarPrice <= maxDollarPrice &&
+		if adv.DollarPrice >= minDollarPrice && adv.DollarPrice <= maxDollarPrice &&
 			adv.Longitude > minLongitude && adv.Longitude < maxLongitude &&
 			adv.Latitude > minLatitude && adv.Latitude < maxLatitude &&
 			(countryCode == "" || adv.Country == countryCode) &&
