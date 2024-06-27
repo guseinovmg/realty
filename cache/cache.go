@@ -1,26 +1,31 @@
 package cache
 
 import (
-	"bytes"
 	"realty/db"
 	"realty/dto"
 	"realty/models"
 	"realty/utils"
 	"strings"
-	"sync/atomic"
+	"sync"
 	"time"
 )
 
 type AdvCache struct {
 	CurrentAdv  models.Adv
 	OldAdv      models.Adv
-	UpdateCount atomic.Int64
+	UpdateCount int64
+	ToDelete    bool
+	Deleted     bool
+	mu          sync.RWMutex
 }
 
 type UserCache struct {
 	CurrentUser models.User
 	OldUser     models.User
-	UpdateCount atomic.Int64
+	UpdateCount int64
+	ToDelete    bool
+	Deleted     bool
+	mu          sync.RWMutex
 }
 
 var users []*UserCache
@@ -31,88 +36,78 @@ func Initialize() {
 	go func() {
 		for {
 			time.Sleep(time.Second)
+			var adv *AdvCache
 			for i := 0; i < len(advs); i++ {
-				if advs[i].OldAdv.Id == 0 {
-					err := db.CreateAdv(&advs[i].CurrentAdv)
+				adv = advs[i]
+				adv.mu.Lock()
+				if adv.ToDelete {
+					err := db.DeleteAdv(adv.CurrentAdv.Id)
 					if err == nil {
-						advs[i].OldAdv = advs[i].CurrentAdv
+						adv.Deleted = true
+						adv.ToDelete = false
 					} else {
 						//todo
 					}
 					continue
 				}
-				if advs[i].UpdateCount.Load() > 0 {
-					err := db.UpdateAdvChanges(&advs[i].OldAdv, &advs[i].CurrentAdv)
+				if adv.OldAdv.Id == 0 {
+					err := db.CreateAdv(&adv.CurrentAdv)
 					if err == nil {
-						advs[i].OldAdv = advs[i].CurrentAdv
-						advs[i].UpdateCount.Store(0)
+						adv.OldAdv = adv.CurrentAdv
+					} else {
+						//todo
+					}
+					continue
+				}
+				if adv.UpdateCount > 0 {
+					err := db.UpdateAdvChanges(&adv.OldAdv, &adv.CurrentAdv)
+					if err == nil {
+						adv.OldAdv = adv.CurrentAdv
+						adv.UpdateCount = 0
 					} else {
 						//todo
 					}
 				}
+				adv.mu.Unlock()
 			}
 			time.Sleep(time.Second)
+			var user *UserCache
 			for i := 0; i < len(users); i++ {
-				if users[i].OldUser.Id == 0 {
-					err := db.CreateUser(&users[i].CurrentUser)
+				user = users[i]
+				user.mu.Lock()
+				if user.ToDelete {
+					err := db.DeleteAdv(user.CurrentUser.Id)
 					if err == nil {
-						users[i].OldUser = users[i].CurrentUser
+						user.Deleted = true
+						user.ToDelete = false
 					} else {
 						//todo
 					}
 					continue
 				}
-				if users[i].UpdateCount.Load() > 0 {
-					err := db.UpdateUserChanges(&users[i].OldUser, &users[i].CurrentUser)
+				if user.OldUser.Id == 0 {
+					err := db.CreateUser(&user.CurrentUser)
 					if err == nil {
-						users[i].OldUser = users[i].CurrentUser
-						users[i].UpdateCount.Store(0)
+						user.OldUser = user.CurrentUser
+					} else {
+						//todo
+					}
+					continue
+				}
+
+				if user.UpdateCount > 0 {
+					err := db.UpdateUserChanges(&user.OldUser, &user.CurrentUser)
+					if err == nil {
+						user.OldUser = user.CurrentUser
+						user.UpdateCount++
 					} else {
 						//todo
 					}
 				}
+				user.mu.Unlock()
 			}
-
 		}
 	}()
-}
-
-func usersAreEqual(u1, u2 *models.User) bool {
-	if u1.Id != u2.Id {
-		return false
-	}
-	if u1.Email != u2.Email {
-		return false
-	}
-	if u1.Name != u2.Name {
-		return false
-	}
-	if !bytes.Equal(u1.PasswordHash, u2.PasswordHash) {
-		return false
-	}
-	if !bytes.Equal(u1.SessionSecret[:], u2.SessionSecret[:]) {
-		return false
-	}
-	if u1.InviteId != u2.InviteId {
-		return false
-	}
-	if u1.Trusted != u2.Trusted {
-		return false
-	}
-	if u1.Enabled != u2.Enabled {
-		return false
-	}
-	if u1.Balance != u2.Balance {
-		return false
-	}
-	if !u1.Created.Equal(u2.Created) {
-		return false
-	}
-	if u1.Description != u2.Description {
-		return false
-	}
-
-	return true
 }
 
 func FindUserById(id int64) *models.User {
@@ -126,6 +121,9 @@ func FindUserById(id int64) *models.User {
 func FindUserCacheById(id int64) *UserCache {
 	for i := 0; i < len(users); i++ {
 		if users[i].CurrentUser.Id == id {
+			if users[i].ToDelete || users[i].Deleted {
+				return nil
+			}
 			return users[i]
 		}
 	}
@@ -135,6 +133,9 @@ func FindUserCacheById(id int64) *UserCache {
 func FindUserCacheByLogin(email string) *UserCache {
 	for i := 0; i < len(users); i++ {
 		if users[i].CurrentUser.Email == email {
+			if users[i].ToDelete || users[i].Deleted {
+				return nil
+			}
 			return users[i]
 		}
 	}
@@ -152,6 +153,9 @@ func FindAdvById(id int64) *models.Adv {
 func FindAdvCacheById(id int64) *AdvCache {
 	for i := 0; i < len(advs); i++ {
 		if advs[i].CurrentAdv.Id == id {
+			if advs[i].ToDelete || advs[i].Deleted {
+				return nil
+			}
 			return advs[i]
 		}
 	}
@@ -173,8 +177,11 @@ func FindAdvs(minDollarPrice int64, maxDollarPrice int64, minLongitude float64,
 	}
 	var adv *models.Adv
 	for ; i < length && i >= 0; i += step {
+		if advs[i].ToDelete || advs[i].Deleted {
+			continue
+		}
 		adv = &advs[i].CurrentAdv
-		if adv.DollarPrice >= minDollarPrice && adv.DollarPrice <= maxDollarPrice &&
+		if adv.Id != 0 && adv.DollarPrice >= minDollarPrice && adv.DollarPrice <= maxDollarPrice &&
 			adv.Longitude > minLongitude && adv.Longitude < maxLongitude &&
 			adv.Latitude > minLatitude && adv.Latitude < maxLatitude &&
 			(countryCode == "" || adv.Country == countryCode) &&
@@ -183,7 +190,7 @@ func FindAdvs(minDollarPrice int64, maxDollarPrice int64, minLongitude float64,
 				offset--
 				continue
 			}
-			result = append(result, &advs[i].CurrentAdv)
+			result = append(result, adv)
 			if limit > 0 {
 				limit--
 			} else {
@@ -217,7 +224,7 @@ func CreateAdv(user *models.User, request *dto.CreateAdvRequest) {
 		Address:      request.Address,
 		Latitude:     request.Latitude,
 		Longitude:    request.Longitude,
-		Watches:      atomic.Int64{},
+		Watches:      0,
 		PaidAdv:      0,
 		SeVisible:    true,
 		UserComment:  request.UserComment,
@@ -232,6 +239,8 @@ func CreateAdv(user *models.User, request *dto.CreateAdvRequest) {
 }
 
 func UpdateAdv(adv *AdvCache, request *dto.UpdateAdvRequest) {
+	adv.mu.Lock()
+	defer adv.mu.Unlock()
 	adv.CurrentAdv.OriginLang = request.OriginLang
 	adv.CurrentAdv.TranslatedBy = request.TranslatedBy
 	adv.CurrentAdv.TranslatedTo = request.TranslatedTo
@@ -246,7 +255,13 @@ func UpdateAdv(adv *AdvCache, request *dto.UpdateAdvRequest) {
 	adv.CurrentAdv.Latitude = request.Latitude
 	adv.CurrentAdv.Longitude = request.Longitude
 	adv.CurrentAdv.UserComment = request.UserComment
-	adv.UpdateCount.Add(1)
+	adv.UpdateCount++
+}
+
+func DeleteAdv(adv *AdvCache) {
+	adv.mu.Lock()
+	defer adv.mu.Unlock()
+	adv.ToDelete = true
 }
 
 func CreateUser(request *dto.RegisterRequest) {
@@ -268,4 +283,26 @@ func CreateUser(request *dto.RegisterRequest) {
 		OldUser:     models.User{},
 	}
 	users = append(users, userCache)
+}
+
+func UpdateUser(userCache *UserCache, request *dto.UpdateUserRequest) {
+	userCache.mu.Lock()
+	defer userCache.mu.Unlock()
+	userCache.CurrentUser.Name = request.Name
+	userCache.CurrentUser.Description = request.Description
+	userCache.UpdateCount++
+}
+
+func UpdatePassword(userCache *UserCache, request *dto.UpdatePasswordRequest) {
+	userCache.mu.Lock()
+	defer userCache.mu.Unlock()
+	userCache.CurrentUser.PasswordHash = utils.GeneratePasswordHash(request.NewPassword)
+	userCache.CurrentUser.SessionSecret = utils.GenerateSessionsSecret()
+	userCache.UpdateCount++
+}
+
+func DeleteUser(user *UserCache) {
+	user.mu.Lock()
+	defer user.mu.Unlock()
+	user.ToDelete = true
 }

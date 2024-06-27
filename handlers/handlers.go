@@ -81,9 +81,7 @@ func UpdatePassword(rd *utils.RequestData, writer http.ResponseWriter, request *
 		http.Error(writer, "неверный пароль", http.StatusBadRequest)
 		return
 	}
-	rd.User.CurrentUser.PasswordHash = utils.GeneratePasswordHash(requestDto.NewPassword)
-	rd.User.CurrentUser.SessionSecret = utils.GenerateSessionsSecret()
-	rd.User.UpdateCount.Add(1)
+	cache.UpdatePassword(rd.User, requestDto)
 	writer.Write(utils.UnsafeStringToBytes("ok"))
 }
 
@@ -105,9 +103,7 @@ func UpdateUser(rd *utils.RequestData, writer http.ResponseWriter, request *http
 		http.Error(writer, err.Error(), http.StatusNoContent)
 		return
 	}
-	rd.User.CurrentUser.Name = requestDto.Name
-	rd.User.CurrentUser.Description = requestDto.Description
-	rd.User.UpdateCount.Add(1)
+	cache.UpdateUser(rd.User, requestDto)
 	writer.Write(utils.UnsafeStringToBytes("ok"))
 }
 
@@ -169,5 +165,21 @@ func UpdateAdv(rd *utils.RequestData, writer http.ResponseWriter, request *http.
 }
 
 func DeleteAdv(rd *utils.RequestData, writer http.ResponseWriter, request *http.Request) {
-
+	advIdStr := request.PathValue("id")
+	advId, errConv := strconv.ParseInt(advIdStr, 10, 64)
+	if errConv != nil {
+		http.Error(writer, errConv.Error(), http.StatusBadRequest)
+		return
+	}
+	adv := cache.FindAdvCacheById(advId)
+	if adv == nil {
+		http.Error(writer, "not found", http.StatusNotFound)
+		return
+	}
+	if adv.CurrentAdv.UserId != rd.User.CurrentUser.Id {
+		http.Error(writer, "forbidden", http.StatusForbidden)
+		return
+	}
+	cache.DeleteAdv(adv)
+	writer.Write(utils.UnsafeStringToBytes("ok"))
 }

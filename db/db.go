@@ -40,7 +40,7 @@ func CreateAdv(adv *models.Adv) error {
 		adv.Id, adv.UserId, adv.Created, adv.Updated, adv.Approved, adv.Lang,
 		adv.OriginLang, adv.Title, adv.Description, adv.Price, adv.Currency,
 		adv.Country, adv.City, adv.Address, adv.Latitude, adv.Longitude,
-		adv.Watches.Load(), adv.PaidAdv, adv.SeVisible, adv.UserComment,
+		adv.Watches, adv.PaidAdv, adv.SeVisible, adv.UserComment,
 		adv.AdminComment, adv.TranslatedTo, adv.Photos,
 	)
 	if err != nil {
@@ -125,7 +125,7 @@ func UpdateAdv(adv *models.Adv) error {
 		adv.UserId, adv.Created, adv.Updated, adv.Approved, adv.Lang,
 		adv.OriginLang, adv.Title, adv.Description, adv.Price, adv.Currency,
 		adv.Country, adv.City, adv.Address, adv.Latitude, adv.Longitude,
-		adv.Watches.Load(), adv.PaidAdv, adv.SeVisible, adv.UserComment,
+		adv.Watches, adv.PaidAdv, adv.SeVisible, adv.UserComment,
 		adv.AdminComment, adv.TranslatedTo, adv.Photos, adv.Id,
 	)
 
@@ -198,7 +198,7 @@ func UpdateAdvChanges(oldAdv, newAdv *models.Adv) error {
 	}
 	if oldAdv.Watches != newAdv.Watches {
 		setClauses = append(setClauses, "watches = ?")
-		args = append(args, newAdv.Watches.Load())
+		args = append(args, newAdv.Watches)
 	}
 	if oldAdv.PaidAdv != newAdv.PaidAdv {
 		setClauses = append(setClauses, "paid_adv = ?")

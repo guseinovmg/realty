@@ -1,7 +1,6 @@
 package models
 
 import (
-	"sync/atomic"
 	"time"
 )
 
@@ -52,7 +51,7 @@ type Adv struct {
 	Address      string
 	Latitude     float64
 	Longitude    float64
-	Watches      atomic.Int64
+	Watches      int64
 	PaidAdv      int64
 	SeVisible    bool
 	UserComment  string
