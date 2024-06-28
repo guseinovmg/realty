@@ -40,22 +40,24 @@ func Initialize() {
 			for i := 0; i < len(advs); i++ {
 				adv = advs[i]
 				adv.mu.Lock()
-				if adv.ToDelete {
-					err := db.DeleteAdv(adv.CurrentAdv.Id)
-					if err == nil {
-						adv.Deleted = true
-						adv.ToDelete = false
-					}
-				} else if adv.OldAdv.Id == 0 {
-					err := db.CreateAdv(&adv.CurrentAdv)
-					if err == nil {
-						adv.OldAdv = adv.CurrentAdv
-					}
-				} else if adv.UpdateCount > 0 {
-					err := db.UpdateAdvChanges(&adv.OldAdv, &adv.CurrentAdv)
-					if err == nil {
-						adv.OldAdv = adv.CurrentAdv
-						adv.UpdateCount = 0
+				if !adv.Deleted {
+					if adv.ToDelete {
+						err := db.DeleteAdv(adv.CurrentAdv.Id)
+						if err == nil {
+							adv.Deleted = true
+							adv.ToDelete = false
+						}
+					} else if adv.OldAdv.Id == 0 {
+						err := db.CreateAdv(&adv.CurrentAdv)
+						if err == nil {
+							adv.OldAdv = adv.CurrentAdv
+						}
+					} else if adv.UpdateCount > 0 {
+						err := db.UpdateAdvChanges(&adv.OldAdv, &adv.CurrentAdv)
+						if err == nil {
+							adv.OldAdv = adv.CurrentAdv
+							adv.UpdateCount = 0
+						}
 					}
 				}
 				adv.mu.Unlock()
@@ -65,22 +67,24 @@ func Initialize() {
 			for i := 0; i < len(users); i++ {
 				user = users[i]
 				user.mu.Lock()
-				if user.ToDelete {
-					err := db.DeleteAdv(user.CurrentUser.Id)
-					if err == nil {
-						user.Deleted = true
-						user.ToDelete = false
-					}
-				} else if user.OldUser.Id == 0 {
-					err := db.CreateUser(&user.CurrentUser)
-					if err == nil {
-						user.OldUser = user.CurrentUser
-					}
-				} else if user.UpdateCount > 0 {
-					err := db.UpdateUserChanges(&user.OldUser, &user.CurrentUser)
-					if err == nil {
-						user.OldUser = user.CurrentUser
-						user.UpdateCount++
+				if !user.Deleted {
+					if user.ToDelete {
+						err := db.DeleteAdv(user.CurrentUser.Id)
+						if err == nil {
+							user.Deleted = true
+							user.ToDelete = false
+						}
+					} else if user.OldUser.Id == 0 {
+						err := db.CreateUser(&user.CurrentUser)
+						if err == nil {
+							user.OldUser = user.CurrentUser
+						}
+					} else if user.UpdateCount > 0 {
+						err := db.UpdateUserChanges(&user.OldUser, &user.CurrentUser)
+						if err == nil {
+							user.OldUser = user.CurrentUser
+							user.UpdateCount++
+						}
 					}
 				}
 				user.mu.Unlock()
