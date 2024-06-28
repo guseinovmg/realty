@@ -105,7 +105,6 @@ func Initialize() {
 	toSave = make(chan SaveCache, 200)
 	go func() {
 		for saveCache := range toSave {
-			time.Sleep(time.Millisecond * 100)
 			err := saveCache.Save()
 			if err != nil {
 				time.Sleep(time.Second)
