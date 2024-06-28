@@ -7,16 +7,17 @@ import (
 	"net/http"
 	"realty/cache"
 	"realty/dto"
+	"realty/middleware"
 	"realty/utils"
 	"strconv"
 )
 
-func TextError(recovered any, rd *utils.RequestData, writer http.ResponseWriter, request *http.Request) {
+func TextError(recovered any, rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) {
 	writer.WriteHeader(500)
 	writer.Write(utils.UnsafeStringToBytes("Internal error"))
 }
 
-func Login(rd *utils.RequestData, writer http.ResponseWriter, request *http.Request) {
+func Login(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) {
 	body, err := io.ReadAll(request.Body)
 	if err != nil {
 		rd.Stop()
@@ -38,7 +39,7 @@ func Login(rd *utils.RequestData, writer http.ResponseWriter, request *http.Requ
 	if !bytes.Equal(utils.GeneratePasswordHash(login.Password), userCache.CurrentUser.PasswordHash) {
 		rd.Stop()
 		writer.WriteHeader(401)
-		writer.Write(utils.UnsafeStringToBytes("пароль не верен"))
+		writer.Write(utils.UnsafeStringToBytes("неверный пароль"))
 		return
 	}
 
@@ -47,20 +48,20 @@ func Login(rd *utils.RequestData, writer http.ResponseWriter, request *http.Requ
 	writer.Write(utils.UnsafeStringToBytes("OK"))
 }
 
-func LogoutMe(rd *utils.RequestData, writer http.ResponseWriter, request *http.Request) {
+func LogoutMe(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) {
 
 }
 
-func LogoutAll(rd *utils.RequestData, writer http.ResponseWriter, request *http.Request) {
+func LogoutAll(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) {
 	cache.UpdateSessionSecret(rd.User)
 	writer.Write(utils.UnsafeStringToBytes("ok"))
 }
 
-func Registration(rd *utils.RequestData, writer http.ResponseWriter, request *http.Request) {
+func Registration(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) {
 
 }
 
-func UpdatePassword(rd *utils.RequestData, writer http.ResponseWriter, request *http.Request) {
+func UpdatePassword(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) {
 	body, err := io.ReadAll(request.Body)
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()
@@ -86,7 +87,7 @@ func UpdatePassword(rd *utils.RequestData, writer http.ResponseWriter, request *
 	writer.Write(utils.UnsafeStringToBytes("ok"))
 }
 
-func UpdateUser(rd *utils.RequestData, writer http.ResponseWriter, request *http.Request) {
+func UpdateUser(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) {
 	body, err := io.ReadAll(request.Body)
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()
@@ -108,27 +109,27 @@ func UpdateUser(rd *utils.RequestData, writer http.ResponseWriter, request *http
 	writer.Write(utils.UnsafeStringToBytes("ok"))
 }
 
-func CreateAdv(rd *utils.RequestData, writer http.ResponseWriter, request *http.Request) {
+func CreateAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) {
 
 }
 
-func GetAdv(rd *utils.RequestData, writer http.ResponseWriter, request *http.Request) {
+func GetAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) {
 
 }
 
-func GetAdvList(rd *utils.RequestData, writer http.ResponseWriter, request *http.Request) {
+func GetAdvList(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) {
 
 }
 
-func GetUsersAdv(rd *utils.RequestData, writer http.ResponseWriter, request *http.Request) {
+func GetUsersAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) {
 
 }
 
-func GetUsersAdvList(rd *utils.RequestData, writer http.ResponseWriter, request *http.Request) {
+func GetUsersAdvList(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) {
 
 }
 
-func UpdateAdv(rd *utils.RequestData, writer http.ResponseWriter, request *http.Request) {
+func UpdateAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) {
 	body, err := io.ReadAll(request.Body)
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()
@@ -165,7 +166,7 @@ func UpdateAdv(rd *utils.RequestData, writer http.ResponseWriter, request *http.
 	writer.Write(utils.UnsafeStringToBytes("ok"))
 }
 
-func DeleteAdv(rd *utils.RequestData, writer http.ResponseWriter, request *http.Request) {
+func DeleteAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) {
 	advIdStr := request.PathValue("id")
 	advId, errConv := strconv.ParseInt(advIdStr, 10, 64)
 	if errConv != nil {

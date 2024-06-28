@@ -7,11 +7,10 @@ import (
 	"encoding/binary"
 	"net/http"
 	"realty/cache"
-	"realty/utils"
 	"time"
 )
 
-func Auth(rd *utils.RequestData, writer http.ResponseWriter, request *http.Request) {
+func Auth(rd *RequestData, writer http.ResponseWriter, request *http.Request) {
 	tokenHeader := request.Header.Get("Authorization")
 	if tokenHeader == "" {
 		writer.WriteHeader(http.StatusUnauthorized)
@@ -24,24 +23,19 @@ func Auth(rd *utils.RequestData, writer http.ResponseWriter, request *http.Reque
 		rd.Stop()
 		return
 	}
-	if len(tokenBytes) != 40 {
+	if len(tokenBytes) != 36 {
 		writer.WriteHeader(http.StatusUnauthorized)
 		rd.Stop()
 		return
 	}
-	tokenBytesArr := [40]byte(tokenBytes)
-	userId, expireTime, err := UnpackToken(UnShuffle(tokenBytesArr)) //todo проверить как работает такое приведение
-	if err != nil {
+	tokenBytesArr := [36]byte(tokenBytes)
+	userId, expireTime := UnpackToken(UnShuffle(tokenBytesArr)) //todo проверить как работает такое приведение
+	if time.Now().UnixMicro() > expireTime {
 		writer.WriteHeader(http.StatusUnauthorized)
 		rd.Stop()
 		return
 	}
-	if time.Now().After(expireTime) {
-		writer.WriteHeader(http.StatusUnauthorized)
-		rd.Stop()
-		return
-	}
-	if time.Now().Add(time.Hour * 24 * 30).Before(expireTime) {
+	if time.Now().Add(time.Hour*24*30).UnixMicro() < expireTime {
 		writer.WriteHeader(http.StatusUnauthorized)
 		rd.Stop()
 		return
@@ -65,59 +59,50 @@ func Auth(rd *utils.RequestData, writer http.ResponseWriter, request *http.Reque
 	rd.User = userCache
 }
 
-func SetAuthCookie(rd *utils.RequestData, writer http.ResponseWriter, request *http.Request) {
-	newTokenBytes := CreateToken(rd.User.CurrentUser.Id, time.Now().Add(time.Hour*24*3), rd.User.CurrentUser.SessionSecret)
+func SetAuthCookie(rd *RequestData, writer http.ResponseWriter, request *http.Request) {
+	newTokenBytes := CreateToken(rd.User.CurrentUser.Id, time.Now().Add(time.Hour*24*3).UnixMicro(), rd.User.CurrentUser.SessionSecret)
 	newTokenBytes = Shuffle(newTokenBytes)
 	newTokenStr := base64.StdEncoding.EncodeToString(newTokenBytes[:])
 	writer.Header().Set("Cookie", newTokenStr)
 }
 
-func CreateToken(userId int64, expireTime time.Time, sessionSecret [24]byte) [40]byte {
-	userIdBytes := make([]byte, 8)
+func CreateToken(userId int64, microseconds int64, sessionSecret [24]byte) [36]byte {
+	userIdBytes, expireTimeBytes := make([]byte, 8), make([]byte, 8)
 	binary.LittleEndian.PutUint64(userIdBytes, uint64(userId))
-	expireTimeBytes, _ := expireTime.MarshalBinary()
-	resultBytes := [40]byte{}
+	binary.LittleEndian.PutUint64(expireTimeBytes, uint64(microseconds))
+	resultBytes := [36]byte{}
 	for i := 0; i < 8; i++ {
 		resultBytes[i] = userIdBytes[i]
 	}
-	for i := 8; i < 24 && i < len(expireTimeBytes)+8; i++ {
+	for i := 8; i < 16; i++ {
 		resultBytes[i] = expireTimeBytes[i-8]
 	}
 	hash := sha1.New()
 	hash.Write(sessionSecret[:])
-	hash.Write(resultBytes[:24])
+	hash.Write(resultBytes[:16])
 	hashBytes := hash.Sum(nil)
-	for i := 24; i < 40; i++ {
-		resultBytes[i] = hashBytes[i-24]
+	for i := 16; i < 36; i++ {
+		resultBytes[i] = hashBytes[i-16]
 	}
 	return resultBytes
 }
 
-func UnpackToken(inputBytes [40]byte) (userId int64, expireTime time.Time, err error) {
+func UnpackToken(inputBytes [36]byte) (userId int64, microseconds int64) {
 	userId = int64(binary.LittleEndian.Uint64(inputBytes[0:8]))
-	var timeBuf []byte
-	if inputBytes[8] == 1 { //todo надо решить по таймзоне
-		timeBuf = inputBytes[8:23]
-	} else {
-		timeBuf = inputBytes[8:24]
-	}
-	err = expireTime.UnmarshalBinary(timeBuf)
-	if err != nil {
-		return 0, time.Time{}, err
-	}
-	return userId, expireTime, nil
+	microseconds = int64(binary.LittleEndian.Uint64(inputBytes[8:16]))
+	return userId, microseconds
 }
 
-func IsValidToken(inputBytes [40]byte, sessionSecret [24]byte) bool {
+func IsValidToken(inputBytes [36]byte, sessionSecret [24]byte) bool {
 	hash := sha1.New()
 	hash.Write(sessionSecret[:])
-	hash.Write(inputBytes[:24])
-	hashBytes := hash.Sum(nil)[:16]
-	return bytes.Equal(inputBytes[24:], hashBytes)
+	hash.Write(inputBytes[:16])
+	hashBytes := hash.Sum(nil)[:]
+	return bytes.Equal(inputBytes[16:], hashBytes)
 }
 
-func Shuffle(arr [40]byte) [40]byte {
-	return [40]byte{
+func Shuffle(arr [36]byte) [36]byte {
+	return [36]byte{
 		arr[35],
 		arr[10],
 		arr[6],
@@ -154,15 +139,11 @@ func Shuffle(arr [40]byte) [40]byte {
 		arr[32],
 		arr[16],
 		arr[1],
-		arr[36],
-		arr[37],
-		arr[38],
-		arr[39],
 	}
 }
 
-func UnShuffle(arr [40]byte) [40]byte {
-	return [40]byte{
+func UnShuffle(arr [36]byte) [36]byte {
+	return [36]byte{
 		arr[30],
 		arr[35],
 		arr[7],
@@ -199,9 +180,5 @@ func UnShuffle(arr [40]byte) [40]byte {
 		arr[29],
 		arr[31],
 		arr[0],
-		arr[36],
-		arr[37],
-		arr[38],
-		arr[39],
 	}
 }
