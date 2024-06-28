@@ -10,6 +10,10 @@ import (
 	"time"
 )
 
+type SaveCache interface {
+	Save() error
+}
+
 type AdvCache struct {
 	CurrentAdv  models.Adv
 	OldAdv      models.Adv
@@ -17,6 +21,38 @@ type AdvCache struct {
 	ToDelete    bool
 	Deleted     bool
 	mu          sync.RWMutex
+}
+
+func (adv *AdvCache) Save() error {
+	adv.mu.Lock()
+	defer adv.mu.Unlock()
+	if !adv.Deleted {
+		if adv.ToDelete {
+			err := db.DeleteAdv(adv.CurrentAdv.Id)
+			if err == nil {
+				adv.Deleted = true
+				adv.ToDelete = false
+			} else {
+				return err
+			}
+		} else if adv.OldAdv.Id == 0 {
+			err := db.CreateAdv(&adv.CurrentAdv)
+			if err == nil {
+				adv.OldAdv = adv.CurrentAdv
+			} else {
+				return err
+			}
+		} else if adv.UpdateCount > 0 {
+			err := db.UpdateAdvChanges(&adv.OldAdv, &adv.CurrentAdv)
+			if err == nil {
+				adv.OldAdv = adv.CurrentAdv
+				adv.UpdateCount = 0
+			} else {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 type UserCache struct {
@@ -28,68 +64,64 @@ type UserCache struct {
 	mu          sync.RWMutex
 }
 
+func (user *UserCache) Save() error {
+	user.mu.Lock()
+	defer user.mu.Unlock()
+	if !user.Deleted {
+		if user.ToDelete {
+			err := db.DeleteAdv(user.CurrentUser.Id)
+			if err == nil {
+				user.Deleted = true
+				user.ToDelete = false
+			} else {
+				return err
+			}
+		} else if user.OldUser.Id == 0 {
+			err := db.CreateUser(&user.CurrentUser)
+			if err == nil {
+				user.OldUser = user.CurrentUser
+			} else {
+				return err
+			}
+		} else if user.UpdateCount > 0 {
+			err := db.UpdateUserChanges(&user.OldUser, &user.CurrentUser)
+			if err == nil {
+				user.OldUser = user.CurrentUser
+				user.UpdateCount = 0
+			} else {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 var users []*UserCache
 var advs []*AdvCache
+var toSave chan SaveCache
 
 func Initialize() {
 	db.ReadDb()
+	toSave = make(chan SaveCache, 200)
 	go func() {
-		for {
-			time.Sleep(time.Second)
-			var adv *AdvCache
-			for i := 0; i < len(advs); i++ {
-				adv = advs[i]
-				adv.mu.Lock()
-				if !adv.Deleted {
-					if adv.ToDelete {
-						err := db.DeleteAdv(adv.CurrentAdv.Id)
-						if err == nil {
-							adv.Deleted = true
-							adv.ToDelete = false
-						}
-					} else if adv.OldAdv.Id == 0 {
-						err := db.CreateAdv(&adv.CurrentAdv)
-						if err == nil {
-							adv.OldAdv = adv.CurrentAdv
-						}
-					} else if adv.UpdateCount > 0 {
-						err := db.UpdateAdvChanges(&adv.OldAdv, &adv.CurrentAdv)
-						if err == nil {
-							adv.OldAdv = adv.CurrentAdv
-							adv.UpdateCount = 0
-						}
-					}
-				}
-				adv.mu.Unlock()
-			}
-			time.Sleep(time.Second)
-			var user *UserCache
-			for i := 0; i < len(users); i++ {
-				user = users[i]
-				user.mu.Lock()
-				if !user.Deleted {
-					if user.ToDelete {
-						err := db.DeleteAdv(user.CurrentUser.Id)
-						if err == nil {
-							user.Deleted = true
-							user.ToDelete = false
-						}
-					} else if user.OldUser.Id == 0 {
-						err := db.CreateUser(&user.CurrentUser)
-						if err == nil {
-							user.OldUser = user.CurrentUser
-						}
-					} else if user.UpdateCount > 0 {
-						err := db.UpdateUserChanges(&user.OldUser, &user.CurrentUser)
-						if err == nil {
-							user.OldUser = user.CurrentUser
-							user.UpdateCount++
-						}
-					}
-				}
-				user.mu.Unlock()
+		for saveCache := range toSave {
+			time.Sleep(time.Millisecond * 100)
+			err := saveCache.Save()
+			if err != nil {
+				time.Sleep(time.Second)
+				toSave <- saveCache
 			}
 		}
+		/*for {
+			time.Sleep(time.Second)
+			for i := 0; i < len(advs); i++ {
+				advs[i].Save()
+			}
+			time.Sleep(time.Second)
+			for i := 0; i < len(users); i++ {
+				users[i].Save()
+			}
+		}*/
 	}()
 }
 
@@ -218,7 +250,7 @@ func CreateAdv(user *models.User, request *dto.CreateAdvRequest) {
 		OldAdv:     models.Adv{},
 	}
 	advs = append(advs, advCache)
-
+	toSave <- advCache
 }
 
 func UpdateAdv(adv *AdvCache, request *dto.UpdateAdvRequest) {
@@ -239,6 +271,7 @@ func UpdateAdv(adv *AdvCache, request *dto.UpdateAdvRequest) {
 	adv.CurrentAdv.Longitude = request.Longitude
 	adv.CurrentAdv.UserComment = request.UserComment
 	adv.UpdateCount++
+	toSave <- adv
 }
 
 func DeleteAdv(adv *AdvCache) {
@@ -247,6 +280,7 @@ func DeleteAdv(adv *AdvCache) {
 	if !adv.Deleted {
 		adv.ToDelete = true
 	}
+	toSave <- adv
 }
 
 func CreateUser(request *dto.RegisterRequest) {
@@ -268,6 +302,7 @@ func CreateUser(request *dto.RegisterRequest) {
 		OldUser:     models.User{},
 	}
 	users = append(users, userCache)
+	toSave <- userCache
 }
 
 func UpdateUser(userCache *UserCache, request *dto.UpdateUserRequest) {
@@ -276,6 +311,7 @@ func UpdateUser(userCache *UserCache, request *dto.UpdateUserRequest) {
 	userCache.CurrentUser.Name = request.Name
 	userCache.CurrentUser.Description = request.Description
 	userCache.UpdateCount++
+	toSave <- userCache
 }
 
 func UpdatePassword(userCache *UserCache, request *dto.UpdatePasswordRequest) {
@@ -284,6 +320,7 @@ func UpdatePassword(userCache *UserCache, request *dto.UpdatePasswordRequest) {
 	userCache.CurrentUser.PasswordHash = utils.GeneratePasswordHash(request.NewPassword)
 	userCache.CurrentUser.SessionSecret = utils.GenerateSessionsSecret()
 	userCache.UpdateCount++
+	toSave <- userCache
 }
 
 func UpdateSessionSecret(userCache *UserCache) {
@@ -291,13 +328,15 @@ func UpdateSessionSecret(userCache *UserCache) {
 	defer userCache.mu.Unlock()
 	userCache.CurrentUser.SessionSecret = utils.GenerateSessionsSecret()
 	userCache.UpdateCount++
+	toSave <- userCache
 }
 
-func DeleteUser(user *UserCache) {
-	user.mu.Lock()
-	defer user.mu.Unlock()
-	if !user.Deleted {
-		user.ToDelete = true
+func DeleteUser(userCache *UserCache) {
+	userCache.mu.Lock()
+	defer userCache.mu.Unlock()
+	if !userCache.Deleted {
+		userCache.ToDelete = true
 	}
+	toSave <- userCache
 
 }
