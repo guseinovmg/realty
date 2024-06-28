@@ -69,9 +69,9 @@ func GeneratePasswordHash(password string) []byte {
 	return hash.Sum(nil)
 }
 
-func GenerateSessionsSecret() [24]byte {
+func GenerateSessionsSecret(randomBytes []byte) [24]byte {
 	hash := sha256.New()
 	hash.Write(UnsafeStringToBytes(time.Now().String()))
-	hash.Write(UnsafeStringToBytes("bla bla secret 3645647"))
+	hash.Write(randomBytes)
 	return [24]byte(hash.Sum(nil))
 }

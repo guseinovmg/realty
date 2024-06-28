@@ -283,12 +283,13 @@ func DeleteAdv(adv *AdvCache) {
 }
 
 func CreateUser(request *dto.RegisterRequest) {
+	passwordHash := utils.GeneratePasswordHash(request.Password)
 	newUser := &models.User{
 		Id:            time.Now().UnixMicro(),
 		Email:         request.Email,
 		Name:          request.Name,
-		PasswordHash:  utils.GeneratePasswordHash(request.Password),
-		SessionSecret: utils.GenerateSessionsSecret(),
+		PasswordHash:  passwordHash,
+		SessionSecret: utils.GenerateSessionsSecret(passwordHash),
 		InviteId:      request.InviteId,
 		Balance:       0,
 		Trusted:       false,
@@ -317,7 +318,7 @@ func UpdatePassword(userCache *UserCache, request *dto.UpdatePasswordRequest) {
 	userCache.mu.Lock()
 	defer userCache.mu.Unlock()
 	userCache.CurrentUser.PasswordHash = utils.GeneratePasswordHash(request.NewPassword)
-	userCache.CurrentUser.SessionSecret = utils.GenerateSessionsSecret()
+	userCache.CurrentUser.SessionSecret = utils.GenerateSessionsSecret(userCache.CurrentUser.SessionSecret[:])
 	userCache.UpdateCount++
 	toSave <- userCache
 }
@@ -325,7 +326,7 @@ func UpdatePassword(userCache *UserCache, request *dto.UpdatePasswordRequest) {
 func UpdateSessionSecret(userCache *UserCache) {
 	userCache.mu.Lock()
 	defer userCache.mu.Unlock()
-	userCache.CurrentUser.SessionSecret = utils.GenerateSessionsSecret()
+	userCache.CurrentUser.SessionSecret = utils.GenerateSessionsSecret(userCache.CurrentUser.SessionSecret[:])
 	userCache.UpdateCount++
 	toSave <- userCache
 }
