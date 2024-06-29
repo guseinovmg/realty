@@ -99,6 +99,14 @@ func (user *UserCache) Save() error {
 var users []*UserCache
 var advs []*AdvCache
 var toSave chan SaveCache
+var idGenerationMutex sync.Mutex
+
+func generateId() int64 {
+	idGenerationMutex.Lock()
+	defer idGenerationMutex.Unlock()
+	time.Sleep(time.Millisecond)
+	return time.Now().UnixMicro()
+}
 
 func Initialize() {
 	users_, advs_, err := db.ReadDb()
@@ -127,7 +135,7 @@ func Initialize() {
 			mu:         sync.RWMutex{},
 		}
 	}
-	toSave = make(chan SaveCache, 200)
+	toSave = make(chan SaveCache, 100)
 	go func() {
 		for saveCache := range toSave {
 			for i := 0; i < 3; i++ {
@@ -142,7 +150,7 @@ func Initialize() {
 	}()
 	go func() {
 		for {
-			time.Sleep(time.Minute)
+			time.Sleep(time.Minute * 3)
 			for i := 0; i < len(advs); i++ {
 				_ = advs[i].Save()
 				time.Sleep(time.Millisecond * 100)
@@ -248,7 +256,7 @@ func FindAdvs(minDollarPrice int64, maxDollarPrice int64, minLongitude float64,
 
 func CreateAdv(user *models.User, request *dto.CreateAdvRequest) {
 	newAdv := &models.Adv{
-		Id:           time.Now().UnixMicro(),
+		Id:           generateId(),
 		UserId:       user.Id,
 		User:         user,
 		Created:      time.Now(),
@@ -316,7 +324,7 @@ func DeleteAdv(adv *AdvCache) {
 func CreateUser(request *dto.RegisterRequest) {
 	passwordHash := utils.GeneratePasswordHash(request.Password)
 	newUser := &models.User{
-		Id:            time.Now().UnixMicro(),
+		Id:            generateId(),
 		Email:         request.Email,
 		Name:          request.Name,
 		PasswordHash:  passwordHash,
