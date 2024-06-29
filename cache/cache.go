@@ -15,12 +15,12 @@ type SaveCache interface {
 }
 
 type AdvCache struct {
-	CurrentAdv  models.Adv
-	OldAdv      models.Adv
-	UpdateCount int64
-	ToDelete    bool
-	Deleted     bool
-	mu          sync.RWMutex
+	CurrentAdv models.Adv
+	OldAdv     models.Adv
+	ToUpdate   bool
+	ToDelete   bool
+	Deleted    bool
+	mu         sync.RWMutex
 }
 
 func (adv *AdvCache) Save() error {
@@ -42,11 +42,11 @@ func (adv *AdvCache) Save() error {
 			} else {
 				return err
 			}
-		} else if adv.UpdateCount > 0 {
+		} else if adv.ToUpdate {
 			err := db.UpdateAdvChanges(&adv.OldAdv, &adv.CurrentAdv)
 			if err == nil {
 				adv.OldAdv = adv.CurrentAdv
-				adv.UpdateCount = 0
+				adv.ToUpdate = false
 			} else {
 				return err
 			}
@@ -58,7 +58,7 @@ func (adv *AdvCache) Save() error {
 type UserCache struct {
 	CurrentUser models.User
 	OldUser     models.User
-	UpdateCount int64
+	ToUpdate    bool
 	ToDelete    bool
 	Deleted     bool
 	mu          sync.RWMutex
@@ -83,11 +83,11 @@ func (user *UserCache) Save() error {
 			} else {
 				return err
 			}
-		} else if user.UpdateCount > 0 {
+		} else if user.ToUpdate {
 			err := db.UpdateUserChanges(&user.OldUser, &user.CurrentUser)
 			if err == nil {
 				user.OldUser = user.CurrentUser
-				user.UpdateCount = 0
+				user.ToUpdate = false
 			} else {
 				return err
 			}
@@ -101,26 +101,57 @@ var advs []*AdvCache
 var toSave chan SaveCache
 
 func Initialize() {
-	db.ReadDb()
+	users_, advs_, err := db.ReadDb()
+	if err != nil {
+		panic(err)
+	}
+	users = make([]*UserCache, len(users_), len(users_)+100)
+	for i := 0; i < len(users_); i++ {
+		users[i] = &UserCache{
+			CurrentUser: users_[i],
+			OldUser:     users_[i],
+			ToUpdate:    false,
+			ToDelete:    false,
+			Deleted:     false,
+			mu:          sync.RWMutex{},
+		}
+	}
+	advs = make([]*AdvCache, len(advs_), len(advs_)+500)
+	for i := 0; i < len(advs_); i++ {
+		advs[i] = &AdvCache{
+			CurrentAdv: advs_[i],
+			OldAdv:     advs_[i],
+			ToUpdate:   false,
+			ToDelete:   false,
+			Deleted:    false,
+			mu:         sync.RWMutex{},
+		}
+	}
 	toSave = make(chan SaveCache, 200)
 	go func() {
 		for saveCache := range toSave {
-			err := saveCache.Save()
-			if err != nil {
-				time.Sleep(time.Second)
-				toSave <- saveCache
+			for i := 0; i < 3; i++ {
+				err := saveCache.Save()
+				if err != nil {
+					time.Sleep(time.Second)
+				} else {
+					break
+				}
 			}
 		}
-		/*for {
-			time.Sleep(time.Second)
+	}()
+	go func() {
+		for {
+			time.Sleep(time.Minute)
 			for i := 0; i < len(advs); i++ {
-				advs[i].Save()
+				_ = advs[i].Save()
+				time.Sleep(time.Millisecond * 100)
 			}
-			time.Sleep(time.Second)
 			for i := 0; i < len(users); i++ {
-				users[i].Save()
+				_ = users[i].Save()
+				time.Sleep(time.Millisecond * 100)
 			}
-		}*/
+		}
 	}()
 }
 
@@ -269,7 +300,7 @@ func UpdateAdv(adv *AdvCache, request *dto.UpdateAdvRequest) {
 	adv.CurrentAdv.Latitude = request.Latitude
 	adv.CurrentAdv.Longitude = request.Longitude
 	adv.CurrentAdv.UserComment = request.UserComment
-	adv.UpdateCount++
+	adv.ToUpdate = true
 	toSave <- adv
 }
 
@@ -310,7 +341,7 @@ func UpdateUser(userCache *UserCache, request *dto.UpdateUserRequest) {
 	defer userCache.mu.Unlock()
 	userCache.CurrentUser.Name = request.Name
 	userCache.CurrentUser.Description = request.Description
-	userCache.UpdateCount++
+	userCache.ToUpdate = true
 	toSave <- userCache
 }
 
@@ -319,7 +350,7 @@ func UpdatePassword(userCache *UserCache, request *dto.UpdatePasswordRequest) {
 	defer userCache.mu.Unlock()
 	userCache.CurrentUser.PasswordHash = utils.GeneratePasswordHash(request.NewPassword)
 	userCache.CurrentUser.SessionSecret = utils.GenerateSessionsSecret(userCache.CurrentUser.SessionSecret[:])
-	userCache.UpdateCount++
+	userCache.ToUpdate = true
 	toSave <- userCache
 }
 
@@ -327,7 +358,7 @@ func UpdateSessionSecret(userCache *UserCache) {
 	userCache.mu.Lock()
 	defer userCache.mu.Unlock()
 	userCache.CurrentUser.SessionSecret = utils.GenerateSessionsSecret(userCache.CurrentUser.SessionSecret[:])
-	userCache.UpdateCount++
+	userCache.ToUpdate = true
 	toSave <- userCache
 }
 
