@@ -114,7 +114,7 @@ func Initialize() {
 		panic(err)
 	}
 	users = make([]*UserCache, len(users_), len(users_)+100)
-	for i := 0; i < len(users_); i++ {
+	for i := range len(users_) {
 		users[i] = &UserCache{
 			CurrentUser: users_[i],
 			OldUser:     users_[i],
@@ -125,7 +125,7 @@ func Initialize() {
 		}
 	}
 	advs = make([]*AdvCache, len(advs_), len(advs_)+500)
-	for i := 0; i < len(advs_); i++ {
+	for i := range len(advs_) {
 		advs[i] = &AdvCache{
 			CurrentAdv: advs_[i],
 			OldAdv:     advs_[i],
@@ -138,7 +138,7 @@ func Initialize() {
 	toSave = make(chan SaveCache, 100)
 	go func() {
 		for saveCache := range toSave {
-			for i := 0; i < 3; i++ {
+			for range 3 {
 				err := saveCache.Save()
 				if err != nil {
 					time.Sleep(time.Second)
@@ -151,11 +151,11 @@ func Initialize() {
 	go func() {
 		for {
 			time.Sleep(time.Minute * 3)
-			for i := 0; i < len(advs); i++ {
+			for i := range len(advs) {
 				_ = advs[i].Save()
 				time.Sleep(time.Millisecond * 100)
 			}
-			for i := 0; i < len(users); i++ {
+			for i := range len(users) {
 				_ = users[i].Save()
 				time.Sleep(time.Millisecond * 100)
 			}
@@ -172,7 +172,7 @@ func FindUserById(id int64) *models.User {
 }
 
 func FindUserCacheById(id int64) *UserCache {
-	for i := 0; i < len(users); i++ {
+	for i := range len(users) {
 		if users[i].CurrentUser.Id == id {
 			if users[i].ToDelete || users[i].Deleted {
 				return nil
@@ -184,7 +184,7 @@ func FindUserCacheById(id int64) *UserCache {
 }
 
 func FindUserCacheByLogin(email string) *UserCache {
-	for i := 0; i < len(users); i++ {
+	for i := range len(users) {
 		if users[i].CurrentUser.Email == email {
 			if users[i].ToDelete || users[i].Deleted {
 				return nil
@@ -204,7 +204,7 @@ func FindAdvById(id int64) *models.Adv {
 }
 
 func FindAdvCacheById(id int64) *AdvCache {
-	for i := 0; i < len(advs); i++ {
+	for i := range len(advs) {
 		if advs[i].CurrentAdv.Id == id {
 			if advs[i].ToDelete || advs[i].Deleted {
 				return nil
