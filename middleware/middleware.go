@@ -7,56 +7,68 @@ import (
 	"encoding/binary"
 	"net/http"
 	"realty/cache"
+	"realty/dto"
+	"realty/rendering"
 	"time"
 )
 
 func Auth(rd *RequestData, writer http.ResponseWriter, request *http.Request) {
 	tokenHeader := request.Header.Get("Authorization")
 	if tokenHeader == "" {
-		writer.WriteHeader(http.StatusUnauthorized)
 		rd.Stop()
+		writer.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 	tokenBytes, err := base64.StdEncoding.DecodeString(tokenHeader)
 	if err != nil {
-		writer.WriteHeader(http.StatusUnauthorized)
 		rd.Stop()
+		writer.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 	if len(tokenBytes) != 36 {
-		writer.WriteHeader(http.StatusUnauthorized)
 		rd.Stop()
+		writer.WriteHeader(http.StatusUnauthorized)
+		//_ = json.NewEncoder(writer).Encode(dto.Err{ErrMessage: "ошибка"})
+		_ = rendering.RenderJson(writer, &dto.Err{ErrMessage: "ошибка"})
 		return
 	}
 	tokenBytesArr := [36]byte(tokenBytes)
-	userId, expireTime := UnpackToken(UnShuffle(tokenBytesArr)) //todo проверить как работает такое приведение
+	userId, expireTime := UnpackToken(UnShuffle(tokenBytesArr))
 	if time.Now().UnixMicro() > expireTime {
-		writer.WriteHeader(http.StatusUnauthorized)
 		rd.Stop()
+		writer.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 	if time.Now().Add(time.Hour*24*30).UnixMicro() < expireTime {
-		writer.WriteHeader(http.StatusUnauthorized)
 		rd.Stop()
+		writer.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 	userCache := cache.FindUserCacheById(userId)
 	if userCache == nil {
-		writer.WriteHeader(http.StatusNotFound)
 		rd.Stop()
+		writer.WriteHeader(http.StatusNotFound)
 		return
 	}
 	if !userCache.CurrentUser.Enabled {
-		writer.WriteHeader(http.StatusForbidden)
 		rd.Stop()
+		writer.WriteHeader(http.StatusForbidden)
 		return
 	}
 	if !IsValidToken(tokenBytesArr, userCache.CurrentUser.SessionSecret) {
-		writer.WriteHeader(http.StatusBadRequest)
 		rd.Stop()
+		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	rd.User = userCache
+}
+
+func CheckIsAdmin(rd *RequestData, writer http.ResponseWriter, request *http.Request) {
+	if rd.User == nil || rd.User.CurrentUser.Id != 4446456464 {
+		rd.Stop()
+		writer.WriteHeader(http.StatusForbidden)
+		return
+	}
 }
 
 func SetAuthCookie(rd *RequestData, writer http.ResponseWriter, request *http.Request) {

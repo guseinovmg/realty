@@ -63,3 +63,7 @@ type UpdatePasswordRequest struct {
 	OldPassword string
 	NewPassword string
 }
+
+type Err struct {
+	ErrMessage string
+}

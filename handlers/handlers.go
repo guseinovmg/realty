@@ -62,6 +62,11 @@ func Registration(rd *middleware.RequestData, writer http.ResponseWriter, reques
 }
 
 func UpdatePassword(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) {
+	requestDto := &dto.UpdatePasswordRequest{}
+	err := json.NewDecoder(request.Body).Decode(requestDto)
+	if err != nil {
+		return
+	}
 	body, err := io.ReadAll(request.Body)
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()
@@ -73,7 +78,7 @@ func UpdatePassword(rd *middleware.RequestData, writer http.ResponseWriter, requ
 		http.Error(writer, err.Error(), http.StatusNoContent)
 		return
 	}
-	requestDto := &dto.UpdatePasswordRequest{}
+
 	err = json.Unmarshal(body, requestDto)
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusNoContent)

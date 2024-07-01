@@ -8,8 +8,8 @@ type User struct {
 	Id            int64
 	Email         string
 	Name          string
-	PasswordHash  []byte
-	SessionSecret [24]byte //нужно перегенерить для выхода из всех устройств
+	PasswordHash  []byte   `json:"-"`
+	SessionSecret [24]byte `json:"-"` //нужно перегенерить для выхода из всех устройств
 	InviteId      string
 	Balance       float64
 	Trusted       bool
