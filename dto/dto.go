@@ -7,10 +7,6 @@ type LoginRequest struct {
 	Password string `json:"password"`
 }
 
-type LoginResponse struct {
-	OK bool `json:"OK"`
-}
-
 type RegisterRequest struct {
 	Email    string `json:"email"`
 	Name     string `json:"name"`
@@ -18,25 +14,21 @@ type RegisterRequest struct {
 	InviteId string `json:"inviteId"`
 }
 
-type RegisterResponse struct {
-	OK bool `json:"OK"`
-}
-
 type CreateAdvRequest struct {
-	OriginLang   int8
-	TranslatedBy int8
-	TranslatedTo string
-	Title        string
-	Description  string
-	Photos       string
-	Price        int64
-	Currency     string
-	Country      string
-	City         string
-	Address      string
-	Latitude     float64
-	Longitude    float64
-	UserComment  string
+	OriginLang   int8    `json:"originLang,omitempty"`
+	TranslatedBy int8    `json:"translatedBy,omitempty"`
+	TranslatedTo string  `json:"translatedTo,omitempty"`
+	Title        string  `json:"title,omitempty"`
+	Description  string  `json:"description,omitempty"`
+	Photos       string  `json:"photos,omitempty"`
+	Price        int64   `json:"price,omitempty"`
+	Currency     string  `json:"currency,omitempty"`
+	Country      string  `json:"country,omitempty"`
+	City         string  `json:"city,omitempty"`
+	Address      string  `json:"address,omitempty"`
+	Latitude     float64 `json:"latitude,omitempty"`
+	Longitude    float64 `json:"longitude,omitempty"`
+	UserComment  string  `json:"userComment,omitempty"`
 }
 
 type GetAdvResponse struct {
@@ -66,32 +58,32 @@ type GetAdvResponse struct {
 }
 
 type UpdateAdvRequest struct {
-	OriginLang   int8
-	TranslatedBy int8
-	TranslatedTo string
-	Title        string
-	Description  string
-	Photos       string
-	Price        int64
-	Currency     string
-	Country      string
-	City         string
-	Address      string
-	Latitude     float64
-	Longitude    float64
-	UserComment  string
+	OriginLang   int8    `json:"originLang,omitempty"`
+	TranslatedBy int8    `json:"translatedBy,omitempty"`
+	TranslatedTo string  `json:"translatedTo,omitempty"`
+	Title        string  `json:"title,omitempty"`
+	Description  string  `json:"description,omitempty"`
+	Photos       string  `json:"photos,omitempty"`
+	Price        int64   `json:"price,omitempty"`
+	Currency     string  `json:"currency,omitempty"`
+	Country      string  `json:"country,omitempty"`
+	City         string  `json:"city,omitempty"`
+	Address      string  `json:"address,omitempty"`
+	Latitude     float64 `json:"latitude,omitempty"`
+	Longitude    float64 `json:"longitude,omitempty"`
+	UserComment  string  `json:"userComment,omitempty"`
 }
 
 type UpdateUserRequest struct {
-	Name        string
-	Description string
+	Name        string `json:"name,omitempty"`
+	Description string `json:"description,omitempty"`
 }
 
 type UpdatePasswordRequest struct {
-	OldPassword string
-	NewPassword string
+	OldPassword string `json:"oldPassword,omitempty"`
+	NewPassword string `json:"newPassword,omitempty"`
 }
 
 type Err struct {
-	ErrMessage string
+	ErrMessage string `json:"errMessage,omitempty"`
 }
