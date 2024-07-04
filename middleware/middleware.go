@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"realty/cache"
 	"realty/dto"
-	"realty/rendering"
+	"realty/render"
 	"time"
 )
 
@@ -16,48 +16,61 @@ func Auth(rd *RequestData, writer http.ResponseWriter, request *http.Request) {
 	tokenHeader := request.Header.Get("Authorization")
 	if tokenHeader == "" {
 		rd.Stop()
-		writer.WriteHeader(http.StatusUnauthorized)
+		_ = render.Json(writer, http.StatusUnauthorized, &dto.Err{ErrMessage: "ошибка авторизации"})
 		return
 	}
 	tokenBytes, err := base64.StdEncoding.DecodeString(tokenHeader)
 	if err != nil {
 		rd.Stop()
-		writer.WriteHeader(http.StatusUnauthorized)
+		_ = render.Json(writer, http.StatusUnauthorized, &dto.Err{ErrMessage: "неверный формат токена авторизации"})
 		return
 	}
 	if len(tokenBytes) != 36 {
 		rd.Stop()
-		writer.WriteHeader(http.StatusUnauthorized)
-		//_ = json.NewEncoder(writer).Encode(dto.Err{ErrMessage: "ошибка"})
-		_ = rendering.RenderJson(writer, &dto.Err{ErrMessage: "ошибка"})
+		_ = render.Json(writer, http.StatusUnauthorized, &dto.Err{ErrMessage: "неверная длина токена авторизации"})
 		return
 	}
 	tokenBytesArr := [36]byte(tokenBytes)
 	userId, expireTime := UnpackToken(UnShuffle(tokenBytesArr))
 	if time.Now().UnixMicro() > expireTime {
 		rd.Stop()
-		writer.WriteHeader(http.StatusUnauthorized)
+		_ = render.Json(writer, http.StatusUnauthorized, &dto.Err{ErrMessage: "ошибка авторизации"})
 		return
 	}
 	if time.Now().Add(time.Hour*24*30).UnixMicro() < expireTime {
 		rd.Stop()
-		writer.WriteHeader(http.StatusUnauthorized)
+		_ = render.Json(writer, http.StatusUnauthorized, &dto.Err{ErrMessage: "ошибка авторизации"})
+		return
+	}
+	if userId > time.Now().UnixMicro() {
+		rd.Stop()
+		_ = render.Json(writer, http.StatusUnauthorized, &dto.Err{ErrMessage: "ошибка авторизации"})
+		return
+	}
+	if userId < 1720060451151465 {
+		rd.Stop()
+		_ = render.Json(writer, http.StatusUnauthorized, &dto.Err{ErrMessage: "ошибка авторизации"})
 		return
 	}
 	userCache := cache.FindUserCacheById(userId)
 	if userCache == nil {
 		rd.Stop()
-		writer.WriteHeader(http.StatusNotFound)
+		_ = render.Json(writer, http.StatusNotFound, &dto.Err{ErrMessage: "пользователь не найден"})
+		return
+	}
+	if userCache.Deleted {
+		rd.Stop()
+		_ = render.Json(writer, http.StatusNotFound, &dto.Err{ErrMessage: "пользователь удален"})
 		return
 	}
 	if !userCache.CurrentUser.Enabled {
 		rd.Stop()
-		writer.WriteHeader(http.StatusForbidden)
+		_ = render.Json(writer, http.StatusForbidden, &dto.Err{ErrMessage: "пользователь заблокирован"})
 		return
 	}
 	if !IsValidToken(tokenBytesArr, userCache.CurrentUser.SessionSecret) {
 		rd.Stop()
-		writer.WriteHeader(http.StatusBadRequest)
+		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: "неверный токен"})
 		return
 	}
 	rd.User = userCache

@@ -10,17 +10,14 @@ import (
 	"strings"
 )
 
-func parseRequest(r *http.Request, m any) error {
+func Parse(r *http.Request, m any) error {
 	//var m MyStruct
 
 	// Try to parse input from the request body as JSON
 	if r.Body != nil {
 		ct := r.Header.Get("Content-Type")
 		if ct != "" && strings.HasPrefix(ct, "application/json") {
-			err := json.NewDecoder(r.Body).Decode(&m)
-			if err == nil {
-				return nil
-			}
+			return json.NewDecoder(r.Body).Decode(&m)
 		}
 	}
 
@@ -33,7 +30,7 @@ func parseRequest(r *http.Request, m any) error {
 	t := reflect.TypeOf(m)
 	if t.Kind() != reflect.Struct {
 		fmt.Println("Not a struct")
-		return errors.New("Not a struct")
+		return errors.New("not a struct")
 	}
 	v := reflect.ValueOf(m)
 	for i := 0; i < t.NumField(); i++ {
@@ -43,13 +40,6 @@ func parseRequest(r *http.Request, m any) error {
 		fieldValue := v.Elem().Field(i)
 		if fieldValue.Kind() == reflect.String {
 			fieldValue.SetString(postValue)
-		}
-		if fieldValue.Kind() == reflect.Float64 {
-			float, err := strconv.ParseFloat(postValue, 64)
-			if err != nil {
-				return err
-			}
-			fieldValue.SetFloat(float)
 		}
 		if fieldValue.Kind() == reflect.Float64 {
 			float, err := strconv.ParseFloat(postValue, 64)
