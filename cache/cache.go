@@ -221,8 +221,8 @@ func FindAdvCacheById(id int64) *AdvCache {
 
 func FindAdvs(minDollarPrice int64, maxDollarPrice int64, minLongitude float64,
 	maxLongitude float64, minLatitude float64, maxLatitude float64, countryCode string,
-	location string, offset int, limit int, firstNew bool) []*models.Adv {
-	result := make([]*models.Adv, 0, limit)
+	location string, offset int, limit int, firstNew bool) []*dto.GetAdvResponse {
+	result := make([]*dto.GetAdvResponse, 0, limit)
 	var i, step int
 	length := len(advs)
 	if firstNew {
@@ -238,7 +238,7 @@ func FindAdvs(minDollarPrice int64, maxDollarPrice int64, minLongitude float64,
 			continue
 		}
 		adv = &advs[i].CurrentAdv
-		if adv.DollarPrice >= minDollarPrice && adv.DollarPrice <= maxDollarPrice &&
+		if adv.Approved && adv.DollarPrice >= minDollarPrice && adv.DollarPrice <= maxDollarPrice &&
 			adv.Longitude > minLongitude && adv.Longitude < maxLongitude &&
 			adv.Latitude > minLatitude && adv.Latitude < maxLatitude &&
 			(countryCode == "" || adv.Country == countryCode) &&
@@ -247,7 +247,88 @@ func FindAdvs(minDollarPrice int64, maxDollarPrice int64, minLongitude float64,
 				offset--
 				continue
 			}
-			result = append(result, adv)
+			response := &dto.GetAdvResponse{
+				Id:           adv.Id,
+				UserEmail:    adv.User.Email,
+				UserName:     adv.User.Name,
+				Created:      adv.Created,
+				Updated:      adv.Updated,
+				Approved:     adv.Approved,
+				Lang:         adv.Lang,
+				OriginLang:   adv.OriginLang,
+				TranslatedBy: adv.TranslatedBy,
+				Title:        adv.Title,
+				Description:  adv.Description,
+				Photos:       adv.Photos,
+				Price:        adv.Price,
+				Currency:     adv.Currency,
+				DollarPrice:  adv.DollarPrice,
+				Country:      adv.Country,
+				City:         adv.City,
+				Address:      adv.Address,
+				Latitude:     adv.Latitude,
+				Longitude:    adv.Longitude,
+				Watches:      adv.Watches,
+				SeVisible:    adv.SeVisible,
+			}
+			result = append(result, response)
+			if limit > 0 {
+				limit--
+			} else {
+				break
+			}
+		}
+	}
+	return result
+}
+
+func FindUsersAdvs(userId int64, offset, limit int, firstNew bool) []*dto.GetAdvResponse {
+	result := make([]*dto.GetAdvResponse, 0, limit)
+	var i, step int
+	length := len(advs)
+	if firstNew {
+		i = length - 1
+		step = -1
+	} else {
+		i = 0
+		step = 1
+	}
+	var adv *models.Adv
+	for ; i < length && i >= 0; i += step {
+		if advs[i].ToDelete || advs[i].Deleted {
+			continue
+		}
+		adv = &advs[i].CurrentAdv
+		if adv.UserId == userId {
+			if offset > 0 {
+				offset--
+				continue
+			}
+			response := &dto.GetAdvResponse{
+				Id:           adv.Id,
+				UserEmail:    adv.User.Email,
+				UserName:     adv.User.Name,
+				Created:      adv.Created,
+				Updated:      adv.Updated,
+				Approved:     adv.Approved,
+				Lang:         adv.Lang,
+				OriginLang:   adv.OriginLang,
+				TranslatedBy: adv.TranslatedBy,
+				Title:        adv.Title,
+				Description:  adv.Description,
+				Photos:       adv.Photos,
+				Price:        adv.Price,
+				Currency:     adv.Currency,
+				DollarPrice:  adv.DollarPrice,
+				Country:      adv.Country,
+				City:         adv.City,
+				Address:      adv.Address,
+				Latitude:     adv.Latitude,
+				Longitude:    adv.Longitude,
+				Watches:      adv.Watches,
+				SeVisible:    adv.SeVisible,
+			}
+			result = append(result, response)
 			if limit > 0 {
 				limit--
 			} else {

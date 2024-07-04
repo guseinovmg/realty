@@ -33,6 +33,7 @@ func Initialize() {
 	if v, ok := os.LookupEnv("HTTP_SERVER_PORT"); ok {
 		c.httpServerPort = v
 	}
+
 }
 
 func GetUploadedFilesPath() string {
