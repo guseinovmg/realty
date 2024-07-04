@@ -27,32 +27,35 @@ type AdvCache struct {
 func (adv *AdvCache) Save() error {
 	adv.mu.Lock()
 	defer adv.mu.Unlock()
-	if !adv.Deleted {
-		if adv.ToDelete {
-			err := db.DeleteAdv(adv.CurrentAdv.Id)
-			if err != nil {
-				return err
-			}
-			adv.Deleted = true
-			adv.ToDelete = false
-			adv.ToCreate = false
-			adv.ToUpdate = false
-		} else if adv.ToCreate {
-			err := db.CreateAdv(&adv.CurrentAdv)
-			if err != nil {
-				return err
-			}
-			adv.OldAdv = adv.CurrentAdv
-			adv.ToCreate = false
-			adv.ToUpdate = false
-		} else if adv.ToUpdate {
-			err := db.UpdateAdvChanges(&adv.OldAdv, &adv.CurrentAdv)
-			if err != nil {
-				return err
-			}
-			adv.OldAdv = adv.CurrentAdv
-			adv.ToUpdate = false
+	if adv.Deleted {
+		return nil
+	}
+	if adv.ToDelete {
+		err := db.DeleteAdv(adv.CurrentAdv.Id)
+		if err != nil {
+			return err
 		}
+		adv.Deleted = true
+		adv.ToDelete = false
+		adv.ToCreate = false
+		adv.ToUpdate = false
+	}
+	if adv.ToCreate {
+		err := db.CreateAdv(&adv.CurrentAdv)
+		if err != nil {
+			return err
+		}
+		adv.OldAdv = adv.CurrentAdv
+		adv.ToCreate = false
+		adv.ToUpdate = false
+	}
+	if adv.ToUpdate {
+		err := db.UpdateAdvChanges(&adv.OldAdv, &adv.CurrentAdv)
+		if err != nil {
+			return err
+		}
+		adv.OldAdv = adv.CurrentAdv
+		adv.ToUpdate = false
 	}
 	return nil
 }
@@ -70,32 +73,35 @@ type UserCache struct {
 func (user *UserCache) Save() error {
 	user.mu.Lock()
 	defer user.mu.Unlock()
-	if !user.Deleted {
-		if user.ToDelete {
-			err := db.DeleteAdv(user.CurrentUser.Id)
-			if err != nil {
-				return err
-			}
-			user.Deleted = true
-			user.ToDelete = false
-			user.ToCreate = false
-			user.ToUpdate = false
-		} else if user.ToCreate {
-			err := db.CreateUser(&user.CurrentUser)
-			if err != nil {
-				return err
-			}
-			user.OldUser = user.CurrentUser
-			user.ToCreate = false
-			user.ToUpdate = false
-		} else if user.ToUpdate {
-			err := db.UpdateUserChanges(&user.OldUser, &user.CurrentUser)
-			if err != nil {
-				return err
-			}
-			user.OldUser = user.CurrentUser
-			user.ToUpdate = false
+	if user.Deleted {
+		return nil
+	}
+	if user.ToDelete {
+		err := db.DeleteAdv(user.CurrentUser.Id)
+		if err != nil {
+			return err
 		}
+		user.Deleted = true
+		user.ToDelete = false
+		user.ToCreate = false
+		user.ToUpdate = false
+	}
+	if user.ToCreate {
+		err := db.CreateUser(&user.CurrentUser)
+		if err != nil {
+			return err
+		}
+		user.OldUser = user.CurrentUser
+		user.ToCreate = false
+		user.ToUpdate = false
+	}
+	if user.ToUpdate {
+		err := db.UpdateUserChanges(&user.OldUser, &user.CurrentUser)
+		if err != nil {
+			return err
+		}
+		user.OldUser = user.CurrentUser
+		user.ToUpdate = false
 	}
 	return nil
 }
