@@ -150,24 +150,27 @@ func Initialize() {
 		for saveCache := range toSave {
 			for range 3 {
 				err := saveCache.Save()
-				if err != nil {
-					time.Sleep(time.Second)
-				} else {
+				if err == nil {
 					break
 				}
+				time.Sleep(time.Second)
 			}
 		}
 	}()
 	go func() {
 		for {
-			time.Sleep(time.Minute * 3)
+			time.Sleep(time.Minute)
 			for i := range len(advs) {
-				_ = advs[i].Save()
-				time.Sleep(time.Millisecond * 100)
+				err := advs[i].Save()
+				if err != nil {
+					time.Sleep(time.Millisecond * 500)
+				}
 			}
 			for i := range len(users) {
-				_ = users[i].Save()
-				time.Sleep(time.Millisecond * 100)
+				err := users[i].Save()
+				if err != nil {
+					time.Sleep(time.Millisecond * 500)
+				}
 			}
 		}
 	}()

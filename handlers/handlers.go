@@ -118,7 +118,7 @@ func GetAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *htt
 		return
 	}
 	if !adv.Approved {
-		_ = render.Json(writer, http.StatusLocked, &dto.Err{ErrMessage: "объявление на проверке"})
+		_ = render.Json(writer, http.StatusNotFound, &dto.Err{ErrMessage: "объявление на проверке"})
 		return
 	}
 	if !adv.SeVisible {
