@@ -2,6 +2,7 @@ package validator
 
 import (
 	"errors"
+	"fmt"
 	"realty/dto"
 	"regexp"
 	"time"
@@ -151,6 +152,41 @@ func ValidateUpdatePasswordRequest(req *dto.UpdatePasswordRequest) error {
 	return nil
 }
 
+func ValidateGetAdvListRequest(req *dto.GetAdvListRequest) error {
+	if err := validateCurrency(req.Currency); err != nil {
+		return fmt.Errorf("currency: %w", err)
+	}
+	if err := validateMinPrice(req.MinPrice); err != nil {
+		return fmt.Errorf("minPrice: %w", err)
+	}
+	if err := validateMaxPrice(req.MaxPrice); err != nil {
+		return fmt.Errorf("maxPrice: %w", err)
+	}
+	if err := validateMinLongitude(req.MinLongitude); err != nil {
+		return fmt.Errorf("minLongitude: %w", err)
+	}
+	if err := validateMaxLongitude(req.MaxLongitude); err != nil {
+		return fmt.Errorf("maxLongitude: %w", err)
+	}
+	if err := validateMinLatitude(req.MinLatitude); err != nil {
+		return fmt.Errorf("minLatitude: %w", err)
+	}
+	if err := validateMaxLatitude(req.MaxLatitude); err != nil {
+		return fmt.Errorf("maxLatitude: %w", err)
+	}
+	if err := validateCountryCode(req.CountryCode); err != nil {
+		return fmt.Errorf("countryCode: %w", err)
+	}
+	if err := validateLocation(req.Location); err != nil {
+		return fmt.Errorf("location: %w", err)
+	}
+	if err := validatePage(req.Page); err != nil {
+		return fmt.Errorf("page: %w", err)
+	}
+
+	return nil
+}
+
 func validateEmail(email string) error {
 	if !emailRegex.MatchString(email) {
 		return errors.New("invalid email")
@@ -228,13 +264,6 @@ func validatePrice(price int64) error {
 	return nil
 }
 
-func validateCurrency(currency string) error {
-	if len(currency) > 10 {
-		return errors.New("invalid currency")
-	}
-	return nil
-}
-
 func validateCountry(country string) error {
 	if len(country) > 100 {
 		return errors.New("invalid country")
@@ -273,6 +302,94 @@ func validateLongitude(longitude float64) error {
 func validateUserComment(userComment string) error {
 	if len(userComment) > 255 {
 		return errors.New("invalid userComment")
+	}
+	return nil
+}
+
+func validateCurrency(currency string) error {
+	if len(currency) != 3 {
+		return fmt.Errorf("currency must be 3 characters long")
+	}
+	return nil
+}
+
+func validateMinPrice(minPrice int64) error {
+	if minPrice < 0 {
+		return fmt.Errorf("minPrice must be greater than or equal to 0")
+	}
+	return nil
+}
+
+func validateMaxPrice(maxPrice int64) error {
+	if maxPrice < 0 {
+		return fmt.Errorf("maxPrice must be greater than or equal to 0")
+	}
+	return nil
+}
+
+func validateMinLongitude(minLongitude float64) error {
+	if minLongitude < -180 {
+		return fmt.Errorf("minLongitude must be greater than or equal to -180")
+	}
+	if minLongitude > 180 {
+		return fmt.Errorf("minLongitude must be less than or equal to 180")
+	}
+	return nil
+}
+
+func validateMaxLongitude(maxLongitude float64) error {
+	if maxLongitude < -180 {
+		return fmt.Errorf("maxLongitude must be greater than or equal to -180")
+	}
+	if maxLongitude > 180 {
+		return fmt.Errorf("maxLongitude must be less than or equal to 180")
+	}
+	return nil
+}
+
+func validateMinLatitude(minLatitude float64) error {
+	if minLatitude < -90 {
+		return fmt.Errorf("minLatitude must be greater than or equal to -90")
+	}
+	if minLatitude > 90 {
+		return fmt.Errorf("minLatitude must be less than or equal to 90")
+	}
+	return nil
+}
+
+func validateMaxLatitude(maxLatitude float64) error {
+	if maxLatitude < -90 {
+		return fmt.Errorf("maxLatitude must be greater than or equal to -90")
+	}
+	if maxLatitude > 90 {
+		return fmt.Errorf("maxLatitude must be less than or equal to 90")
+	}
+	return nil
+}
+
+func validateCountryCode(countryCode string) error {
+	if countryCode == "" {
+		return nil
+	}
+	if len(countryCode) != 2 {
+		return fmt.Errorf("countryCode must be 2 characters long")
+	}
+	return nil
+}
+
+func validateLocation(location string) error {
+	if location == "" {
+		return nil
+	}
+	if len(location) < 2 || len(location) > 255 {
+		return fmt.Errorf("location must be between 2 and 255 characters long")
+	}
+	return nil
+}
+
+func validatePage(page int) error {
+	if page < 1 {
+		return fmt.Errorf("page must be greater than or equal to 1")
 	}
 	return nil
 }

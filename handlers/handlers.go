@@ -25,22 +25,22 @@ func JsonError(recovered any, rd *middleware.RequestData, writer http.ResponseWr
 }
 
 func Login(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) {
-	login := &dto.LoginRequest{}
-	if err := parsing_input.ParseRawJson(request, login); err != nil {
+	requestDto := &dto.LoginRequest{}
+	if err := parsing_input.ParseRawJson(request, requestDto); err != nil {
 		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
 		return
 	}
-	if err := validator.ValidateLoginRequest(login); err != nil {
+	if err := validator.ValidateLoginRequest(requestDto); err != nil {
 		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
 		return
 	}
-	userCache := cache.FindUserCacheByLogin(login.Email)
+	userCache := cache.FindUserCacheByLogin(requestDto.Email)
 	if userCache == nil {
 		rd.Stop()
 		_ = render.Json(writer, http.StatusNotFound, &dto.Err{ErrMessage: "пользователь не найден"})
 		return
 	}
-	if !bytes.Equal(utils.GeneratePasswordHash(login.Password), userCache.CurrentUser.PasswordHash) {
+	if !bytes.Equal(utils.GeneratePasswordHash(requestDto.Password), userCache.CurrentUser.PasswordHash) {
 		rd.Stop()
 		_ = render.Json(writer, http.StatusUnauthorized, &dto.Err{ErrMessage: "неверный пароль"})
 		return
@@ -176,119 +176,42 @@ func GetAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *htt
 func GetAdvList(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) {
 	var (
 		minDollarPrice int64
-		maxDollarPrice int64   = math.MaxInt64
-		minLongitude   float64 = -math.MaxFloat64
-		maxLongitude   float64 = math.MaxFloat64
-		minLatitude    float64 = -math.MaxFloat64
-		maxLatitude    float64 = math.MaxFloat64
-		countryCode    string
-		location       string
+		maxDollarPrice int64 = math.MaxInt64
 		offset         int
-		limit          int  = 20
-		firstNew       bool = true
+		limit          int = 20
 	)
-	currencyStr := request.URL.Query().Get("currency")
-	if !currency.IsValidCurrency(currencyStr) {
+	requestDto := &dto.GetAdvListRequest{}
+	if err := parsing_input.ParseQueryToGetAdvListRequest(request.URL.Query(), requestDto); err != nil {
+		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
+		return
+	}
+	if err := validator.ValidateGetAdvListRequest(requestDto); err != nil {
+		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
+		return
+	}
+	if !currency.IsValidCurrency(requestDto.Currency) {
 		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: "неверный currency"})
 		return
 	}
-
-	minPriceStr := request.URL.Query().Get("minPrice")
-	if minPriceStr != "" {
-		minPrice, err := strconv.ParseFloat(minPriceStr, 64)
-		if err != nil {
-			_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: "minPrice должен быть числом"})
-			return
-		}
-		minDollarPrice, err = currency.CalcDollarPrice(currencyStr, minPrice)
+	if requestDto.MinPrice > 0 {
+		minDollarPrice = currency.CalcDollarPrice(requestDto.Currency, requestDto.MinPrice)
 	}
-
-	maxPriceStr := request.URL.Query().Get("maxPrice")
-	if maxPriceStr != "" {
-		maxPrice, err := strconv.ParseFloat(maxPriceStr, 64)
-		if err != nil {
-			_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: "maxPrice должен быть числом"})
-			return
-		}
-		maxDollarPrice, err = currency.CalcDollarPrice(currencyStr, maxPrice)
+	if requestDto.MaxPrice > 0 {
+		maxDollarPrice = currency.CalcDollarPrice(requestDto.Currency, requestDto.MaxPrice)
 	}
-
-	minLongitudeStr := request.URL.Query().Get("minLongitude")
-	if minLongitudeStr != "" {
-		minLong, err := strconv.ParseFloat(minLongitudeStr, 64)
-		if err != nil {
-			_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: "minLongitude должен быть числом"})
-			return
-		}
-		minLongitude = minLong
-	}
-
-	maxLongitudeStr := request.URL.Query().Get("maxLongitude")
-	if maxLongitudeStr != "" {
-		maxLong, err := strconv.ParseFloat(maxLongitudeStr, 64)
-		if err != nil {
-			_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: "maxLongitude должен быть числом"})
-			return
-		}
-		maxLongitude = maxLong
-	}
-
-	minLatitudeStr := request.URL.Query().Get("minLatitude")
-	if minLatitudeStr != "" {
-		minLong, err := strconv.ParseFloat(minLatitudeStr, 64)
-		if err != nil {
-			_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: "minLatitude должен быть числом"})
-			return
-		}
-		minLatitude = minLong
-	}
-
-	maxLatitudeStr := request.URL.Query().Get("maxLatitude")
-	if maxLatitudeStr != "" {
-		maxLong, err := strconv.ParseFloat(maxLatitudeStr, 64)
-		if err != nil {
-			_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: "maxLatitude должен быть числом"})
-			return
-		}
-		maxLatitude = maxLong
-	}
-
-	countryCode = request.URL.Query().Get("countryCode")
-	location = request.URL.Query().Get("location")
-	firstNewStr := request.URL.Query().Get("firstNew")
-	if firstNewStr != "" {
-		first, err := strconv.ParseBool(firstNewStr)
-		if err != nil {
-			_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: "firstNew должен быть иметь значение 0 или 1"})
-			return
-		}
-		firstNew = first
-	}
-
-	pageStr := request.URL.Query().Get("page")
-	if pageStr != "" {
-		page, err := strconv.ParseInt(pageStr, 10, 64)
-		if err != nil {
-			_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: "page должен быть целым числом"})
-			return
-		}
-		if page < 1 {
-			_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: "page должен быть целым числом больше 1"})
-			return
-		}
-		offset = (int(page) - 1) * limit
-	}
-	advs := cache.FindAdvs(minDollarPrice,
+	offset = (requestDto.Page - 1) * limit
+	advs := cache.FindAdvs(
+		minDollarPrice,
 		maxDollarPrice,
-		minLongitude,
-		maxLongitude,
-		minLatitude,
-		maxLatitude,
-		countryCode,
-		location,
+		requestDto.MinLongitude,
+		requestDto.MaxLongitude,
+		requestDto.MinLatitude,
+		requestDto.MaxLatitude,
+		requestDto.CountryCode,
+		requestDto.Location,
 		offset,
 		limit,
-		firstNew)
+		requestDto.FirstNew)
 	_ = render.Json(writer, http.StatusOK, advs)
 
 }

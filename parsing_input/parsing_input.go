@@ -3,7 +3,9 @@ package parsing_input
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
+	"net/url"
 	"realty/dto"
 	"strconv"
 	"strings"
@@ -22,50 +24,107 @@ func ParseRawJson(r *http.Request, m any) error {
 	}
 }
 
-func parsePostFormToUpdateAdvRequest(r *http.Request) (*dto.UpdateAdvRequest, error) {
-	err := r.ParseForm()
-	if err != nil {
-		return nil, err
+/*
+mistral.ai
+create function that fill struct
+
+	type GetAdvListRequest struct {
+		Currency     string
+		MinPrice     int64
+		MaxPrice     int64
+		MinLongitude float64
+		MaxLongitude float64
+		MinLatitude  float64
+		MaxLatitude  float64
+		CountryCode  string
+		Location     string
+		Page         int
+		FirstNew     bool
 	}
 
-	updateAdvRequest := &dto.UpdateAdvRequest{}
+with values from request.URL.Query().Get.
+If request.URL.Query().Get will return empty string, do nothing.
+If parsing to int64, float64, bool returns error, then return the error with name of the field.
+*/
+func ParseQueryToGetAdvListRequest(query url.Values, req *dto.GetAdvListRequest) error {
+	req.Currency = query.Get("currency")
 
-	originLang, err := strconv.ParseInt(r.PostForm.Get("originLang"), 10, 8)
-	if err == nil {
-		updateAdvRequest.OriginLang = int8(originLang)
+	var value string
+
+	value = query.Get("minPrice")
+	if value != "" {
+		minPrice, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return fmt.Errorf("minPrice: %w", err)
+		}
+		req.MinPrice = minPrice
 	}
 
-	translatedBy, err := strconv.ParseInt(r.PostForm.Get("translatedBy"), 10, 8)
-	if err == nil {
-		updateAdvRequest.TranslatedBy = int8(translatedBy)
+	value = query.Get("maxPrice")
+	if value != "" {
+		maxPrice, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return fmt.Errorf("maxPrice: %w", err)
+		}
+		req.MaxPrice = maxPrice
 	}
 
-	updateAdvRequest.TranslatedTo = r.PostForm.Get("translatedTo")
-	updateAdvRequest.Title = r.PostForm.Get("title")
-	updateAdvRequest.Description = r.PostForm.Get("description")
-	updateAdvRequest.Photos = r.PostForm.Get("photos")
-
-	price, err := strconv.ParseInt(r.PostForm.Get("price"), 10, 64)
-	if err == nil {
-		updateAdvRequest.Price = price
+	value = query.Get("minLongitude")
+	if value != "" {
+		minLongitude, err := strconv.ParseFloat(value, 64)
+		if err != nil {
+			return fmt.Errorf("minLongitude: %w", err)
+		}
+		req.MinLongitude = minLongitude
 	}
 
-	updateAdvRequest.Currency = r.PostForm.Get("currency")
-	updateAdvRequest.Country = r.PostForm.Get("country")
-	updateAdvRequest.City = r.PostForm.Get("city")
-	updateAdvRequest.Address = r.PostForm.Get("address")
-
-	latitude, err := strconv.ParseFloat(r.PostForm.Get("latitude"), 64)
-	if err == nil {
-		updateAdvRequest.Latitude = latitude
+	value = query.Get("maxLongitude")
+	if value != "" {
+		maxLongitude, err := strconv.ParseFloat(value, 64)
+		if err != nil {
+			return fmt.Errorf("maxLongitude: %w", err)
+		}
+		req.MaxLongitude = maxLongitude
 	}
 
-	longitude, err := strconv.ParseFloat(r.PostForm.Get("longitude"), 64)
-	if err == nil {
-		updateAdvRequest.Longitude = longitude
+	value = query.Get("minLatitude")
+	if value != "" {
+		minLatitude, err := strconv.ParseFloat(value, 64)
+		if err != nil {
+			return fmt.Errorf("minLatitude: %w", err)
+		}
+		req.MinLatitude = minLatitude
 	}
 
-	updateAdvRequest.UserComment = r.PostForm.Get("userComment")
+	value = query.Get("maxLatitude")
+	if value != "" {
+		maxLatitude, err := strconv.ParseFloat(value, 64)
+		if err != nil {
+			return fmt.Errorf("maxLatitude: %w", err)
+		}
+		req.MaxLatitude = maxLatitude
+	}
 
-	return updateAdvRequest, nil
+	req.CountryCode = query.Get("countryCode")
+	req.Location = query.Get("location")
+
+	value = query.Get("page")
+	if value != "" {
+		page, err := strconv.Atoi(value)
+		if err != nil {
+			return fmt.Errorf("page: %w", err)
+		}
+		req.Page = page
+	}
+
+	value = query.Get("firstNew")
+	if value != "" {
+		firstNew, err := strconv.ParseBool(value)
+		if err != nil {
+			return fmt.Errorf("firstNew: %w", err)
+		}
+		req.FirstNew = firstNew
+	}
+
+	return nil
 }

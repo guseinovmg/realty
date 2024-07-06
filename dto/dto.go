@@ -31,6 +31,20 @@ type CreateAdvRequest struct {
 	UserComment  string  `json:"userComment,omitempty"`
 }
 
+type GetAdvListRequest struct {
+	Currency     string  `json:"currency,omitempty"`
+	MinPrice     int64   `json:"minPrice,omitempty"`
+	MaxPrice     int64   `json:"maxPrice,omitempty"`
+	MinLongitude float64 `json:"minLongitude,omitempty"`
+	MaxLongitude float64 `json:"maxLongitude,omitempty"`
+	MinLatitude  float64 `json:"minLatitude,omitempty"`
+	MaxLatitude  float64 `json:"maxLatitude,omitempty"`
+	CountryCode  string  `json:"countryCode,omitempty"`
+	Location     string  `json:"location,omitempty"`
+	Page         int     `json:"page,omitempty"`
+	FirstNew     bool    `json:"firstNew,omitempty"`
+}
+
 type GetAdvResponse struct {
 	Id           int64     `json:"id,omitempty"`
 	UserEmail    string    `json:"userEmail,omitempty"`
