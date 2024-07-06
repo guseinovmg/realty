@@ -9,11 +9,12 @@ import (
 	"realty/cache"
 	"realty/dto"
 	"realty/render"
+	"realty/validator"
 	"time"
 )
 
 func Auth(rd *RequestData, writer http.ResponseWriter, request *http.Request) {
-	tokenHeader := request.Header.Get("Authorization")
+	tokenHeader := request.Header.Get("Authorization") //todo тут кука на самом деле должна быть
 	if tokenHeader == "" {
 		rd.Stop()
 		_ = render.Json(writer, http.StatusUnauthorized, &dto.Err{ErrMessage: "ошибка авторизации"})
@@ -42,12 +43,7 @@ func Auth(rd *RequestData, writer http.ResponseWriter, request *http.Request) {
 		_ = render.Json(writer, http.StatusUnauthorized, &dto.Err{ErrMessage: "ошибка авторизации"})
 		return
 	}
-	if userId > time.Now().UnixMicro() {
-		rd.Stop()
-		_ = render.Json(writer, http.StatusUnauthorized, &dto.Err{ErrMessage: "ошибка авторизации"})
-		return
-	}
-	if userId < 1720060451151465 {
+	if validator.IsValidUnixMicroId(userId) {
 		rd.Stop()
 		_ = render.Json(writer, http.StatusUnauthorized, &dto.Err{ErrMessage: "ошибка авторизации"})
 		return

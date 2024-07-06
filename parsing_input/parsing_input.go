@@ -3,67 +3,69 @@ package parsing_input
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
-	"reflect"
+	"realty/dto"
 	"strconv"
 	"strings"
 )
 
-func Parse(r *http.Request, m any) error {
-	//var m MyStruct
-
-	// Try to parse input from the request body as JSON
+func ParseRawJson(r *http.Request, m any) error {
 	if r.Body != nil {
 		ct := r.Header.Get("Content-Type")
 		if ct != "" && strings.HasPrefix(ct, "application/json") {
 			return json.NewDecoder(r.Body).Decode(&m)
+		} else {
+			return errors.New("Content-Type must be application/json")
 		}
+	} else {
+		return errors.New("body is empty")
 	}
+}
 
-	// If parsing from the request body failed or there was no body, try to parse from PostForm
+func parsePostFormToUpdateAdvRequest(r *http.Request) (*dto.UpdateAdvRequest, error) {
 	err := r.ParseForm()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	t := reflect.TypeOf(m)
-	if t.Kind() != reflect.Struct {
-		fmt.Println("Not a struct")
-		return errors.New("not a struct")
-	}
-	v := reflect.ValueOf(m)
-	for i := 0; i < t.NumField(); i++ {
-		field := t.Field(i)
-		postTag := field.Tag.Get("post")
-		postValue := r.PostFormValue(postTag)
-		fieldValue := v.Elem().Field(i)
-		if fieldValue.Kind() == reflect.String {
-			fieldValue.SetString(postValue)
-		}
-		if fieldValue.Kind() == reflect.Float64 {
-			float, err := strconv.ParseFloat(postValue, 64)
-			if err != nil {
-				return err
-			}
-			fieldValue.SetFloat(float)
-		}
-		if fieldValue.Kind() == reflect.Int64 {
-			integer, err := strconv.ParseInt(postValue, 10, 64)
-			if err != nil {
-				return err
-			}
-			fieldValue.SetInt(integer)
-		}
-		if fieldValue.Kind() == reflect.Int8 {
-			integer, err := strconv.ParseInt(postValue, 10, 8)
-			if err != nil {
-				return err
-			}
-			fieldValue.SetInt(integer)
-		}
-		fmt.Printf("Field %s has post tag %q\n", field.Name, postTag)
+	updateAdvRequest := &dto.UpdateAdvRequest{}
+
+	originLang, err := strconv.ParseInt(r.PostForm.Get("originLang"), 10, 8)
+	if err == nil {
+		updateAdvRequest.OriginLang = int8(originLang)
 	}
 
-	return nil
+	translatedBy, err := strconv.ParseInt(r.PostForm.Get("translatedBy"), 10, 8)
+	if err == nil {
+		updateAdvRequest.TranslatedBy = int8(translatedBy)
+	}
+
+	updateAdvRequest.TranslatedTo = r.PostForm.Get("translatedTo")
+	updateAdvRequest.Title = r.PostForm.Get("title")
+	updateAdvRequest.Description = r.PostForm.Get("description")
+	updateAdvRequest.Photos = r.PostForm.Get("photos")
+
+	price, err := strconv.ParseInt(r.PostForm.Get("price"), 10, 64)
+	if err == nil {
+		updateAdvRequest.Price = price
+	}
+
+	updateAdvRequest.Currency = r.PostForm.Get("currency")
+	updateAdvRequest.Country = r.PostForm.Get("country")
+	updateAdvRequest.City = r.PostForm.Get("city")
+	updateAdvRequest.Address = r.PostForm.Get("address")
+
+	latitude, err := strconv.ParseFloat(r.PostForm.Get("latitude"), 64)
+	if err == nil {
+		updateAdvRequest.Latitude = latitude
+	}
+
+	longitude, err := strconv.ParseFloat(r.PostForm.Get("longitude"), 64)
+	if err == nil {
+		updateAdvRequest.Longitude = longitude
+	}
+
+	updateAdvRequest.UserComment = r.PostForm.Get("userComment")
+
+	return updateAdvRequest, nil
 }

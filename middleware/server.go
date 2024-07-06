@@ -27,7 +27,7 @@ type Chain struct {
 
 func (m *Chain) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	rd := &RequestData{}
-	defer func() {
+	/*defer func() {
 		if err := recover(); err != nil { //todo при некоторых паниках нужно действительно дать серверу перазагрузиться
 			if m.onPanic != nil {
 				m.onPanic(err, rd, w, r)
@@ -37,7 +37,7 @@ func (m *Chain) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 			//todo в любом случае нужно создать оповещение админу(sms или email)
 		}
-	}()
+	}()*/
 	for _, f := range m.handlers {
 		f(rd, w, r)
 		if rd.stop {

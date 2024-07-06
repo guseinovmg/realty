@@ -11,6 +11,7 @@ import (
 	"realty/parsing_input"
 	"realty/render"
 	"realty/utils"
+	"realty/validator"
 	"strconv"
 )
 
@@ -25,8 +26,11 @@ func JsonError(recovered any, rd *middleware.RequestData, writer http.ResponseWr
 
 func Login(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) {
 	login := &dto.LoginRequest{}
-	err := parsing_input.Parse(request, login)
-	if err != nil {
+	if err := parsing_input.ParseRawJson(request, login); err != nil {
+		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
+		return
+	}
+	if err := validator.ValidateLoginRequest(login); err != nil {
 		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
 		return
 	}
@@ -59,8 +63,11 @@ func LogoutAll(rd *middleware.RequestData, writer http.ResponseWriter, request *
 
 func Registration(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) {
 	requestDto := &dto.RegisterRequest{}
-	err := parsing_input.Parse(request, requestDto)
-	if err != nil {
+	if err := parsing_input.ParseRawJson(request, requestDto); err != nil {
+		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
+		return
+	}
+	if err := validator.ValidateRegisterRequest(requestDto); err != nil {
 		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
 		return
 	}
@@ -70,8 +77,11 @@ func Registration(rd *middleware.RequestData, writer http.ResponseWriter, reques
 
 func UpdatePassword(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) {
 	requestDto := &dto.UpdatePasswordRequest{}
-	err := parsing_input.Parse(request, requestDto)
-	if err != nil {
+	if err := parsing_input.ParseRawJson(request, requestDto); err != nil {
+		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
+		return
+	}
+	if err := validator.ValidateUpdatePasswordRequest(requestDto); err != nil {
 		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
 		return
 	}
@@ -85,8 +95,11 @@ func UpdatePassword(rd *middleware.RequestData, writer http.ResponseWriter, requ
 
 func UpdateUser(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) {
 	requestDto := &dto.UpdateUserRequest{}
-	err := parsing_input.Parse(request, requestDto)
-	if err != nil {
+	if err := parsing_input.ParseRawJson(request, requestDto); err != nil {
+		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
+		return
+	}
+	if err := validator.ValidateUpdateUserRequest(requestDto); err != nil {
 		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
 		return
 	}
@@ -96,8 +109,11 @@ func UpdateUser(rd *middleware.RequestData, writer http.ResponseWriter, request 
 
 func CreateAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) {
 	requestDto := &dto.CreateAdvRequest{}
-	err := parsing_input.Parse(request, requestDto)
-	if err != nil {
+	if err := parsing_input.ParseRawJson(request, requestDto); err != nil {
+		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
+		return
+	}
+	if err := validator.ValidateCreateAdvRequest(requestDto); err != nil {
 		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
 		return
 	}
@@ -110,6 +126,10 @@ func GetAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *htt
 	advId, errConv := strconv.ParseInt(advIdStr, 10, 64)
 	if errConv != nil {
 		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: errConv.Error()})
+		return
+	}
+	if !validator.IsValidUnixMicroId(advId) {
+		_ = render.Json(writer, http.StatusNotFound, &dto.Err{ErrMessage: "объявление не найдено"})
 		return
 	}
 	adv := cache.FindAdvById(advId)
@@ -281,6 +301,10 @@ func GetUsersAdv(rd *middleware.RequestData, writer http.ResponseWriter, request
 		return
 	}
 	adv := cache.FindAdvById(advId)
+	if !validator.IsValidUnixMicroId(advId) {
+		_ = render.Json(writer, http.StatusNotFound, &dto.Err{ErrMessage: "объявление не найдено"})
+		return
+	}
 	if adv == nil {
 		_ = render.Json(writer, http.StatusNotFound, &dto.Err{ErrMessage: "объявление не найдено"})
 		return
@@ -325,16 +349,23 @@ func GetUsersAdvList(rd *middleware.RequestData, writer http.ResponseWriter, req
 }
 
 func UpdateAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) {
-	requestDto := &dto.UpdateAdvRequest{}
-	err := parsing_input.Parse(request, requestDto)
-	if err != nil {
-		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
-		return
-	}
 	advIdStr := request.PathValue("id")
 	advId, errConv := strconv.ParseInt(advIdStr, 10, 64)
 	if errConv != nil {
 		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: errConv.Error()})
+		return
+	}
+	if !validator.IsValidUnixMicroId(advId) {
+		_ = render.Json(writer, http.StatusNotFound, &dto.Err{ErrMessage: "объявление не найдено"})
+		return
+	}
+	requestDto := &dto.UpdateAdvRequest{}
+	if err := parsing_input.ParseRawJson(request, requestDto); err != nil {
+		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
+		return
+	}
+	if err := validator.ValidateUpdateAdvRequest(requestDto); err != nil {
+		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
 		return
 	}
 	adv := cache.FindAdvCacheById(advId)
@@ -355,6 +386,10 @@ func DeleteAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *
 	advId, errConv := strconv.ParseInt(advIdStr, 10, 64)
 	if errConv != nil {
 		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: errConv.Error()})
+		return
+	}
+	if !validator.IsValidUnixMicroId(advId) {
+		_ = render.Json(writer, http.StatusNotFound, &dto.Err{ErrMessage: "объявление не найдено"})
 		return
 	}
 	adv := cache.FindAdvCacheById(advId)
