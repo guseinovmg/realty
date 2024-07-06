@@ -185,14 +185,23 @@ func FindUserById(id int64) *models.User {
 }
 
 func FindUserCacheById(id int64) *UserCache {
-	for i := range len(users) {
-		if users[i].CurrentUser.Id == id {
-			if users[i].ToDelete || users[i].Deleted {
+	low := 0
+	high := len(users) - 1
+
+	for low <= high {
+		mid := (low + high) / 2
+		if users[mid].CurrentUser.Id == id {
+			if users[mid].ToDelete || users[mid].Deleted {
 				return nil
 			}
-			return users[i]
+			return users[mid]
+		} else if users[mid].CurrentUser.Id < id {
+			low = mid + 1
+		} else {
+			high = mid - 1
 		}
 	}
+
 	return nil
 }
 
@@ -217,14 +226,23 @@ func FindAdvById(id int64) *models.Adv {
 }
 
 func FindAdvCacheById(id int64) *AdvCache {
-	for i := range len(advs) {
-		if advs[i].CurrentAdv.Id == id {
-			if advs[i].ToDelete || advs[i].Deleted {
+	low := 0
+	high := len(advs) - 1
+
+	for low <= high {
+		mid := (low + high) / 2
+		if advs[mid].CurrentAdv.Id == id {
+			if advs[mid].ToDelete || advs[mid].Deleted {
 				return nil
 			}
-			return advs[i]
+			return advs[mid]
+		} else if advs[mid].CurrentAdv.Id < id {
+			low = mid + 1
+		} else {
+			high = mid - 1
 		}
 	}
+
 	return nil
 }
 
