@@ -14,13 +14,17 @@ import (
 )
 
 func Auth(rd *RequestData, writer http.ResponseWriter, request *http.Request) {
-	tokenHeader := request.Header.Get("Authorization") //todo тут кука на самом деле должна быть
-	if tokenHeader == "" {
+	cookie, err := request.Cookie("auth_token")
+	if err != nil {
+		_ = render.Json(writer, http.StatusUnauthorized, &dto.Err{ErrMessage: "ошибка авторизации"})
+		return
+	}
+	if cookie.Value == "" {
 		rd.Stop()
 		_ = render.Json(writer, http.StatusUnauthorized, &dto.Err{ErrMessage: "ошибка авторизации"})
 		return
 	}
-	tokenBytes, err := base64.StdEncoding.DecodeString(tokenHeader)
+	tokenBytes, err := base64.StdEncoding.DecodeString(cookie.Value)
 	if err != nil {
 		rd.Stop()
 		_ = render.Json(writer, http.StatusUnauthorized, &dto.Err{ErrMessage: "неверный формат токена авторизации"})
@@ -81,10 +85,20 @@ func CheckIsAdmin(rd *RequestData, writer http.ResponseWriter, request *http.Req
 }
 
 func SetAuthCookie(rd *RequestData, writer http.ResponseWriter, request *http.Request) {
-	newTokenBytes := CreateToken(rd.User.CurrentUser.Id, time.Now().Add(time.Hour*24*3).UnixNano(), rd.User.CurrentUser.SessionSecret)
+	cookieDuration := time.Hour * 24 * 3
+	newTokenBytes := CreateToken(rd.User.CurrentUser.Id, time.Now().Add(cookieDuration).UnixNano(), rd.User.CurrentUser.SessionSecret)
 	newTokenBytes = Shuffle(newTokenBytes)
 	newTokenStr := base64.StdEncoding.EncodeToString(newTokenBytes[:])
-	writer.Header().Set("Cookie", newTokenStr)
+	http.SetCookie(writer, &http.Cookie{
+		SameSite: http.SameSiteStrictMode, //todo разобраться какой нужен
+		Name:     "auth_token",
+		Value:    newTokenStr,
+		Path:     "/",
+		Domain:   "example.com", //todo
+		Expires:  time.Now().Add(cookieDuration),
+		Secure:   true, // only sent over HTTPS
+		HttpOnly: true, // not accessible via JavaScript
+	})
 }
 
 func CreateToken(userId int64, microseconds int64, sessionSecret [24]byte) [36]byte {
