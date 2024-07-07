@@ -8,8 +8,8 @@ import (
 	"time"
 )
 
-func IsValidUnixMicroId(id int64) bool {
-	return id > 1720060451151465 && id < time.Now().UnixMicro()
+func IsValidUnixNanoId(id int64) bool {
+	return id > 1720060451151465000 && id < time.Now().UnixNano()
 }
 
 var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`)

@@ -21,8 +21,14 @@ func Initialize() {
 	db = db_
 }
 
-func ReadDb() ([]models.User, []models.Adv, error) {
-	return nil, nil, nil
+func ReadDb() (users []*models.User, advs []*models.Adv, err error) {
+	if users, err = GetUsers(); err != nil {
+		return nil, nil, err
+	}
+	if advs, err = GetAdvs(); err != nil {
+		return nil, nil, err
+	}
+	return users, advs, nil
 }
 
 func CreateAdv(adv *models.Adv) error {
@@ -68,7 +74,7 @@ func GetAdv(id int64) (*models.Adv, error) {
 }
 
 func GetAdvs() ([]*models.Adv, error) {
-	rows, err := db.Query("SELECT * FROM advs")
+	rows, err := db.Query("SELECT * FROM advs ORDER BY id")
 	if err != nil {
 		return nil, err
 	}
@@ -361,7 +367,7 @@ func UpdateUserChanges(oldUser, newUser *models.User) error {
 }
 
 func GetUsers() ([]*models.User, error) {
-	rows, err := db.Query("SELECT * FROM users")
+	rows, err := db.Query("SELECT * FROM users ORDER BY id")
 	if err != nil {
 		return nil, err
 	}

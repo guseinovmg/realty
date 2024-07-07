@@ -33,17 +33,17 @@ func Auth(rd *RequestData, writer http.ResponseWriter, request *http.Request) {
 	}
 	tokenBytesArr := [36]byte(tokenBytes)
 	userId, expireTime := UnpackToken(UnShuffle(tokenBytesArr))
-	if time.Now().UnixMicro() > expireTime {
+	if time.Now().UnixNano() > expireTime {
 		rd.Stop()
 		_ = render.Json(writer, http.StatusUnauthorized, &dto.Err{ErrMessage: "ошибка авторизации"})
 		return
 	}
-	if time.Now().Add(time.Hour*24*30).UnixMicro() < expireTime {
+	if time.Now().Add(time.Hour*24*30).UnixNano() < expireTime {
 		rd.Stop()
 		_ = render.Json(writer, http.StatusUnauthorized, &dto.Err{ErrMessage: "ошибка авторизации"})
 		return
 	}
-	if validator.IsValidUnixMicroId(userId) {
+	if validator.IsValidUnixNanoId(userId) {
 		rd.Stop()
 		_ = render.Json(writer, http.StatusUnauthorized, &dto.Err{ErrMessage: "ошибка авторизации"})
 		return
@@ -81,7 +81,7 @@ func CheckIsAdmin(rd *RequestData, writer http.ResponseWriter, request *http.Req
 }
 
 func SetAuthCookie(rd *RequestData, writer http.ResponseWriter, request *http.Request) {
-	newTokenBytes := CreateToken(rd.User.CurrentUser.Id, time.Now().Add(time.Hour*24*3).UnixMicro(), rd.User.CurrentUser.SessionSecret)
+	newTokenBytes := CreateToken(rd.User.CurrentUser.Id, time.Now().Add(time.Hour*24*3).UnixNano(), rd.User.CurrentUser.SessionSecret)
 	newTokenBytes = Shuffle(newTokenBytes)
 	newTokenStr := base64.StdEncoding.EncodeToString(newTokenBytes[:])
 	writer.Header().Set("Cookie", newTokenStr)

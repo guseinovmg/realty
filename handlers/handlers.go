@@ -128,15 +128,16 @@ func GetAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *htt
 		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: errConv.Error()})
 		return
 	}
-	if !validator.IsValidUnixMicroId(advId) {
+	if !validator.IsValidUnixNanoId(advId) {
 		_ = render.Json(writer, http.StatusNotFound, &dto.Err{ErrMessage: "объявление не найдено"})
 		return
 	}
-	adv := cache.FindAdvById(advId)
-	if adv == nil {
+	advCache := cache.FindAdvCacheById(advId)
+	if advCache == nil {
 		_ = render.Json(writer, http.StatusNotFound, &dto.Err{ErrMessage: "объявление не найдено"})
 		return
 	}
+	adv := &advCache.CurrentAdv
 	if !adv.Approved {
 		_ = render.Json(writer, http.StatusNotFound, &dto.Err{ErrMessage: "объявление на проверке"})
 		return
@@ -170,7 +171,7 @@ func GetAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *htt
 		UserComment:  adv.UserComment,
 	}
 	_ = render.Json(writer, http.StatusOK, response)
-
+	cache.IncAdvWatches(advCache)
 }
 
 func GetAdvList(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) {
@@ -224,7 +225,7 @@ func GetUsersAdv(rd *middleware.RequestData, writer http.ResponseWriter, request
 		return
 	}
 	adv := cache.FindAdvById(advId)
-	if !validator.IsValidUnixMicroId(advId) {
+	if !validator.IsValidUnixNanoId(advId) {
 		_ = render.Json(writer, http.StatusNotFound, &dto.Err{ErrMessage: "объявление не найдено"})
 		return
 	}
@@ -278,7 +279,7 @@ func UpdateAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *
 		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: errConv.Error()})
 		return
 	}
-	if !validator.IsValidUnixMicroId(advId) {
+	if !validator.IsValidUnixNanoId(advId) {
 		_ = render.Json(writer, http.StatusNotFound, &dto.Err{ErrMessage: "объявление не найдено"})
 		return
 	}
@@ -311,7 +312,7 @@ func DeleteAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *
 		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: errConv.Error()})
 		return
 	}
-	if !validator.IsValidUnixMicroId(advId) {
+	if !validator.IsValidUnixNanoId(advId) {
 		_ = render.Json(writer, http.StatusNotFound, &dto.Err{ErrMessage: "объявление не найдено"})
 		return
 	}

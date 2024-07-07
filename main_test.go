@@ -18,6 +18,6 @@ func Test_main(t *testing.T) {
 	fmt.Println(time.Now().UnixMicro())
 
 	userIdBytes := make([]byte, 8)
-	binary.LittleEndian.PutUint64(userIdBytes, uint64(time.Now().UnixMicro()))
+	binary.LittleEndian.PutUint64(userIdBytes, uint64(time.Now().UnixNano()))
 	log.Println(userIdBytes)
 }

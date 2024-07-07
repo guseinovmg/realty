@@ -114,8 +114,8 @@ var idGenerationMutex sync.Mutex
 func generateId() int64 {
 	idGenerationMutex.Lock()
 	defer idGenerationMutex.Unlock()
-	time.Sleep(time.Millisecond)
-	return time.Now().UnixMicro()
+	time.Sleep(time.Microsecond)
+	return time.Now().UnixNano()
 }
 
 func Initialize() {
@@ -126,8 +126,8 @@ func Initialize() {
 	users = make([]*UserCache, len(users_), len(users_)+100)
 	for i := range len(users_) {
 		users[i] = &UserCache{
-			CurrentUser: users_[i],
-			OldUser:     users_[i],
+			CurrentUser: *users_[i],
+			OldUser:     *users_[i],
 			ToUpdate:    false,
 			ToDelete:    false,
 			Deleted:     false,
@@ -137,8 +137,8 @@ func Initialize() {
 	advs = make([]*AdvCache, len(advs_), len(advs_)+500)
 	for i := range len(advs_) {
 		advs[i] = &AdvCache{
-			CurrentAdv: advs_[i],
-			OldAdv:     advs_[i],
+			CurrentAdv: *advs_[i],
+			OldAdv:     *advs_[i],
 			ToUpdate:   false,
 			ToDelete:   false,
 			Deleted:    false,
@@ -422,6 +422,14 @@ func UpdateAdv(adv *AdvCache, request *dto.UpdateAdvRequest) {
 	adv.CurrentAdv.UserComment = request.UserComment
 	adv.ToUpdate = true
 	toSave <- adv
+}
+
+func IncAdvWatches(adv *AdvCache) {
+	adv.mu.Lock()
+	defer adv.mu.Unlock()
+	adv.CurrentAdv.Watches++
+	adv.ToUpdate = true
+	//toSave <- adv мы специально не отправляем в канал
 }
 
 func DeleteAdv(adv *AdvCache) {
