@@ -23,9 +23,11 @@ func Initialize() *http.ServeMux {
 
 	mux.Handle("GET /adv/{id}", mw.Handler(handlers.GetAdv))
 	mux.Handle("GET /adv", mw.Handler(handlers.GetAdvList))
+	mux.Handle("POST /adv", mw.Handler(handlers.GetAdvList))
 
-	mux.Handle("GET /my/adv/{id}", mw.Handler(mw.Auth, mw.SetAuthCookie, handlers.GetUsersAdv))
-	mux.Handle("GET /my/adv", mw.Handler(mw.Auth, mw.SetAuthCookie, handlers.GetUsersAdvList))
+	mux.Handle("GET /user/adv/{id}", mw.Handler(mw.Auth, mw.SetAuthCookie, handlers.GetUsersAdv))
+	mux.Handle("GET /user/adv", mw.Handler(mw.Auth, mw.SetAuthCookie, handlers.GetUsersAdvList))
+	mux.Handle("POST /user/adv", mw.Handler(mw.Auth, mw.SetAuthCookie, handlers.GetUsersAdvList))
 
 	mux.Handle("POST /adv", mw.Handler(mw.Auth, mw.SetAuthCookie, handlers.CreateAdv))
 	mux.Handle("PUT /adv/{id}", mw.Handler(mw.Auth, mw.SetAuthCookie, handlers.UpdateAdv))

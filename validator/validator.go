@@ -187,6 +187,14 @@ func ValidateGetAdvListRequest(req *dto.GetAdvListRequest) error {
 	return nil
 }
 
+func ValidateGetUserAdvListRequest(req *dto.GetUserAdvListRequest) error {
+	if err := validatePage(req.Page); err != nil {
+		return fmt.Errorf("page: %w", err)
+	}
+
+	return nil
+}
+
 func validateEmail(email string) error {
 	if !emailRegex.MatchString(email) {
 		return errors.New("invalid email")

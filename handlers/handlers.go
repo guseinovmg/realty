@@ -182,7 +182,7 @@ func GetAdvList(rd *middleware.RequestData, writer http.ResponseWriter, request 
 		limit          int = 20
 	)
 	requestDto := &dto.GetAdvListRequest{}
-	if err := parsing_input.ParseQueryToGetAdvListRequest(request.URL.Query(), requestDto); err != nil {
+	if err := parsing_input.Parse(request, requestDto); err != nil {
 		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
 		return
 	}
@@ -246,28 +246,16 @@ func GetUsersAdvList(rd *middleware.RequestData, writer http.ResponseWriter, req
 		limit    int = 20
 		firstNew bool
 	)
-	pageStr := request.URL.Query().Get("page")
-	if pageStr != "" {
-		page, err := strconv.ParseInt(pageStr, 10, 64)
-		if err != nil {
-			_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: "page должен быть целым числом"})
-			return
-		}
-		if page < 1 {
-			_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: "page должен быть целым числом больше 1"})
-			return
-		}
-		offset = (int(page) - 1) * limit
+	requestDto := &dto.GetUserAdvListRequest{}
+	if err := parsing_input.Parse(request, requestDto); err != nil {
+		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
+		return
 	}
-	firstNewStr := request.URL.Query().Get("firstNew")
-	if firstNewStr != "" {
-		first, err := strconv.ParseBool(firstNewStr)
-		if err != nil {
-			_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: "firstNew должен быть иметь значение 0 или 1"})
-			return
-		}
-		firstNew = first
+	if err := validator.ValidateGetUserAdvListRequest(requestDto); err != nil {
+		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
+		return
 	}
+	offset = (int(requestDto.Page) - 1) * limit
 	advs := cache.FindUsersAdvs(rd.User.CurrentUser.Id, offset, limit, firstNew)
 	_ = render.Json(writer, http.StatusOK, advs)
 }

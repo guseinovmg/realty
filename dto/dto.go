@@ -45,6 +45,11 @@ type GetAdvListRequest struct {
 	FirstNew     bool    `json:"firstNew,omitempty"`
 }
 
+type GetUserAdvListRequest struct {
+	Page     int  `json:"page,omitempty"`
+	FirstNew bool `json:"firstNew,omitempty"`
+}
+
 type GetAdvResponse struct {
 	Id           int64     `json:"id,omitempty"`
 	UserEmail    string    `json:"userEmail,omitempty"`
