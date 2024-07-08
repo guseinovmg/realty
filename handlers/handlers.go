@@ -24,7 +24,7 @@ func JsonError(recovered any, rd *middleware.RequestData, writer http.ResponseWr
 	_ = render.Json(writer, http.StatusInternalServerError, &dto.Err{ErrMessage: "Internal error"})
 }
 
-func Login(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) {
+func Login(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) (next bool) {
 	requestDto := &dto.LoginRequest{}
 	if err := parsing_input.ParseRawJson(request, requestDto); err != nil {
 		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
@@ -36,32 +36,30 @@ func Login(rd *middleware.RequestData, writer http.ResponseWriter, request *http
 	}
 	userCache := cache.FindUserCacheByLogin(requestDto.Email)
 	if userCache == nil {
-		rd.Stop()
 		_ = render.Json(writer, http.StatusNotFound, &dto.Err{ErrMessage: "пользователь не найден"})
 		return
 	}
 	if !bytes.Equal(utils.GeneratePasswordHash(requestDto.Password), userCache.CurrentUser.PasswordHash) {
-		rd.Stop()
 		_ = render.Json(writer, http.StatusUnauthorized, &dto.Err{ErrMessage: "неверный пароль"})
 		return
 	}
-
 	rd.User = userCache
-
+	middleware.SetAuthCookie(rd, writer, request) //todo надо подумать
 	_ = render.JsonOK(writer, http.StatusOK)
-
+	return
 }
 
-func LogoutMe(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) {
-
+func LogoutMe(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) (next bool) {
+	return false
 }
 
-func LogoutAll(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) {
+func LogoutAll(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) (next bool) {
 	cache.UpdateSessionSecret(rd.User)
 	_ = render.JsonOK(writer, http.StatusOK)
+	return false
 }
 
-func Registration(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) {
+func Registration(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) (next bool) {
 	requestDto := &dto.RegisterRequest{}
 	if err := parsing_input.ParseRawJson(request, requestDto); err != nil {
 		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
@@ -73,9 +71,10 @@ func Registration(rd *middleware.RequestData, writer http.ResponseWriter, reques
 	}
 	cache.CreateUser(requestDto)
 	_ = render.JsonOK(writer, http.StatusOK)
+	return
 }
 
-func UpdatePassword(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) {
+func UpdatePassword(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) (next bool) {
 	requestDto := &dto.UpdatePasswordRequest{}
 	if err := parsing_input.ParseRawJson(request, requestDto); err != nil {
 		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
@@ -91,9 +90,10 @@ func UpdatePassword(rd *middleware.RequestData, writer http.ResponseWriter, requ
 	}
 	cache.UpdatePassword(rd.User, requestDto)
 	_ = render.JsonOK(writer, http.StatusOK)
+	return
 }
 
-func UpdateUser(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) {
+func UpdateUser(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) (next bool) {
 	requestDto := &dto.UpdateUserRequest{}
 	if err := parsing_input.ParseRawJson(request, requestDto); err != nil {
 		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
@@ -105,9 +105,10 @@ func UpdateUser(rd *middleware.RequestData, writer http.ResponseWriter, request 
 	}
 	cache.UpdateUser(rd.User, requestDto)
 	_ = render.JsonOK(writer, http.StatusOK)
+	return
 }
 
-func CreateAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) {
+func CreateAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) (next bool) {
 	requestDto := &dto.CreateAdvRequest{}
 	if err := parsing_input.ParseRawJson(request, requestDto); err != nil {
 		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
@@ -119,9 +120,10 @@ func CreateAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *
 	}
 	cache.CreateAdv(&rd.User.CurrentUser, requestDto)
 	_ = render.JsonOK(writer, http.StatusOK)
+	return
 }
 
-func GetAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) {
+func GetAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) (next bool) {
 	advIdStr := request.PathValue("id")
 	advId, errConv := strconv.ParseInt(advIdStr, 10, 64)
 	if errConv != nil {
@@ -172,9 +174,10 @@ func GetAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *htt
 	}
 	_ = render.Json(writer, http.StatusOK, response)
 	cache.IncAdvWatches(advCache)
+	return
 }
 
-func GetAdvList(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) {
+func GetAdvList(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) (next bool) {
 	var (
 		minDollarPrice int64
 		maxDollarPrice int64 = math.MaxInt64
@@ -214,10 +217,10 @@ func GetAdvList(rd *middleware.RequestData, writer http.ResponseWriter, request 
 		limit,
 		requestDto.FirstNew)
 	_ = render.Json(writer, http.StatusOK, advs)
-
+	return
 }
 
-func GetUsersAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) {
+func GetUsersAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) (next bool) {
 	advIdStr := request.PathValue("id")
 	advId, errConv := strconv.ParseInt(advIdStr, 10, 64)
 	if errConv != nil {
@@ -238,9 +241,10 @@ func GetUsersAdv(rd *middleware.RequestData, writer http.ResponseWriter, request
 		return
 	}
 	_ = render.Json(writer, http.StatusOK, adv)
+	return
 }
 
-func GetUsersAdvList(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) {
+func GetUsersAdvList(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) (next bool) {
 	var (
 		offset   int
 		limit    int = 20
@@ -258,9 +262,10 @@ func GetUsersAdvList(rd *middleware.RequestData, writer http.ResponseWriter, req
 	offset = (int(requestDto.Page) - 1) * limit
 	advs := cache.FindUsersAdvs(rd.User.CurrentUser.Id, offset, limit, firstNew)
 	_ = render.Json(writer, http.StatusOK, advs)
+	return
 }
 
-func UpdateAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) {
+func UpdateAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) (next bool) {
 	advIdStr := request.PathValue("id")
 	advId, errConv := strconv.ParseInt(advIdStr, 10, 64)
 	if errConv != nil {
@@ -291,9 +296,10 @@ func UpdateAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *
 	}
 	cache.UpdateAdv(adv, requestDto)
 	_ = render.JsonOK(writer, http.StatusOK)
+	return
 }
 
-func DeleteAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) {
+func DeleteAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) (next bool) {
 	advIdStr := request.PathValue("id")
 	advId, errConv := strconv.ParseInt(advIdStr, 10, 64)
 	if errConv != nil {
@@ -315,4 +321,5 @@ func DeleteAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *
 	}
 	cache.DeleteAdv(adv)
 	_ = render.JsonOK(writer, http.StatusOK)
+	return
 }

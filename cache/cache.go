@@ -310,9 +310,12 @@ func FindAdvs(minDollarPrice int64, maxDollarPrice int64, minLongitude float64,
 }
 
 func FindUsersAdvs(userId int64, offset, limit int, firstNew bool) []*dto.GetAdvResponse {
+	length := len(advs)
+	if offset > length {
+		return []*dto.GetAdvResponse{}
+	}
 	result := make([]*dto.GetAdvResponse, 0, limit)
 	var i, step int
-	length := len(advs)
 	if firstNew {
 		i = length - 1
 		step = -1

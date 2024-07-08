@@ -62,16 +62,10 @@ func ParseUrlValuesTo(query url.Values, req any) error {
 }
 
 func ParseRawJson(r *http.Request, m any) error {
-	if r.Body != nil {
-		ct := r.Header.Get("Content-Type")
-		if ct != "" && strings.HasPrefix(ct, "application/json") {
-			return json.NewDecoder(r.Body).Decode(&m)
-		} else {
-			return errors.New("Content-Type must be application/json")
-		}
-	} else {
+	if r.Body == nil {
 		return errors.New("body is empty")
 	}
+	return json.NewDecoder(r.Body).Decode(&m)
 }
 
 /*

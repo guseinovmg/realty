@@ -7,98 +7,91 @@ import (
 	"encoding/binary"
 	"net/http"
 	"realty/cache"
+	"realty/config"
 	"realty/dto"
 	"realty/render"
 	"realty/validator"
 	"time"
 )
 
-func Auth(rd *RequestData, writer http.ResponseWriter, request *http.Request) {
+func Auth(rd *RequestData, writer http.ResponseWriter, request *http.Request) (next bool) {
 	cookie, err := request.Cookie("auth_token")
 	if err != nil {
 		_ = render.Json(writer, http.StatusUnauthorized, &dto.Err{ErrMessage: "ошибка авторизации"})
 		return
 	}
 	if cookie.Value == "" {
-		rd.Stop()
 		_ = render.Json(writer, http.StatusUnauthorized, &dto.Err{ErrMessage: "ошибка авторизации"})
 		return
 	}
 	tokenBytes, err := base64.StdEncoding.DecodeString(cookie.Value)
 	if err != nil {
-		rd.Stop()
 		_ = render.Json(writer, http.StatusUnauthorized, &dto.Err{ErrMessage: "неверный формат токена авторизации"})
 		return
 	}
 	if len(tokenBytes) != 36 {
-		rd.Stop()
 		_ = render.Json(writer, http.StatusUnauthorized, &dto.Err{ErrMessage: "неверная длина токена авторизации"})
 		return
 	}
 	tokenBytesArr := [36]byte(tokenBytes)
 	userId, expireTime := UnpackToken(UnShuffle(tokenBytesArr))
 	if time.Now().UnixNano() > expireTime {
-		rd.Stop()
 		_ = render.Json(writer, http.StatusUnauthorized, &dto.Err{ErrMessage: "ошибка авторизации"})
 		return
 	}
 	if time.Now().Add(time.Hour*24*30).UnixNano() < expireTime {
-		rd.Stop()
 		_ = render.Json(writer, http.StatusUnauthorized, &dto.Err{ErrMessage: "ошибка авторизации"})
 		return
 	}
 	if validator.IsValidUnixNanoId(userId) {
-		rd.Stop()
 		_ = render.Json(writer, http.StatusUnauthorized, &dto.Err{ErrMessage: "ошибка авторизации"})
 		return
 	}
 	userCache := cache.FindUserCacheById(userId)
 	if userCache == nil {
-		rd.Stop()
 		_ = render.Json(writer, http.StatusNotFound, &dto.Err{ErrMessage: "пользователь не найден"})
 		return
 	}
 	if userCache.Deleted {
-		rd.Stop()
 		_ = render.Json(writer, http.StatusNotFound, &dto.Err{ErrMessage: "пользователь удален"})
 		return
 	}
 	if !userCache.CurrentUser.Enabled {
-		rd.Stop()
 		_ = render.Json(writer, http.StatusForbidden, &dto.Err{ErrMessage: "пользователь заблокирован"})
 		return
 	}
 	if !IsValidToken(tokenBytesArr, userCache.CurrentUser.SessionSecret) {
-		rd.Stop()
 		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: "неверный токен"})
 		return
 	}
 	rd.User = userCache
+	return true
 }
 
-func CheckIsAdmin(rd *RequestData, writer http.ResponseWriter, request *http.Request) {
-	if rd.User == nil || rd.User.CurrentUser.Id != 4446456464 {
-		rd.Stop()
-		writer.WriteHeader(http.StatusForbidden)
+func CheckIsAdmin(rd *RequestData, writer http.ResponseWriter, request *http.Request) (next bool) {
+	if rd.User == nil || rd.User.CurrentUser.Id != config.GetAdminId() {
+		_ = render.Json(writer, http.StatusForbidden, &dto.Err{ErrMessage: "пользователь не админ"})
 		return
 	}
+	return true
 }
 
-func SetAuthCookie(rd *RequestData, writer http.ResponseWriter, request *http.Request) {
+func SetAuthCookie(rd *RequestData, writer http.ResponseWriter, request *http.Request) (next bool) {
 	cookieDuration := time.Hour * 24 * 3
 	newTokenBytes := CreateToken(rd.User.CurrentUser.Id, time.Now().Add(cookieDuration).UnixNano(), rd.User.CurrentUser.SessionSecret)
 	newTokenBytes = Shuffle(newTokenBytes)
 	newTokenStr := base64.StdEncoding.EncodeToString(newTokenBytes[:])
 	http.SetCookie(writer, &http.Cookie{
-		SameSite: http.SameSiteStrictMode, //todo разобраться какой нужен
+		SameSite: http.SameSiteStrictMode,
 		Name:     "auth_token",
 		Value:    newTokenStr,
 		Path:     "/",
-		Domain:   "example.com", //todo
-		Expires:  time.Now().Add(cookieDuration),
+		Domain:   config.GetDomain(),
+		MaxAge:   24 * 3600 * 3,
 		Secure:   true, // only sent over HTTPS
 		HttpOnly: true, // not accessible via JavaScript
 	})
+	return true
 }
 
 func CreateToken(userId int64, microseconds int64, sessionSecret [24]byte) [36]byte {

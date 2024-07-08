@@ -8,17 +8,12 @@ import (
 // RequestData
 // можно расширять для передачи данных по цепочке обработчиков
 type RequestData struct {
-	stop bool
 	User *cache.UserCache
 }
 
-type HandlerFunction func(rd *RequestData, writer http.ResponseWriter, request *http.Request)
+type HandlerFunction func(rd *RequestData, writer http.ResponseWriter, request *http.Request) (next bool)
 
 type PanicHandlerFunction func(recovered any, rd *RequestData, writer http.ResponseWriter, request *http.Request)
-
-func (rd *RequestData) Stop() {
-	rd.stop = true
-}
 
 type Chain struct {
 	onPanic  PanicHandlerFunction
@@ -27,7 +22,7 @@ type Chain struct {
 
 func (m *Chain) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	rd := &RequestData{}
-	/*defer func() {
+	defer func() {
 		if err := recover(); err != nil { //todo при некоторых паниках нужно действительно дать серверу перазагрузиться
 			if m.onPanic != nil {
 				m.onPanic(err, rd, w, r)
@@ -37,10 +32,9 @@ func (m *Chain) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 			//todo в любом случае нужно создать оповещение админу(sms или email)
 		}
-	}()*/
+	}()
 	for _, f := range m.handlers {
-		f(rd, w, r)
-		if rd.stop {
+		if !f(rd, w, r) {
 			return
 		}
 	}

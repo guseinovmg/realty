@@ -9,6 +9,9 @@ type conf struct {
 	dbPath             string
 	availableCountries []string
 	language           string
+	domain             string
+	adminId            int64
+	logLevel           int
 }
 
 var c conf
@@ -20,6 +23,9 @@ func Initialize() {
 		httpServerPort:     ":8080",
 		dbPath:             "/home/murad/haha.db",
 		availableCountries: make([]string, 0),
+		domain:             "localhost",
+		adminId:            35456456,
+		logLevel:           1,
 	}
 	if v, ok := os.LookupEnv("UPLOADED_FILES_PATH"); ok {
 		c.uploadedFilesPath = v
@@ -33,7 +39,9 @@ func Initialize() {
 	if v, ok := os.LookupEnv("HTTP_SERVER_PORT"); ok {
 		c.httpServerPort = v
 	}
-
+	if v, ok := os.LookupEnv("DOMAIN"); ok {
+		c.domain = v
+	}
 }
 
 func GetUploadedFilesPath() string {
@@ -54,4 +62,12 @@ func GetDbPath() string {
 
 func GetAvailableCountries() []string {
 	return c.availableCountries
+}
+
+func GetDomain() string {
+	return c.domain
+}
+
+func GetAdminId() int64 {
+	return c.adminId
 }
