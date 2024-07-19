@@ -278,7 +278,7 @@ func FindAdvs(minDollarPrice int64, maxDollarPrice int64, minLongitude float64,
 				Id:           adv.Id,
 				UserEmail:    adv.User.Email,
 				UserName:     adv.User.Name,
-				Created:      adv.Created,
+				Created:      time.UnixMicro(adv.Id / 1000),
 				Updated:      adv.Updated,
 				Approved:     adv.Approved,
 				Lang:         adv.Lang,
@@ -338,7 +338,7 @@ func FindUsersAdvs(userId int64, offset, limit int, firstNew bool) []*dto.GetAdv
 				Id:           adv.Id,
 				UserEmail:    adv.User.Email,
 				UserName:     adv.User.Name,
-				Created:      adv.Created,
+				Created:      time.UnixMicro(adv.Id / 1000),
 				Updated:      adv.Updated,
 				Approved:     adv.Approved,
 				Lang:         adv.Lang,
@@ -374,7 +374,6 @@ func CreateAdv(user *models.User, request *dto.CreateAdvRequest) {
 		Id:           generateId(),
 		UserId:       user.Id,
 		User:         user,
-		Created:      time.Now(),
 		Updated:      time.Now(),
 		Approved:     false,
 		Lang:         request.OriginLang,
@@ -383,7 +382,6 @@ func CreateAdv(user *models.User, request *dto.CreateAdvRequest) {
 		TranslatedTo: request.TranslatedTo,
 		Title:        request.Title,
 		Description:  request.Description,
-		Photos:       request.Photos,
 		Price:        request.Price,
 		Currency:     request.Currency,
 		DollarPrice:  0, //todo
@@ -402,6 +400,8 @@ func CreateAdv(user *models.User, request *dto.CreateAdvRequest) {
 		CurrentAdv: *newAdv,
 		OldAdv:     models.Adv{},
 	}
+	advCache.mu.Lock()
+	defer advCache.mu.Unlock()
 	advs = append(advs, advCache)
 	toSave <- advCache
 }
@@ -414,7 +414,6 @@ func UpdateAdv(adv *AdvCache, request *dto.UpdateAdvRequest) {
 	adv.CurrentAdv.TranslatedTo = request.TranslatedTo
 	adv.CurrentAdv.Title = request.Title
 	adv.CurrentAdv.Description = request.Description
-	adv.CurrentAdv.Photos = request.Photos
 	adv.CurrentAdv.Price = request.Price
 	adv.CurrentAdv.Currency = request.Currency
 	adv.CurrentAdv.Country = request.Country
@@ -463,6 +462,8 @@ func CreateUser(request *dto.RegisterRequest) {
 		CurrentUser: *newUser,
 		OldUser:     models.User{},
 	}
+	userCache.mu.Lock()
+	defer userCache.mu.Unlock()
 	users = append(users, userCache)
 	toSave <- userCache
 }

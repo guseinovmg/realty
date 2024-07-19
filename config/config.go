@@ -6,7 +6,10 @@ type conf struct {
 	uploadedFilesPath  string
 	staticFilesPath    string
 	httpServerPort     string
-	dbPath             string
+	dataDir            string
+	dataUsersPath      string
+	dataAdvsPath       string
+	dataWatchesPath    string
 	availableCountries []string
 	language           string
 	domain             string
@@ -21,7 +24,7 @@ func Initialize() {
 		uploadedFilesPath:  "./uploaded/",
 		staticFilesPath:    "./static/",
 		httpServerPort:     ":8080",
-		dbPath:             "/home/murad/haha.db",
+		dataDir:            "/home/murad/GolandProjects/realty/data",
 		availableCountries: make([]string, 0),
 		domain:             "localhost",
 		adminId:            35456456,
@@ -33,8 +36,8 @@ func Initialize() {
 	if v, ok := os.LookupEnv("STATIC_FILES_PATH"); ok {
 		c.staticFilesPath = v
 	}
-	if v, ok := os.LookupEnv("DB_PATH"); ok {
-		c.dbPath = v
+	if v, ok := os.LookupEnv("DATA_DIR"); ok {
+		c.dataDir = v
 	}
 	if v, ok := os.LookupEnv("HTTP_SERVER_PORT"); ok {
 		c.httpServerPort = v
@@ -56,8 +59,40 @@ func GetHttpServerPort() string {
 	return c.httpServerPort
 }
 
-func GetDbPath() string {
-	return c.dbPath
+func GetDataDir() string {
+	return c.dataDir
+}
+
+func GetDbUsersPath() string {
+	if c.dataDir == ":memory" {
+		return c.dataDir
+	}
+	return c.dataDir + "/users.sqlite"
+}
+
+func GetDbAdvsPath() string {
+	if c.dataDir == ":memory" {
+		return c.dataDir
+	}
+	return c.dataDir + "/advs.sqlite"
+}
+
+func GetDbPhotosPath() string {
+	if c.dataDir == ":memory" {
+		return c.dataDir
+	}
+	return c.dataDir + "/photos.sqlite"
+}
+
+func GetDbWatchesPath() string {
+	if c.dataDir == ":memory" {
+		return c.dataDir
+	}
+	return c.dataDir + "/watches.sqlite"
+}
+
+func GetCurrencyRatesFilepath() string {
+	return c.dataDir + "/currency.json"
 }
 
 func GetAvailableCountries() []string {

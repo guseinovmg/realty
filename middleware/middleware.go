@@ -11,6 +11,7 @@ import (
 	"realty/dto"
 	"realty/render"
 	"realty/validator"
+	"strconv"
 	"time"
 )
 
@@ -94,10 +95,34 @@ func SetAuthCookie(rd *RequestData, writer http.ResponseWriter, request *http.Re
 	return true
 }
 
-func CreateToken(userId int64, microseconds int64, sessionSecret [24]byte) [36]byte {
+func FindAdv(rd *RequestData, writer http.ResponseWriter, request *http.Request) (next bool) {
+	advIdStr := request.PathValue("advId")
+	advId, errConv := strconv.ParseInt(advIdStr, 10, 64)
+	if errConv != nil {
+		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: errConv.Error()})
+		return
+	}
+	if !validator.IsValidUnixNanoId(advId) {
+		_ = render.Json(writer, http.StatusNotFound, &dto.Err{ErrMessage: "объявление не найдено"})
+		return
+	}
+	advCache := cache.FindAdvCacheById(advId)
+	if advCache == nil {
+		_ = render.Json(writer, http.StatusNotFound, &dto.Err{ErrMessage: "объявление не найдено"})
+		return
+	}
+	if advCache.CurrentAdv.UserId != rd.User.CurrentUser.Id && rd.User.CurrentUser.Id != config.GetAdminId() {
+		_ = render.Json(writer, http.StatusNotFound, &dto.Err{ErrMessage: "объявление не принадлежит текущему пользвателю"})
+		return
+	}
+	rd.Adv = advCache
+	return true
+}
+
+func CreateToken(userId int64, nanoseconds int64, sessionSecret [24]byte) [36]byte {
 	userIdBytes, expireTimeBytes := make([]byte, 8), make([]byte, 8)
 	binary.LittleEndian.PutUint64(userIdBytes, uint64(userId))
-	binary.LittleEndian.PutUint64(expireTimeBytes, uint64(microseconds))
+	binary.LittleEndian.PutUint64(expireTimeBytes, uint64(nanoseconds))
 	resultBytes := [36]byte{}
 	for i := 0; i < 8; i++ {
 		resultBytes[i] = userIdBytes[i]
@@ -115,10 +140,10 @@ func CreateToken(userId int64, microseconds int64, sessionSecret [24]byte) [36]b
 	return resultBytes
 }
 
-func UnpackToken(inputBytes [36]byte) (userId int64, microseconds int64) {
+func UnpackToken(inputBytes [36]byte) (userId int64, nanoseconds int64) {
 	userId = int64(binary.LittleEndian.Uint64(inputBytes[0:8]))
-	microseconds = int64(binary.LittleEndian.Uint64(inputBytes[8:16]))
-	return userId, microseconds
+	nanoseconds = int64(binary.LittleEndian.Uint64(inputBytes[8:16]))
+	return userId, nanoseconds
 }
 
 func IsValidToken(inputBytes [36]byte, sessionSecret [24]byte) bool {

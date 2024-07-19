@@ -12,7 +12,7 @@ import (
 	"realty/render"
 	"realty/utils"
 	"realty/validator"
-	"strconv"
+	"time"
 )
 
 func TextError(recovered any, rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) {
@@ -124,22 +124,7 @@ func CreateAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *
 }
 
 func GetAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) (next bool) {
-	advIdStr := request.PathValue("id")
-	advId, errConv := strconv.ParseInt(advIdStr, 10, 64)
-	if errConv != nil {
-		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: errConv.Error()})
-		return
-	}
-	if !validator.IsValidUnixNanoId(advId) {
-		_ = render.Json(writer, http.StatusNotFound, &dto.Err{ErrMessage: "объявление не найдено"})
-		return
-	}
-	advCache := cache.FindAdvCacheById(advId)
-	if advCache == nil {
-		_ = render.Json(writer, http.StatusNotFound, &dto.Err{ErrMessage: "объявление не найдено"})
-		return
-	}
-	adv := &advCache.CurrentAdv
+	adv := rd.Adv.CurrentAdv
 	if !adv.Approved {
 		_ = render.Json(writer, http.StatusNotFound, &dto.Err{ErrMessage: "объявление на проверке"})
 		return
@@ -151,7 +136,7 @@ func GetAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *htt
 		Id:           adv.Id,
 		UserEmail:    adv.User.Email,
 		UserName:     adv.User.Name,
-		Created:      adv.Created,
+		Created:      time.UnixMicro(adv.Id / 1000),
 		Updated:      adv.Updated,
 		Approved:     adv.Approved,
 		Lang:         adv.Lang,
@@ -173,7 +158,7 @@ func GetAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *htt
 		UserComment:  adv.UserComment,
 	}
 	_ = render.Json(writer, http.StatusOK, response)
-	cache.IncAdvWatches(advCache)
+	cache.IncAdvWatches(rd.Adv)
 	return
 }
 
@@ -221,26 +206,7 @@ func GetAdvList(rd *middleware.RequestData, writer http.ResponseWriter, request 
 }
 
 func GetUsersAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) (next bool) {
-	advIdStr := request.PathValue("id")
-	advId, errConv := strconv.ParseInt(advIdStr, 10, 64)
-	if errConv != nil {
-		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: errConv.Error()})
-		return
-	}
-	adv := cache.FindAdvById(advId)
-	if !validator.IsValidUnixNanoId(advId) {
-		_ = render.Json(writer, http.StatusNotFound, &dto.Err{ErrMessage: "объявление не найдено"})
-		return
-	}
-	if adv == nil {
-		_ = render.Json(writer, http.StatusNotFound, &dto.Err{ErrMessage: "объявление не найдено"})
-		return
-	}
-	if adv.UserId != rd.User.CurrentUser.Id {
-		_ = render.Json(writer, http.StatusNotFound, &dto.Err{ErrMessage: "объявление не принадлежит текущему пользвателю"})
-		return
-	}
-	_ = render.Json(writer, http.StatusOK, adv)
+	_ = render.Json(writer, http.StatusOK, rd.Adv.CurrentAdv)
 	return
 }
 
@@ -266,16 +232,6 @@ func GetUsersAdvList(rd *middleware.RequestData, writer http.ResponseWriter, req
 }
 
 func UpdateAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) (next bool) {
-	advIdStr := request.PathValue("id")
-	advId, errConv := strconv.ParseInt(advIdStr, 10, 64)
-	if errConv != nil {
-		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: errConv.Error()})
-		return
-	}
-	if !validator.IsValidUnixNanoId(advId) {
-		_ = render.Json(writer, http.StatusNotFound, &dto.Err{ErrMessage: "объявление не найдено"})
-		return
-	}
 	requestDto := &dto.UpdateAdvRequest{}
 	if err := parsing_input.ParseRawJson(request, requestDto); err != nil {
 		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
@@ -285,41 +241,23 @@ func UpdateAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *
 		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
 		return
 	}
-	adv := cache.FindAdvCacheById(advId)
-	if adv == nil {
-		_ = render.Json(writer, http.StatusNotFound, &dto.Err{ErrMessage: "объявление не найдено"})
-		return
-	}
-	if adv.CurrentAdv.UserId != rd.User.CurrentUser.Id {
-		_ = render.Json(writer, http.StatusNotFound, &dto.Err{ErrMessage: "объявление не принадлежит текущему пользвателю"})
-		return
-	}
-	cache.UpdateAdv(adv, requestDto)
+	cache.UpdateAdv(rd.Adv, requestDto)
 	_ = render.JsonOK(writer, http.StatusOK)
 	return
 }
 
 func DeleteAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) (next bool) {
-	advIdStr := request.PathValue("id")
-	advId, errConv := strconv.ParseInt(advIdStr, 10, 64)
-	if errConv != nil {
-		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: errConv.Error()})
-		return
-	}
-	if !validator.IsValidUnixNanoId(advId) {
-		_ = render.Json(writer, http.StatusNotFound, &dto.Err{ErrMessage: "объявление не найдено"})
-		return
-	}
-	adv := cache.FindAdvCacheById(advId)
-	if adv == nil {
-		_ = render.Json(writer, http.StatusNotFound, &dto.Err{ErrMessage: "объявление не найдено"})
-		return
-	}
-	if adv.CurrentAdv.UserId != rd.User.CurrentUser.Id {
-		_ = render.Json(writer, http.StatusNotFound, &dto.Err{ErrMessage: "объявление не принадлежит текущему пользвателю"})
-		return
-	}
-	cache.DeleteAdv(adv)
+	cache.DeleteAdv(rd.Adv)
+	return
+}
+
+func AddAdvPhoto(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) (next bool) {
+	//todo
+	return
+}
+
+func DeleteAdvPhoto(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) (next bool) {
+	//todo
 	_ = render.JsonOK(writer, http.StatusOK)
 	return
 }

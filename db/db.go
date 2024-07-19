@@ -11,14 +11,114 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-var db *sql.DB
+var db_users, db_advs, db_photos, db_watches *sql.DB
 
 func Initialize() {
-	db_, err := sql.Open("sqlite", config.GetDbPath())
-	if err != nil {
+	if db, err := sql.Open("sqlite", config.GetDbUsersPath()); err != nil {
 		log.Fatal(err)
+	} else {
+		db.SetMaxOpenConns(1)
+		db_users = db
 	}
-	db = db_
+	if db, err := sql.Open("sqlite", config.GetDbAdvsPath()); err != nil {
+		log.Fatal(err)
+	} else {
+		db.SetMaxOpenConns(1)
+		db_advs = db
+	}
+	if db, err := sql.Open("sqlite", config.GetDbPhotosPath()); err != nil {
+		log.Fatal(err)
+	} else {
+		db.SetMaxOpenConns(1)
+		db_photos = db
+	}
+	if db, err := sql.Open("sqlite", config.GetDbWatchesPath()); err != nil {
+		log.Fatal(err)
+	} else {
+		db.SetMaxOpenConns(1)
+		db_watches = db
+	}
+	if config.GetDataDir() == ":memory" {
+		if err := CreateInMemoryDB(); err != nil {
+			panic(err)
+		}
+	}
+}
+
+func CreateInMemoryDB() error {
+	if _, err := db_users.Exec(`create table users
+(
+    id             INTEGER
+        primary key,
+    email          TEXT      not null
+        unique,
+    name           TEXT      not null,
+    password_hash  BLOB      not null,
+    session_secret BLOB      not null,
+    invite_id      TEXT,
+    balance        REAL      not null,
+    trusted        INTEGER   not null,
+    enabled        INTEGER   not null,
+    description    TEXT
+) without ROWID, strict;`); err != nil {
+		return err
+	}
+
+	if _, err := db_users.Exec(`create table invites
+(
+    id   TEXT primary key,
+	name TEXT
+) without ROWID, strict;`); err != nil {
+		return err
+	}
+
+	if _, err := db_advs.Exec(`
+    CREATE TABLE advs (
+        id INTEGER PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        updated INTEGER NOT NULL,
+        approved INTEGER NOT NULL,
+        lang INTEGER NOT NULL,
+        origin_lang INTEGER NOT NULL,
+        translated_by INTEGER NOT NULL,
+        translated_to TEXT NOT NULL,
+        title TEXT NOT NULL,
+        description TEXT NOT NULL,
+        price INTEGER NOT NULL,
+        currency TEXT NOT NULL,
+        country TEXT NOT NULL,
+        city TEXT NOT NULL,
+        address TEXT NOT NULL,
+        latitude REAL NOT NULL,
+        longitude REAL NOT NULL,
+        paid_adv INTEGER NOT NULL,
+        se_visible INTEGER NOT NULL,
+        user_comment TEXT NOT NULL,
+        admin_comment TEXT NOT NULL
+    ) without ROWID, strict;
+`); err != nil {
+		return err
+	}
+
+	if _, err := db_photos.Exec(`
+    CREATE TABLE photos (
+        id INTEGER PRIMARY KEY,
+        adv_id INTEGER NOT NULL,
+        ext INTEGER NOT NULL
+    ) without ROWID, strict;
+`); err != nil {
+		return err
+	}
+
+	if _, err := db_watches.Exec(`
+    CREATE TABLE watches (
+        adv_id INTEGER PRIMARY KEY,
+        watches INTEGER NOT NULL
+    ) without ROWID, strict;
+`); err != nil {
+		return err
+	}
+	return nil
 }
 
 func ReadDb() (users []*models.User, advs []*models.Adv, err error) {
@@ -34,20 +134,20 @@ func ReadDb() (users []*models.User, advs []*models.Adv, err error) {
 func CreateAdv(adv *models.Adv) error {
 	query := `
 		INSERT INTO advs (
-			id, user_id, created, updated, approved, lang, origin_lang, title,
+			id, user_id, updated, approved, lang, origin_lang, title,
 			description, price, currency, country, city, address, latitude,
 			longitude, watches, paid_adv, se_visible, user_comment,
-			admin_comment, translated_to, photos
+			admin_comment, translated_to
 		) VALUES (
 			?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 		)
 	`
-	_, err := db.Exec(query,
-		adv.Id, adv.UserId, adv.Created, adv.Updated, adv.Approved, adv.Lang,
+	_, err := db_advs.Exec(query,
+		adv.Id, adv.UserId, adv.Updated, adv.Approved, adv.Lang,
 		adv.OriginLang, adv.Title, adv.Description, adv.Price, adv.Currency,
 		adv.Country, adv.City, adv.Address, adv.Latitude, adv.Longitude,
 		adv.Watches, adv.PaidAdv, adv.SeVisible, adv.UserComment,
-		adv.AdminComment, adv.TranslatedTo, adv.Photos,
+		adv.AdminComment, adv.TranslatedTo,
 	)
 	if err != nil {
 		return err
@@ -59,12 +159,12 @@ func CreateAdv(adv *models.Adv) error {
 func GetAdv(id int64) (*models.Adv, error) {
 	adv := &models.Adv{}
 	query := "SELECT * FROM advs WHERE id = ?"
-	err := db.QueryRow(query, id).Scan(
-		&adv.Id, &adv.UserId, &adv.Created, &adv.Updated, &adv.Approved,
+	err := db_advs.QueryRow(query, id).Scan(
+		&adv.Id, &adv.UserId, &adv.Updated, &adv.Approved,
 		&adv.Lang, &adv.OriginLang, &adv.Title, &adv.Description, &adv.Price,
 		&adv.Currency, &adv.Country, &adv.City, &adv.Address, &adv.Latitude,
 		&adv.Longitude, &adv.Watches, &adv.PaidAdv, &adv.SeVisible,
-		&adv.UserComment, &adv.AdminComment, &adv.TranslatedTo, &adv.Photos,
+		&adv.UserComment, &adv.AdminComment, &adv.TranslatedTo,
 	)
 	if err != nil {
 		return nil, err
@@ -74,22 +174,22 @@ func GetAdv(id int64) (*models.Adv, error) {
 }
 
 func GetAdvs() ([]*models.Adv, error) {
-	rows, err := db.Query("SELECT * FROM advs ORDER BY id")
+	rows, err := db_advs.Query("SELECT * FROM advs ORDER BY id")
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer rows.Close() //todo нужо ли закрывать соединение?
 
 	var advs = make([]*models.Adv, 0, 1000)
 
 	for rows.Next() {
 		adv := &models.Adv{}
 		err := rows.Scan(
-			&adv.Id, &adv.UserId, &adv.Created, &adv.Updated, &adv.Approved,
+			&adv.Id, &adv.UserId, &adv.Updated, &adv.Approved,
 			&adv.Lang, &adv.OriginLang, &adv.Title, &adv.Description, &adv.Price,
 			&adv.Currency, &adv.Country, &adv.City, &adv.Address, &adv.Latitude,
 			&adv.Longitude, &adv.Watches, &adv.PaidAdv, &adv.SeVisible,
-			&adv.UserComment, &adv.AdminComment, &adv.TranslatedTo, &adv.Photos,
+			&adv.UserComment, &adv.AdminComment, &adv.TranslatedTo,
 		)
 		if err != nil {
 			return nil, err
@@ -104,7 +204,6 @@ func UpdateAdv(adv *models.Adv) error {
 	query := `
 		UPDATE advs SET
 			user_id = ?,
-			created = ?,
 			updated = ?,
 			approved = ?,
 			lang = ?,
@@ -123,16 +222,15 @@ func UpdateAdv(adv *models.Adv) error {
 			se_visible = ?,
 			user_comment = ?,
 			admin_comment = ?,
-			translated_to = ?,
-			photos = ?
+			translated_to = ?
 		WHERE id = ?
 	`
-	_, err := db.Exec(query,
-		adv.UserId, adv.Created, adv.Updated, adv.Approved, adv.Lang,
+	_, err := db_users.Exec(query,
+		adv.UserId, adv.Updated, adv.Approved, adv.Lang,
 		adv.OriginLang, adv.Title, adv.Description, adv.Price, adv.Currency,
 		adv.Country, adv.City, adv.Address, adv.Latitude, adv.Longitude,
 		adv.Watches, adv.PaidAdv, adv.SeVisible, adv.UserComment,
-		adv.AdminComment, adv.TranslatedTo, adv.Photos, adv.Id,
+		adv.AdminComment, adv.TranslatedTo, adv.Id,
 	)
 
 	return err
@@ -145,10 +243,6 @@ func UpdateAdvChanges(oldAdv, newAdv *models.Adv) error {
 	if oldAdv.UserId != newAdv.UserId {
 		setClauses = append(setClauses, "user_id = ?")
 		args = append(args, newAdv.UserId)
-	}
-	if !oldAdv.Created.Equal(newAdv.Created) {
-		setClauses = append(setClauses, "created = ?")
-		args = append(args, newAdv.Created)
 	}
 	if !oldAdv.Updated.Equal(newAdv.Updated) {
 		setClauses = append(setClauses, "updated = ?")
@@ -226,10 +320,6 @@ func UpdateAdvChanges(oldAdv, newAdv *models.Adv) error {
 		setClauses = append(setClauses, "translated_to = ?")
 		args = append(args, newAdv.TranslatedTo)
 	}
-	if oldAdv.Photos != newAdv.Photos {
-		setClauses = append(setClauses, "photos = ?")
-		args = append(args, newAdv.Photos)
-	}
 
 	if len(setClauses) == 0 {
 		return nil
@@ -238,18 +328,17 @@ func UpdateAdvChanges(oldAdv, newAdv *models.Adv) error {
 	query := "UPDATE advs SET " + strings.Join(setClauses, ", ") + " WHERE id = ?"
 	args = append(args, oldAdv.Id)
 
-	_, err := db.Exec(query, args...)
+	_, err := db_advs.Exec(query, args...)
 	return err
 }
 
 func DeleteAdv(id int64) error {
 	query := "DELETE FROM advs WHERE id = ?"
-	_, err := db.Exec(query, id)
+	_, err := db_advs.Exec(query, id)
 	return err
 }
 
 func CreateUser(user *models.User) error {
-
 	query := `
 		INSERT INTO users (
 			email, name, password_hash, session_secret, invite_id, trusted,
@@ -258,7 +347,7 @@ func CreateUser(user *models.User) error {
 			?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 		)
 	`
-	_, err := db.Exec(query,
+	_, err := db_users.Exec(query,
 		user.Email, user.Name, user.PasswordHash, user.SessionSecret,
 		user.InviteId, user.Trusted, user.Enabled, user.Balance,
 		user.Created, user.Description,
@@ -273,7 +362,7 @@ func CreateUser(user *models.User) error {
 func GetUser(id int64) (*models.User, error) {
 	user := &models.User{}
 	query := "SELECT * FROM users WHERE id = ?"
-	err := db.QueryRow(query, id).Scan(
+	err := db_users.QueryRow(query, id).Scan(
 		&user.Id, &user.Email, &user.Name, &user.PasswordHash,
 		&user.SessionSecret, &user.InviteId, &user.Trusted, &user.Enabled,
 		&user.Balance, &user.Created, &user.Description,
@@ -300,7 +389,7 @@ func UpdateUser(user *models.User) error {
 			description = ?
 		WHERE id = ?
 	`
-	_, err := db.Exec(query,
+	_, err := db_users.Exec(query,
 		user.Email, user.Name, user.PasswordHash, user.SessionSecret,
 		user.InviteId, user.Trusted, user.Enabled, user.Balance,
 		user.Created, user.Description, user.Id,
@@ -362,12 +451,12 @@ func UpdateUserChanges(oldUser, newUser *models.User) error {
 	query := "UPDATE users SET " + strings.Join(setClauses, ", ") + " WHERE id = ?"
 	args = append(args, oldUser.Id)
 
-	_, err := db.Exec(query, args...)
+	_, err := db_users.Exec(query, args...)
 	return err
 }
 
 func GetUsers() ([]*models.User, error) {
-	rows, err := db.Query("SELECT * FROM users ORDER BY id")
+	rows, err := db_users.Query("SELECT * FROM users ORDER BY id")
 	if err != nil {
 		return nil, err
 	}
@@ -393,6 +482,12 @@ func GetUsers() ([]*models.User, error) {
 
 func DeleteUser(id int64) error {
 	query := "DELETE FROM users WHERE id = ?"
-	_, err := db.Exec(query, id)
+	_, err := db_users.Exec(query, id)
+	return err
+}
+
+func DeletePhoto(id int64) error {
+	query := "DELETE FROM photos WHERE id = ?"
+	_, err := db_photos.Exec(query, id)
 	return err
 }

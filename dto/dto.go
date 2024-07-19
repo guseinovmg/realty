@@ -62,7 +62,7 @@ type GetAdvResponse struct {
 	TranslatedBy int8      `json:"translatedBy,omitempty"`
 	Title        string    `json:"title,omitempty"`
 	Description  string    `json:"description,omitempty"`
-	Photos       string    `json:"photos,omitempty"`
+	Photos       []string  `json:"photos,omitempty"`
 	Price        int64     `json:"price,omitempty"`
 	Currency     string    `json:"currency,omitempty"`
 	DollarPrice  int64     `json:"dollarPrice,omitempty"` //не хранится в БД

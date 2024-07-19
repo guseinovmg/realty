@@ -25,15 +25,15 @@ type Invite struct {
 }
 
 type Photo struct {
-	Name int64
-	Ext  byte
+	AdvId int64
+	Id    int64
+	Ext   byte
 }
 
 type Adv struct {
 	Id           int64
 	UserId       int64
 	User         *User
-	Created      time.Time
 	Updated      time.Time
 	Approved     bool
 	Lang         int8
@@ -42,7 +42,7 @@ type Adv struct {
 	TranslatedTo string
 	Title        string
 	Description  string
-	Photos       string
+	Photos       []string
 	Price        int64
 	Currency     string
 	DollarPrice  int64 //не хранится в БД

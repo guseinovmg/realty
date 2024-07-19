@@ -9,6 +9,7 @@ import (
 // можно расширять для передачи данных по цепочке обработчиков
 type RequestData struct {
 	User *cache.UserCache
+	Adv  *cache.AdvCache
 }
 
 type HandlerFunction func(rd *RequestData, writer http.ResponseWriter, request *http.Request) (next bool)
