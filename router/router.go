@@ -25,16 +25,16 @@ func Initialize() *http.ServeMux {
 	mux.Handle("GET /adv", mw.Handler(handlers.GetAdvList))
 	mux.Handle("POST /adv", mw.Handler(handlers.GetAdvList))
 
-	mux.Handle("GET /user/adv/{advId}", mw.Handler(mw.Auth, mw.FindAdv, mw.SetAuthCookie, handlers.GetUsersAdv))
+	mux.Handle("GET /user/adv/{advId}", mw.Handler(mw.Auth, mw.FindAdv, mw.CheckAdvOwner, mw.SetAuthCookie, handlers.GetUsersAdv))
 	mux.Handle("GET /user/adv", mw.Handler(mw.Auth, mw.SetAuthCookie, handlers.GetUsersAdvList))
 	mux.Handle("POST /user/adv", mw.Handler(mw.Auth, mw.SetAuthCookie, handlers.GetUsersAdvList))
 
 	mux.Handle("POST /adv", mw.Handler(mw.Auth, mw.SetAuthCookie, handlers.CreateAdv))
-	mux.Handle("PUT /adv/{advId}", mw.Handler(mw.Auth, mw.FindAdv, mw.SetAuthCookie, handlers.UpdateAdv))
-	mux.Handle("DELETE /adv/{advId}", mw.Handler(mw.Auth, mw.FindAdv, mw.SetAuthCookie, handlers.DeleteAdv))
+	mux.Handle("PUT /adv/{advId}", mw.Handler(mw.Auth, mw.FindAdv, mw.CheckAdvOwner, mw.SetAuthCookie, handlers.UpdateAdv))
+	mux.Handle("DELETE /adv/{advId}", mw.Handler(mw.Auth, mw.FindAdv, mw.CheckAdvOwner, mw.SetAuthCookie, handlers.DeleteAdv))
 
-	mux.Handle("POST /adv/{advId}/photos", mw.Handler(mw.Auth, mw.FindAdv, mw.SetAuthCookie, handlers.AddAdvPhoto))
-	mux.Handle("DELETE /adv/{advId}/photos/{photoId}", mw.Handler(mw.Auth, mw.FindAdv, mw.SetAuthCookie, handlers.DeleteAdvPhoto))
+	mux.Handle("POST /adv/{advId}/photos", mw.Handler(mw.Auth, mw.FindAdv, mw.CheckAdvOwner, mw.SetAuthCookie, handlers.AddAdvPhoto))
+	mux.Handle("DELETE /adv/{advId}/photos/{photoId}", mw.Handler(mw.Auth, mw.FindAdv, mw.CheckAdvOwner, mw.SetAuthCookie, handlers.DeleteAdvPhoto))
 
 	go log.Fatal(http.ListenAndServe(config.GetHttpServerPort(), mux))
 

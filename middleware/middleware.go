@@ -111,11 +111,15 @@ func FindAdv(rd *RequestData, writer http.ResponseWriter, request *http.Request)
 		_ = render.Json(writer, http.StatusNotFound, &dto.Err{ErrMessage: "объявление не найдено"})
 		return
 	}
-	if advCache.CurrentAdv.UserId != rd.User.CurrentUser.Id && rd.User.CurrentUser.Id != config.GetAdminId() {
+	rd.Adv = advCache
+	return true
+}
+
+func CheckAdvOwner(rd *RequestData, writer http.ResponseWriter, request *http.Request) (next bool) {
+	if rd.Adv.CurrentAdv.UserId != rd.User.CurrentUser.Id {
 		_ = render.Json(writer, http.StatusNotFound, &dto.Err{ErrMessage: "объявление не принадлежит текущему пользвателю"})
 		return
 	}
-	rd.Adv = advCache
 	return true
 }
 
