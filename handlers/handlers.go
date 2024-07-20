@@ -248,6 +248,7 @@ func UpdateAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *
 
 func DeleteAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) (next bool) {
 	cache.DeleteAdv(rd.Adv)
+	_ = render.JsonOK(writer, http.StatusOK)
 	return
 }
 
