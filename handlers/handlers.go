@@ -12,6 +12,7 @@ import (
 	"realty/render"
 	"realty/utils"
 	"realty/validator"
+	"strconv"
 	"time"
 )
 
@@ -22,6 +23,11 @@ func TextError(recovered any, rd *middleware.RequestData, writer http.ResponseWr
 
 func JsonError(recovered any, rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) {
 	_ = render.Json(writer, http.StatusInternalServerError, &dto.Err{ErrMessage: "Internal error"})
+}
+
+func JsonOK(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) (next bool) {
+	_ = render.JsonOK(writer, http.StatusOK)
+	return
 }
 
 func Login(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) (next bool) {
@@ -44,8 +50,6 @@ func Login(rd *middleware.RequestData, writer http.ResponseWriter, request *http
 		return
 	}
 	rd.User = userCache
-	middleware.SetAuthCookie(rd, writer, request) //todo надо подумать
-	_ = render.JsonOK(writer, http.StatusOK)
 	return
 }
 
@@ -144,7 +148,7 @@ func GetAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *htt
 		TranslatedBy: adv.TranslatedBy,
 		Title:        adv.Title,
 		Description:  adv.Description,
-		Photos:       adv.Photos,
+		Photos:       adv.GetPhotosFilenames(),
 		Price:        adv.Price,
 		Currency:     adv.Currency,
 		DollarPrice:  adv.DollarPrice,
@@ -153,7 +157,7 @@ func GetAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *htt
 		Address:      adv.Address,
 		Latitude:     adv.Latitude,
 		Longitude:    adv.Longitude,
-		Watches:      adv.Watches,
+		Watches:      adv.Watches.Watches,
 		SeVisible:    adv.SeVisible,
 		UserComment:  adv.UserComment,
 	}
@@ -258,7 +262,22 @@ func AddAdvPhoto(rd *middleware.RequestData, writer http.ResponseWriter, request
 }
 
 func DeleteAdvPhoto(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) (next bool) {
-	//todo
+	photoIdStr := request.PathValue("photoId")
+	photoId, errConv := strconv.ParseInt(photoIdStr, 10, 64)
+	if errConv != nil {
+		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: errConv.Error()})
+		return
+	}
+	if !validator.IsValidUnixNanoId(photoId) {
+		_ = render.Json(writer, http.StatusNotFound, &dto.Err{ErrMessage: "фото не найдено"})
+		return
+	}
+	photoCache := cache.FindPhotoCacheById(photoId)
+	if photoCache == nil {
+		_ = render.Json(writer, http.StatusNotFound, &dto.Err{ErrMessage: "фото не найдено"})
+		return
+	}
+	cache.DeletePhoto(photoCache)
 	_ = render.JsonOK(writer, http.StatusOK)
 	return
 }

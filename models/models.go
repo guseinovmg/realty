@@ -1,6 +1,7 @@
 package models
 
 import (
+	"strconv"
 	"time"
 )
 
@@ -30,6 +31,11 @@ type Photo struct {
 	Ext   byte
 }
 
+type Watches struct {
+	AdvId   int64
+	Watches int64
+}
+
 type Adv struct {
 	Id           int64
 	UserId       int64
@@ -42,7 +48,7 @@ type Adv struct {
 	TranslatedTo string
 	Title        string
 	Description  string
-	Photos       []string
+	Photos       []*Photo
 	Price        int64
 	Currency     string
 	DollarPrice  int64 //не хранится в БД
@@ -51,11 +57,29 @@ type Adv struct {
 	Address      string
 	Latitude     float64
 	Longitude    float64
-	Watches      int64
+	Watches      *Watches
 	PaidAdv      int64
 	SeVisible    bool
 	UserComment  string
 	AdminComment string
+}
+
+func (adv *Adv) GetPhotosFilenames() []string {
+	result := make([]string, 0, len(adv.Photos))
+	for _, v := range adv.Photos { //todo если бы тут был массив PhotoCache можно было бы сразу удаленные убрать
+		ext := ""
+		switch v.Ext {
+		case 1:
+			ext = ".jpg"
+		case 2:
+			ext = ".png"
+		case 3:
+			ext = ".gif"
+		}
+		name := strconv.FormatInt(v.Id, 10) + ext
+		result = append(result, name)
+	}
+	return result
 }
 
 type CurrencyRate struct {

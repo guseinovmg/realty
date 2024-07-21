@@ -121,14 +121,20 @@ func CreateInMemoryDB() error {
 	return nil
 }
 
-func ReadDb() (users []*models.User, advs []*models.Adv, err error) {
+func ReadDb() (users []*models.User, advs []*models.Adv, photos []*models.Photo, watches []*models.Watches, err error) {
 	if users, err = GetUsers(); err != nil {
-		return nil, nil, err
+		return
 	}
 	if advs, err = GetAdvs(); err != nil {
-		return nil, nil, err
+		return
 	}
-	return users, advs, nil
+	if photos, err = GetPhotos(); err != nil {
+		return
+	}
+	if watches, err = GetWatches(); err != nil {
+		return
+	}
+	return
 }
 
 func CreateAdv(adv *models.Adv) error {
@@ -486,8 +492,106 @@ func DeleteUser(id int64) error {
 	return err
 }
 
+func CreatePhoto(photo models.Photo) error {
+	query := `
+		INSERT INTO photos (
+			id, adv_id, ext
+		) VALUES (
+			?, ?, ?
+		)
+	`
+	_, err := db_photos.Exec(query,
+		photo.Id, photo.AdvId, photo.Ext,
+	)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func GetPhotos() ([]*models.Photo, error) {
+	rows, err := db_photos.Query("SELECT id, adv_id, ext FROM photos ORDER BY id")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var photos []*models.Photo
+
+	for rows.Next() {
+		photo := &models.Photo{}
+		err := rows.Scan(
+			&photo.Id, &photo.AdvId, &photo.Ext,
+		)
+		if err != nil {
+			return nil, err
+		}
+		photos = append(photos, photo)
+	}
+
+	return photos, nil
+}
+
 func DeletePhoto(id int64) error {
 	query := "DELETE FROM photos WHERE id = ?"
 	_, err := db_photos.Exec(query, id)
+	return err
+}
+
+func CreateWatches(watches models.Watches) error {
+	query := `
+		INSERT INTO watches (
+			adv_id, ext
+		) VALUES (
+			?, ?, ?
+		)
+	`
+	_, err := db_watches.Exec(query,
+		watches.AdvId, watches.Watches,
+	)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func GetWatches() ([]*models.Watches, error) {
+	rows, err := db_watches.Query("SELECT adv_id, watches FROM watches ORDER BY id")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var watches []*models.Watches
+	for rows.Next() {
+		watch := &models.Watches{}
+		err := rows.Scan(
+			&watch.AdvId, &watch.Watches,
+		)
+		if err != nil {
+			return nil, err
+		}
+		watches = append(watches, watch)
+	}
+	return watches, nil
+}
+
+func UpdateWatches(watch *models.Watches) error {
+	query := `
+		UPDATE watches SET
+			watches = ?
+		WHERE id = ?
+	`
+	_, err := db_watches.Exec(query,
+		watch.Watches, watch.AdvId,
+	)
+
+	return err
+}
+
+func DeleteWatches(id int64) error {
+	query := "DELETE FROM watches WHERE adv_id = ?"
+	_, err := db_watches.Exec(query, id)
 	return err
 }
