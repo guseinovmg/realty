@@ -5,6 +5,7 @@ import (
 	"realty/dto"
 	"realty/models"
 	"realty/utils"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -686,7 +687,10 @@ func DeletePhoto(adv *models.Adv, photoCache *PhotoCache) {
 	if !photoCache.Deleted {
 		photoCache.ToDelete = true
 	}
-	adv.Photos = GetPhotosByAdvId(adv.Id)
+	ind := slices.Index(adv.Photos, &photoCache.Photo)
+	if ind != -1 {
+		adv.Photos = slices.Delete(adv.Photos, ind, ind)
+	}
 	toSave <- photoCache
 }
 
