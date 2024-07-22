@@ -199,28 +199,7 @@ func Initialize() {
 	if err != nil {
 		panic(err)
 	}
-	users = make([]*UserCache, len(users_), len(users_)+100)
-	for i := range len(users_) {
-		users[i] = &UserCache{
-			CurrentUser: *users_[i], //todo надо подумать, может непосредственно ссылку оптимальнее использовать
-			OldUser:     *users_[i],
-			ToUpdate:    false,
-			ToDelete:    false,
-			Deleted:     false,
-			mu:          sync.RWMutex{},
-		}
-	}
-	advs = make([]*AdvCache, len(advs_), len(advs_)+500)
-	for i := range len(advs_) {
-		advs[i] = &AdvCache{
-			CurrentAdv: *advs_[i],
-			OldAdv:     *advs_[i],
-			ToUpdate:   false,
-			ToDelete:   false,
-			Deleted:    false,
-			mu:         sync.RWMutex{},
-		}
-	}
+
 	photos = make([]*PhotoCache, len(photos_), len(photos_)+500)
 	for i := range len(photos_) {
 		photos[i] = &PhotoCache{
@@ -241,6 +220,36 @@ func Initialize() {
 			mu:       sync.RWMutex{},
 		}
 	}
+
+	users = make([]*UserCache, len(users_), len(users_)+100)
+	for i := range len(users_) {
+		user := users_[i]
+		users[i] = &UserCache{
+			CurrentUser: *user, //todo надо подумать, может непосредственно ссылку оптимальнее использовать
+			OldUser:     *user,
+			ToUpdate:    false,
+			ToDelete:    false,
+			Deleted:     false,
+			mu:          sync.RWMutex{},
+		}
+	}
+	advs = make([]*AdvCache, len(advs_), len(advs_)+500)
+	for i := range len(advs_) {
+		adv := advs_[i]
+		adv.Photos = GetPhotosByAdvId(adv.Id)
+		w := FindWatchesCacheById(adv.Id)
+		adv.Watches = &w.Watches
+		advs[i] = &AdvCache{
+			CurrentAdv: *adv,
+			OldAdv:     *adv,
+			ToUpdate:   false,
+			ToDelete:   false,
+			Deleted:    false,
+			mu:         sync.RWMutex{},
+		}
+	}
+
+	//todo надо просмотры и фото в adv добавить
 	toSave = make(chan SaveCache, 100)
 	go func() {
 		for saveCache := range toSave {
@@ -667,14 +676,26 @@ func CreatePhoto(adv *models.Adv, photo models.Photo) {
 	photoCache.mu.Lock() //todo тут видимо отдельный лок нужен для слайсов
 	defer photoCache.mu.Unlock()
 	photos = append(photos, photoCache)
+	adv.Photos = append(adv.Photos, &photoCache.Photo)
 	toSave <- photoCache
 }
 
-func DeletePhoto(photoCache *PhotoCache) {
+func DeletePhoto(adv *models.Adv, photoCache *PhotoCache) {
 	photoCache.mu.Lock()
 	defer photoCache.mu.Unlock()
 	if !photoCache.Deleted {
 		photoCache.ToDelete = true
 	}
+	adv.Photos = GetPhotosByAdvId(adv.Id)
 	toSave <- photoCache
+}
+
+func GetPhotosByAdvId(advId int64) []*models.Photo {
+	result := make([]*models.Photo, 0, 15)
+	for i := 0; i < len(photos); i++ {
+		if photos[i].Photo.AdvId == advId && !photos[i].Deleted && !photos[i].ToDelete {
+			result = append(result, &photos[i].Photo)
+		}
+	}
+	return result
 }

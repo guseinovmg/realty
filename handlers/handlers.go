@@ -277,7 +277,11 @@ func DeleteAdvPhoto(rd *middleware.RequestData, writer http.ResponseWriter, requ
 		_ = render.Json(writer, http.StatusNotFound, &dto.Err{ErrMessage: "фото не найдено"})
 		return
 	}
-	cache.DeletePhoto(photoCache)
+	if rd.Adv.CurrentAdv.Id != photoCache.Photo.AdvId {
+		_ = render.Json(writer, http.StatusNotFound, &dto.Err{ErrMessage: "фото принадлежит другому объявлению"})
+		return
+	}
+	cache.DeletePhoto(&rd.Adv.CurrentAdv, photoCache)
 	_ = render.JsonOK(writer, http.StatusOK)
 	return
 }
