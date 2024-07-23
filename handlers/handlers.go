@@ -2,17 +2,22 @@ package handlers
 
 import (
 	"bytes"
+	"io"
 	"math"
 	"net/http"
+	"os"
 	"realty/cache"
+	"realty/config"
 	"realty/currency"
 	"realty/dto"
 	"realty/middleware"
+	"realty/models"
 	"realty/parsing_input"
 	"realty/render"
 	"realty/utils"
 	"realty/validator"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -257,7 +262,57 @@ func DeleteAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *
 }
 
 func AddAdvPhoto(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) (next bool) {
-	//todo
+	// ParseMultipartForm parses a request body as multipart/form-data
+	err := request.ParseMultipartForm(32 << 20)
+	if err != nil {
+		_ = render.Json(writer, http.StatusInternalServerError, &dto.Err{ErrMessage: err.Error()})
+		return
+	}
+
+	file, header, err := request.FormFile("file") // Retrieve the file from form data
+
+	if err != nil {
+		_ = render.Json(writer, http.StatusInternalServerError, &dto.Err{ErrMessage: err.Error()})
+		return
+	}
+	defer file.Close() // Close the file when we finish
+	splits := strings.Split(header.Filename, ".")
+	ext := splits[len(splits)-1]
+	var buf bytes.Buffer
+	_, err = io.Copy(&buf, file)
+	if err != nil {
+		_ = render.Json(writer, http.StatusInternalServerError, &dto.Err{ErrMessage: err.Error()})
+		return
+	}
+	photo := &models.Photo{
+		AdvId: rd.Adv.CurrentAdv.Id,
+		Id:    cache.GenerateId(),
+	}
+
+	switch ext {
+	case ".jpg":
+		photo.Ext = 1
+	case ".png":
+		photo.Ext = 2
+	case ".gif":
+		photo.Ext = 3
+	default:
+		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: "не поддерживается тип изображения"})
+		return
+	}
+
+	f, err := os.Create(config.GetUploadedFilesPath() + strconv.FormatInt(photo.Id, 10) + ext)
+	if err != nil {
+		_ = render.Json(writer, http.StatusInternalServerError, &dto.Err{ErrMessage: err.Error()})
+		return
+	}
+	_, err = f.Write(buf.Bytes())
+	if err != nil {
+		_ = render.Json(writer, http.StatusInternalServerError, &dto.Err{ErrMessage: err.Error()})
+		return
+	}
+	cache.CreatePhoto(&rd.Adv.CurrentAdv, photo)
+	_ = render.JsonOK(writer, http.StatusOK)
 	return
 }
 
@@ -278,7 +333,7 @@ func DeleteAdvPhoto(rd *middleware.RequestData, writer http.ResponseWriter, requ
 		return
 	}
 	if rd.Adv.CurrentAdv.Id != photoCache.Photo.AdvId {
-		_ = render.Json(writer, http.StatusNotFound, &dto.Err{ErrMessage: "фото принадлежит другому объявлению"})
+		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: "фото принадлежит другому объявлению"})
 		return
 	}
 	cache.DeletePhoto(&rd.Adv.CurrentAdv, photoCache)

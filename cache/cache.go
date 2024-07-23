@@ -188,7 +188,7 @@ var watches []*WatchesCache
 var toSave chan SaveCache
 var idGenerationMutex sync.Mutex
 
-func generateId() int64 {
+func GenerateId() int64 {
 	idGenerationMutex.Lock()
 	defer idGenerationMutex.Unlock()
 	time.Sleep(time.Microsecond)
@@ -530,7 +530,7 @@ func FindUsersAdvs(userId int64, offset, limit int, firstNew bool) []*dto.GetAdv
 }
 
 func CreateAdv(user *models.User, request *dto.CreateAdvRequest) {
-	id := generateId()
+	id := GenerateId()
 	newAdv := &models.Adv{
 		Id:           id,
 		UserId:       user.Id,
@@ -611,7 +611,7 @@ func DeleteAdv(adv *AdvCache) {
 func CreateUser(request *dto.RegisterRequest) {
 	passwordHash := utils.GeneratePasswordHash(request.Password)
 	newUser := &models.User{
-		Id:            generateId(),
+		Id:            GenerateId(),
 		Email:         request.Email,
 		Name:          request.Name,
 		PasswordHash:  passwordHash,
@@ -669,9 +669,9 @@ func DeleteUser(userCache *UserCache) {
 	toSave <- userCache
 }
 
-func CreatePhoto(adv *models.Adv, photo models.Photo) {
+func CreatePhoto(adv *models.Adv, photo *models.Photo) {
 	photoCache := &PhotoCache{
-		Photo:    photo,
+		Photo:    *photo,
 		ToCreate: true,
 	}
 	photoCache.mu.Lock() //todo тут видимо отдельный лок нужен для слайсов
