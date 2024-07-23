@@ -50,7 +50,7 @@ type GetUserAdvListRequest struct {
 	FirstNew bool `json:"firstNew,omitempty"`
 }
 
-type GetAdvResponse struct {
+type GetAdvResponseItem struct {
 	Id           int64     `json:"id,omitempty"`
 	UserEmail    string    `json:"userEmail,omitempty"`
 	UserName     string    `json:"userName,omitempty"`
@@ -74,6 +74,11 @@ type GetAdvResponse struct {
 	Watches      int64     `json:"watches,omitempty"`
 	SeVisible    bool      `json:"seVisible,omitempty"`
 	UserComment  string    `json:"userComment,omitempty"`
+}
+
+type GetAdvListResponse struct {
+	List  []*GetAdvResponseItem `json:"list"`
+	Count int                   `json:"count"`
 }
 
 type UpdateAdvRequest struct {

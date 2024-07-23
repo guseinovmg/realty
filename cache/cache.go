@@ -408,9 +408,9 @@ func FindWatchesCacheById(advId int64) *WatchesCache {
 
 func FindAdvs(minDollarPrice int64, maxDollarPrice int64, minLongitude float64,
 	maxLongitude float64, minLatitude float64, maxLatitude float64, countryCode string,
-	location string, offset int, limit int, firstNew bool) []*dto.GetAdvResponse {
-	result := make([]*dto.GetAdvResponse, 0, limit)
-	var i, step int
+	location string, offset int, limit int, firstNew bool) ([]*dto.GetAdvResponseItem, int) {
+	result := make([]*dto.GetAdvResponseItem, 0, limit)
+	var i, step, count int
 	length := len(advs)
 	if firstNew {
 		i = length - 1
@@ -430,11 +430,17 @@ func FindAdvs(minDollarPrice int64, maxDollarPrice int64, minLongitude float64,
 			adv.Latitude > minLatitude && adv.Latitude < maxLatitude &&
 			(countryCode == "" || adv.Country == countryCode) &&
 			(location == "" || strings.Contains(adv.Address, location)) {
+			count++
 			if offset > 0 {
 				offset--
 				continue
 			}
-			response := &dto.GetAdvResponse{
+			if limit > 0 {
+				limit--
+			} else {
+				continue
+			}
+			response := &dto.GetAdvResponseItem{
 				Id:           adv.Id,
 				UserEmail:    adv.User.Email,
 				UserName:     adv.User.Name,
@@ -459,23 +465,18 @@ func FindAdvs(minDollarPrice int64, maxDollarPrice int64, minLongitude float64,
 				SeVisible:    adv.SeVisible,
 			}
 			result = append(result, response)
-			if limit > 0 {
-				limit--
-			} else {
-				break
-			}
 		}
 	}
-	return result
+	return result, count
 }
 
-func FindUsersAdvs(userId int64, offset, limit int, firstNew bool) []*dto.GetAdvResponse {
+func FindUsersAdvs(userId int64, offset, limit int, firstNew bool) ([]*dto.GetAdvResponseItem, int) {
 	length := len(advs)
 	if offset > length {
-		return []*dto.GetAdvResponse{}
+		return []*dto.GetAdvResponseItem{}, 0 //todo ?
 	}
-	result := make([]*dto.GetAdvResponse, 0, limit)
-	var i, step int
+	result := make([]*dto.GetAdvResponseItem, 0, limit)
+	var i, step, count int
 	if firstNew {
 		i = length - 1
 		step = -1
@@ -490,11 +491,17 @@ func FindUsersAdvs(userId int64, offset, limit int, firstNew bool) []*dto.GetAdv
 		}
 		adv = &advs[i].CurrentAdv
 		if adv.UserId == userId {
+			count++
 			if offset > 0 {
 				offset--
 				continue
 			}
-			response := &dto.GetAdvResponse{
+			if limit > 0 {
+				limit--
+			} else {
+				continue
+			}
+			response := &dto.GetAdvResponseItem{
 				Id:           adv.Id,
 				UserEmail:    adv.User.Email,
 				UserName:     adv.User.Name,
@@ -519,14 +526,9 @@ func FindUsersAdvs(userId int64, offset, limit int, firstNew bool) []*dto.GetAdv
 				SeVisible:    adv.SeVisible,
 			}
 			result = append(result, response)
-			if limit > 0 {
-				limit--
-			} else {
-				break
-			}
 		}
 	}
-	return result
+	return result, count
 }
 
 func CreateAdv(user *models.User, request *dto.CreateAdvRequest) {

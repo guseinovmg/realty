@@ -141,7 +141,7 @@ func GetAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *htt
 	if !adv.SeVisible {
 		//todo
 	}
-	response := &dto.GetAdvResponse{
+	response := &dto.GetAdvResponseItem{
 		Id:           adv.Id,
 		UserEmail:    adv.User.Email,
 		UserName:     adv.User.Name,
@@ -198,7 +198,7 @@ func GetAdvList(rd *middleware.RequestData, writer http.ResponseWriter, request 
 		maxDollarPrice = currency.CalcDollarPrice(requestDto.Currency, requestDto.MaxPrice)
 	}
 	offset = (requestDto.Page - 1) * limit
-	advs := cache.FindAdvs(
+	advs, count := cache.FindAdvs(
 		minDollarPrice,
 		maxDollarPrice,
 		requestDto.MinLongitude,
@@ -210,7 +210,7 @@ func GetAdvList(rd *middleware.RequestData, writer http.ResponseWriter, request 
 		offset,
 		limit,
 		requestDto.FirstNew)
-	_ = render.Json(writer, http.StatusOK, advs)
+	_ = render.Json(writer, http.StatusOK, &dto.GetAdvListResponse{List: advs, Count: count})
 	return
 }
 
@@ -235,8 +235,8 @@ func GetUsersAdvList(rd *middleware.RequestData, writer http.ResponseWriter, req
 		return
 	}
 	offset = (int(requestDto.Page) - 1) * limit
-	advs := cache.FindUsersAdvs(rd.User.CurrentUser.Id, offset, limit, firstNew)
-	_ = render.Json(writer, http.StatusOK, advs)
+	advs, count := cache.FindUsersAdvs(rd.User.CurrentUser.Id, offset, limit, firstNew)
+	_ = render.Json(writer, http.StatusOK, &dto.GetAdvListResponse{List: advs, Count: count})
 	return
 }
 
