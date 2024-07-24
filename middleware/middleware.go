@@ -77,7 +77,7 @@ func CheckIsAdmin(rd *RequestData, writer http.ResponseWriter, request *http.Req
 	return true
 }
 
-func IsNotGracefullyStopped(rd *RequestData, writer http.ResponseWriter, request *http.Request) (next bool) {
+func CheckGracefullyStop(rd *RequestData, writer http.ResponseWriter, request *http.Request) (next bool) {
 	if cache.IsGracefullyStopped() {
 		_ = render.Json(writer, http.StatusServiceUnavailable, &dto.Err{ErrMessage: "сервис временно недоступен"})
 		return false
