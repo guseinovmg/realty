@@ -42,7 +42,7 @@ func GracefullyStopAndExitApp() {
 	}
 }
 
-func IsStopped() bool {
+func IsGracefullyStopped() bool {
 	return gracefullyStop.Load()
 }
 

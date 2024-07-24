@@ -77,6 +77,14 @@ func CheckIsAdmin(rd *RequestData, writer http.ResponseWriter, request *http.Req
 	return true
 }
 
+func IsNotGracefullyStopped(rd *RequestData, writer http.ResponseWriter, request *http.Request) (next bool) {
+	if cache.IsGracefullyStopped() {
+		_ = render.Json(writer, http.StatusServiceUnavailable, &dto.Err{ErrMessage: "сервис временно недоступен"})
+		return false
+	}
+	return true
+}
+
 func SetAuthCookie(rd *RequestData, writer http.ResponseWriter, request *http.Request) (next bool) {
 	cookieDuration := time.Hour * 24 * 3
 	newTokenBytes := CreateToken(rd.User.CurrentUser.Id, time.Now().Add(cookieDuration).UnixNano(), rd.User.CurrentUser.SessionSecret)
