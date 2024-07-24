@@ -6,6 +6,7 @@ import (
 	"realty/models"
 	"realty/utils"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -23,6 +24,7 @@ type AdvCache struct {
 	ToDelete   bool
 	Deleted    bool
 	mu         sync.RWMutex
+	photoMu    sync.RWMutex
 }
 
 func (adv *AdvCache) Save() error {
@@ -59,6 +61,26 @@ func (adv *AdvCache) Save() error {
 		adv.ToUpdate = false
 	}
 	return nil
+}
+
+func (adv *AdvCache) GetPhotosFilenames() []string {
+	result := make([]string, 0, len(adv.CurrentAdv.Photos))
+	adv.photoMu.RLock()
+	defer adv.photoMu.RUnlock()
+	for _, v := range adv.CurrentAdv.Photos { //todo если бы тут был массив PhotoCache можно было бы сразу удаленные убрать
+		ext := ""
+		switch v.Ext {
+		case 1:
+			ext = ".jpg"
+		case 2:
+			ext = ".png"
+		case 3:
+			ext = ".gif"
+		}
+		name := strconv.FormatInt(v.Id, 10) + ext
+		result = append(result, name)
+	}
+	return result
 }
 
 type UserCache struct {
@@ -452,7 +474,7 @@ func FindAdvs(minDollarPrice int64, maxDollarPrice int64, minLongitude float64,
 				TranslatedBy: adv.TranslatedBy,
 				Title:        adv.Title,
 				Description:  adv.Description,
-				Photos:       adv.GetPhotosFilenames(),
+				Photos:       advs[i].GetPhotosFilenames(),
 				Price:        adv.Price,
 				Currency:     adv.Currency,
 				DollarPrice:  adv.DollarPrice,
@@ -513,7 +535,7 @@ func FindUsersAdvs(userId int64, offset, limit int, firstNew bool) ([]*dto.GetAd
 				TranslatedBy: adv.TranslatedBy,
 				Title:        adv.Title,
 				Description:  adv.Description,
-				Photos:       adv.GetPhotosFilenames(),
+				Photos:       advs[i].GetPhotosFilenames(),
 				Price:        adv.Price,
 				Currency:     adv.Currency,
 				DollarPrice:  adv.DollarPrice,
@@ -671,29 +693,38 @@ func DeleteUser(userCache *UserCache) {
 	toSave <- userCache
 }
 
-func CreatePhoto(adv *models.Adv, photo *models.Photo) {
+func CreatePhoto(adv *AdvCache, photo *models.Photo) {
 	photoCache := &PhotoCache{
 		Photo:    *photo,
 		ToCreate: true,
 	}
-	photoCache.mu.Lock() //todo тут видимо отдельный лок нужен для слайсов
-	defer photoCache.mu.Unlock()
-	photos = append(photos, photoCache)
-	adv.Photos = append(adv.Photos, &photoCache.Photo)
+	photoCache.mu.Lock() //todo нужно ли тут вообще лочить
 	toSave <- photoCache
+	defer photoCache.mu.Unlock()
+
+	photos = append(photos, photoCache) //todo тут видимо отдельный лок нужен для слайсов
+	adv.photoMu.Lock()
+	adv.CurrentAdv.Photos = append(adv.CurrentAdv.Photos, &photoCache.Photo)
+	adv.photoMu.Unlock()
+
 }
 
-func DeletePhoto(adv *models.Adv, photoCache *PhotoCache) {
+func DeletePhoto(adv *AdvCache, photoCache *PhotoCache) {
 	photoCache.mu.Lock()
-	defer photoCache.mu.Unlock()
 	if !photoCache.Deleted {
 		photoCache.ToDelete = true
 	}
-	ind := slices.Index(adv.Photos, &photoCache.Photo)
-	if ind != -1 {
-		adv.Photos = slices.Delete(adv.Photos, ind, ind)
-	}
 	toSave <- photoCache
+	photoCache.mu.Unlock()
+
+	adv.photoMu.RLock()
+	ind := slices.Index(adv.CurrentAdv.Photos, &photoCache.Photo)
+	adv.photoMu.RUnlock()
+	if ind != -1 {
+		adv.photoMu.Lock()
+		adv.CurrentAdv.Photos = slices.Delete(adv.CurrentAdv.Photos, ind, ind)
+		adv.photoMu.Unlock()
+	}
 }
 
 func GetPhotosByAdvId(advId int64) []*models.Photo {

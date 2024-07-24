@@ -153,7 +153,7 @@ func GetAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *htt
 		TranslatedBy: adv.TranslatedBy,
 		Title:        adv.Title,
 		Description:  adv.Description,
-		Photos:       adv.GetPhotosFilenames(),
+		Photos:       rd.Adv.GetPhotosFilenames(),
 		Price:        adv.Price,
 		Currency:     adv.Currency,
 		DollarPrice:  adv.DollarPrice,
@@ -311,7 +311,7 @@ func AddAdvPhoto(rd *middleware.RequestData, writer http.ResponseWriter, request
 		_ = render.Json(writer, http.StatusInternalServerError, &dto.Err{ErrMessage: err.Error()})
 		return
 	}
-	cache.CreatePhoto(&rd.Adv.CurrentAdv, photo)
+	cache.CreatePhoto(rd.Adv, photo)
 	_ = render.JsonOK(writer, http.StatusOK)
 	return
 }
@@ -336,7 +336,7 @@ func DeleteAdvPhoto(rd *middleware.RequestData, writer http.ResponseWriter, requ
 		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: "фото принадлежит другому объявлению"})
 		return
 	}
-	cache.DeletePhoto(&rd.Adv.CurrentAdv, photoCache)
+	cache.DeletePhoto(rd.Adv, photoCache)
 	_ = render.JsonOK(writer, http.StatusOK)
 	return
 }

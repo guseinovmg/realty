@@ -1,7 +1,6 @@
 package models
 
 import (
-	"strconv"
 	"time"
 )
 
@@ -62,24 +61,6 @@ type Adv struct {
 	SeVisible    bool
 	UserComment  string
 	AdminComment string
-}
-
-func (adv *Adv) GetPhotosFilenames() []string {
-	result := make([]string, 0, len(adv.Photos))
-	for _, v := range adv.Photos { //todo если бы тут был массив PhotoCache можно было бы сразу удаленные убрать
-		ext := ""
-		switch v.Ext {
-		case 1:
-			ext = ".jpg"
-		case 2:
-			ext = ".png"
-		case 3:
-			ext = ".gif"
-		}
-		name := strconv.FormatInt(v.Id, 10) + ext
-		result = append(result, name)
-	}
-	return result
 }
 
 type CurrencyRate struct {

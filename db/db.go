@@ -223,7 +223,6 @@ func UpdateAdv(adv *models.Adv) error {
 			address = ?,
 			latitude = ?,
 			longitude = ?,
-			watches = ?,
 			paid_adv = ?,
 			se_visible = ?,
 			user_comment = ?,
@@ -235,7 +234,7 @@ func UpdateAdv(adv *models.Adv) error {
 		adv.UserId, adv.Updated, adv.Approved, adv.Lang,
 		adv.OriginLang, adv.Title, adv.Description, adv.Price, adv.Currency,
 		adv.Country, adv.City, adv.Address, adv.Latitude, adv.Longitude,
-		adv.Watches, adv.PaidAdv, adv.SeVisible, adv.UserComment,
+		adv.PaidAdv, adv.SeVisible, adv.UserComment,
 		adv.AdminComment, adv.TranslatedTo, adv.Id,
 	)
 
@@ -301,10 +300,6 @@ func UpdateAdvChanges(oldAdv, newAdv *models.Adv) error {
 	if oldAdv.Longitude != newAdv.Longitude {
 		setClauses = append(setClauses, "longitude = ?")
 		args = append(args, newAdv.Longitude)
-	}
-	if oldAdv.Watches != newAdv.Watches {
-		setClauses = append(setClauses, "watches = ?")
-		args = append(args, newAdv.Watches)
 	}
 	if oldAdv.PaidAdv != newAdv.PaidAdv {
 		setClauses = append(setClauses, "paid_adv = ?")
