@@ -24,7 +24,9 @@ type Chain struct {
 func (m *Chain) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	rd := &RequestData{}
 	defer func() {
-		if err := recover(); err != nil { //todo при некоторых паниках нужно действительно дать серверу перазагрузиться
+		if err := recover(); err != nil {
+			//todo при некоторых паниках нужно действительно дать серверу перазагрузиться
+			//cache.GracefullyStopAndExitApp()
 			if m.onPanic != nil {
 				m.onPanic(err, rd, w, r)
 			} else {

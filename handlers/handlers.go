@@ -162,7 +162,7 @@ func GetAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *htt
 		Address:      adv.Address,
 		Latitude:     adv.Latitude,
 		Longitude:    adv.Longitude,
-		Watches:      adv.Watches.Watches,
+		Watches:      rd.Adv.Watches.Watches.Watches,
 		SeVisible:    adv.SeVisible,
 		UserComment:  adv.UserComment,
 	}

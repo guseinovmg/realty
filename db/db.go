@@ -142,7 +142,7 @@ func CreateAdv(adv *models.Adv) error {
 		INSERT INTO advs (
 			id, user_id, updated, approved, lang, origin_lang, title,
 			description, price, currency, country, city, address, latitude,
-			longitude, watches, paid_adv, se_visible, user_comment,
+			longitude, paid_adv, se_visible, user_comment,
 			admin_comment, translated_to
 		) VALUES (
 			?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
@@ -152,7 +152,7 @@ func CreateAdv(adv *models.Adv) error {
 		adv.Id, adv.UserId, adv.Updated, adv.Approved, adv.Lang,
 		adv.OriginLang, adv.Title, adv.Description, adv.Price, adv.Currency,
 		adv.Country, adv.City, adv.Address, adv.Latitude, adv.Longitude,
-		adv.Watches, adv.PaidAdv, adv.SeVisible, adv.UserComment,
+		adv.PaidAdv, adv.SeVisible, adv.UserComment,
 		adv.AdminComment, adv.TranslatedTo,
 	)
 	if err != nil {
@@ -169,7 +169,7 @@ func GetAdv(id int64) (*models.Adv, error) {
 		&adv.Id, &adv.UserId, &adv.Updated, &adv.Approved,
 		&adv.Lang, &adv.OriginLang, &adv.Title, &adv.Description, &adv.Price,
 		&adv.Currency, &adv.Country, &adv.City, &adv.Address, &adv.Latitude,
-		&adv.Longitude, &adv.Watches, &adv.PaidAdv, &adv.SeVisible,
+		&adv.Longitude, &adv.PaidAdv, &adv.SeVisible,
 		&adv.UserComment, &adv.AdminComment, &adv.TranslatedTo,
 	)
 	if err != nil {
@@ -194,7 +194,7 @@ func GetAdvs() ([]*models.Adv, error) {
 			&adv.Id, &adv.UserId, &adv.Updated, &adv.Approved,
 			&adv.Lang, &adv.OriginLang, &adv.Title, &adv.Description, &adv.Price,
 			&adv.Currency, &adv.Country, &adv.City, &adv.Address, &adv.Latitude,
-			&adv.Longitude, &adv.Watches, &adv.PaidAdv, &adv.SeVisible,
+			&adv.Longitude, &adv.PaidAdv, &adv.SeVisible,
 			&adv.UserComment, &adv.AdminComment, &adv.TranslatedTo,
 		)
 		if err != nil {

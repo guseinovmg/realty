@@ -47,7 +47,6 @@ type Adv struct {
 	TranslatedTo string
 	Title        string
 	Description  string
-	Photos       []*Photo
 	Price        int64
 	Currency     string
 	DollarPrice  int64 //не хранится в БД
@@ -56,7 +55,6 @@ type Adv struct {
 	Address      string
 	Latitude     float64
 	Longitude    float64
-	Watches      *Watches
 	PaidAdv      int64
 	SeVisible    bool
 	UserComment  string

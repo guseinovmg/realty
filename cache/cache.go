@@ -1,14 +1,14 @@
 package cache
 
 import (
+	"os"
 	"realty/db"
 	"realty/dto"
 	"realty/models"
 	"realty/utils"
-	"slices"
-	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -16,205 +16,34 @@ type SaveCache interface {
 	Save() error
 }
 
-type AdvCache struct {
-	CurrentAdv models.Adv
-	OldAdv     models.Adv
-	ToCreate   bool
-	ToUpdate   bool
-	ToDelete   bool
-	Deleted    bool
-	mu         sync.RWMutex
-	photoMu    sync.RWMutex
-}
-
-func (adv *AdvCache) Save() error {
-	adv.mu.Lock()
-	defer adv.mu.Unlock()
-	if adv.Deleted {
-		return nil
-	}
-	if adv.ToDelete {
-		err := db.DeleteAdv(adv.CurrentAdv.Id)
-		if err != nil {
-			return err
-		}
-		adv.Deleted = true
-		adv.ToDelete = false
-		adv.ToCreate = false
-		adv.ToUpdate = false
-	}
-	if adv.ToCreate {
-		err := db.CreateAdv(&adv.CurrentAdv)
-		if err != nil {
-			return err
-		}
-		adv.OldAdv = adv.CurrentAdv
-		adv.ToCreate = false
-		adv.ToUpdate = false
-	}
-	if adv.ToUpdate {
-		err := db.UpdateAdvChanges(&adv.OldAdv, &adv.CurrentAdv)
-		if err != nil {
-			return err
-		}
-		adv.OldAdv = adv.CurrentAdv
-		adv.ToUpdate = false
-	}
-	return nil
-}
-
-func (adv *AdvCache) GetPhotosFilenames() []string {
-	result := make([]string, 0, len(adv.CurrentAdv.Photos))
-	adv.photoMu.RLock()
-	defer adv.photoMu.RUnlock()
-	for _, v := range adv.CurrentAdv.Photos { //todo если бы тут был массив PhotoCache можно было бы сразу удаленные убрать
-		ext := ""
-		switch v.Ext {
-		case 1:
-			ext = ".jpg"
-		case 2:
-			ext = ".png"
-		case 3:
-			ext = ".gif"
-		}
-		name := strconv.FormatInt(v.Id, 10) + ext
-		result = append(result, name)
-	}
-	return result
-}
-
-type UserCache struct {
-	CurrentUser models.User
-	OldUser     models.User
-	ToCreate    bool
-	ToUpdate    bool
-	ToDelete    bool
-	Deleted     bool
-	mu          sync.RWMutex
-}
-
-func (user *UserCache) Save() error {
-	user.mu.Lock()
-	defer user.mu.Unlock()
-	if user.Deleted {
-		return nil
-	}
-	if user.ToDelete {
-		err := db.DeleteAdv(user.CurrentUser.Id)
-		if err != nil {
-			return err
-		}
-		user.Deleted = true
-		user.ToDelete = false
-		user.ToCreate = false
-		user.ToUpdate = false
-	}
-	if user.ToCreate {
-		err := db.CreateUser(&user.CurrentUser)
-		if err != nil {
-			return err
-		}
-		user.OldUser = user.CurrentUser
-		user.ToCreate = false
-		user.ToUpdate = false
-	}
-	if user.ToUpdate {
-		err := db.UpdateUserChanges(&user.OldUser, &user.CurrentUser)
-		if err != nil {
-			return err
-		}
-		user.OldUser = user.CurrentUser
-		user.ToUpdate = false
-	}
-	return nil
-}
-
-type PhotoCache struct {
-	Photo    models.Photo
-	ToCreate bool
-	ToDelete bool
-	Deleted  bool
-	mu       sync.RWMutex
-}
-
-func (photo *PhotoCache) Save() error {
-	photo.mu.Lock()
-	defer photo.mu.Unlock()
-	if photo.Deleted {
-		return nil
-	}
-	if photo.ToDelete {
-		err := db.DeletePhoto(photo.Photo.Id)
-		if err != nil {
-			return err
-		}
-		photo.Deleted = true
-		photo.ToDelete = false
-		photo.ToCreate = false
-	}
-	if photo.ToCreate {
-		err := db.CreatePhoto(photo.Photo)
-		if err != nil {
-			return err
-		}
-		photo.ToCreate = false
-	}
-	return nil
-}
-
-type WatchesCache struct {
-	Watches  models.Watches
-	ToCreate bool
-	ToUpdate bool
-	ToDelete bool
-	Deleted  bool
-	mu       sync.RWMutex
-}
-
-func (watch *WatchesCache) Save() error {
-	watch.mu.Lock()
-	defer watch.mu.Unlock()
-	if watch.Deleted {
-		return nil
-	}
-	if watch.ToDelete {
-		err := db.DeleteWatches(watch.Watches.AdvId)
-		if err != nil {
-			return err
-		}
-		watch.Deleted = true
-		watch.ToDelete = false
-		watch.ToCreate = false
-	}
-	if watch.ToCreate {
-		err := db.CreateWatches(watch.Watches)
-		if err != nil {
-			return err
-		}
-		watch.ToCreate = false
-	}
-	if watch.ToUpdate {
-		err := db.UpdateWatches(&watch.Watches)
-		if err != nil {
-			return err
-		}
-		watch.ToUpdate = false
-	}
-	return nil
-}
-
 var users []*UserCache
 var advs []*AdvCache
 var photos []*PhotoCache
 var watches []*WatchesCache
 var toSave chan SaveCache
+var gracefullyStop atomic.Bool
 var idGenerationMutex sync.Mutex
+var usersRWMutex sync.RWMutex
+var advsRWMutex sync.RWMutex
+var photosRWMutex sync.RWMutex
+var watchesRWMutex sync.RWMutex
 
 func GenerateId() int64 {
 	idGenerationMutex.Lock()
 	defer idGenerationMutex.Unlock()
 	time.Sleep(time.Microsecond)
 	return time.Now().UnixNano()
+}
+
+func GracefullyStopAndExitApp() {
+	if !gracefullyStop.Load() {
+		gracefullyStop.Store(true)
+		close(toSave)
+	}
+}
+
+func IsStopped() bool {
+	return gracefullyStop.Load()
 }
 
 func Initialize() {
@@ -259,12 +88,11 @@ func Initialize() {
 	advs = make([]*AdvCache, len(advs_), len(advs_)+500)
 	for i := range len(advs_) {
 		adv := advs_[i]
-		adv.Photos = GetPhotosByAdvId(adv.Id)
-		w := FindWatchesCacheById(adv.Id)
-		adv.Watches = &w.Watches
 		advs[i] = &AdvCache{
 			CurrentAdv: *adv,
 			OldAdv:     *adv,
+			Photos:     GetPhotosByAdvId(adv.Id),
+			Watches:    FindWatchesCacheById(adv.Id),
 			ToUpdate:   false,
 			ToDelete:   false,
 			Deleted:    false,
@@ -274,39 +102,61 @@ func Initialize() {
 
 	//todo надо просмотры и фото в adv добавить
 	toSave = make(chan SaveCache, 100)
+
 	go func() {
 		for saveCache := range toSave {
-			for range 3 {
+			for range 2 {
 				err := saveCache.Save()
 				if err == nil {
 					break
 				}
-				time.Sleep(time.Second)
+				if gracefullyStop.Load() {
+					break
+				} else {
+					time.Sleep(time.Millisecond * 500)
+				}
 			}
 		}
+		os.Exit(1)
 	}()
+
 	go func() {
 		for {
 			time.Sleep(time.Minute)
 			for i := range len(advs) {
+				if gracefullyStop.Load() {
+					return
+				}
 				err := advs[i].Save()
 				if err != nil {
 					time.Sleep(time.Millisecond * 100)
 				}
 			}
+			time.Sleep(time.Second)
 			for i := range len(users) {
+				if gracefullyStop.Load() {
+					return
+				}
 				err := users[i].Save()
 				if err != nil {
 					time.Sleep(time.Millisecond * 100)
 				}
 			}
+			time.Sleep(time.Second)
 			for i := range len(photos) {
+				if gracefullyStop.Load() {
+					return
+				}
 				err := photos[i].Save()
 				if err != nil {
 					time.Sleep(time.Millisecond * 100)
 				}
 			}
+			time.Sleep(time.Second)
 			for i := range len(watches) {
+				if gracefullyStop.Load() {
+					return
+				}
 				err := watches[i].Save()
 				if err != nil {
 					time.Sleep(time.Millisecond * 100)
@@ -325,6 +175,8 @@ func FindUserById(id int64) *models.User {
 }
 
 func FindUserCacheById(id int64) *UserCache {
+	usersRWMutex.RLock()
+	defer usersRWMutex.RUnlock()
 	low := 0
 	high := len(users) - 1
 
@@ -346,6 +198,8 @@ func FindUserCacheById(id int64) *UserCache {
 }
 
 func FindUserCacheByLogin(email string) *UserCache {
+	usersRWMutex.RLock()
+	defer usersRWMutex.RUnlock()
 	for i := range len(users) {
 		if users[i].CurrentUser.Email == email {
 			if users[i].ToDelete || users[i].Deleted {
@@ -366,6 +220,9 @@ func FindAdvById(id int64) *models.Adv {
 }
 
 func FindAdvCacheById(id int64) *AdvCache {
+	advsRWMutex.RLock()
+	defer advsRWMutex.RUnlock()
+
 	low := 0
 	high := len(advs) - 1
 
@@ -387,6 +244,8 @@ func FindAdvCacheById(id int64) *AdvCache {
 }
 
 func FindPhotoCacheById(id int64) *PhotoCache {
+	photosRWMutex.RLock()
+	defer photosRWMutex.RUnlock()
 	low := 0
 	high := len(photos) - 1
 
@@ -408,6 +267,8 @@ func FindPhotoCacheById(id int64) *PhotoCache {
 }
 
 func FindWatchesCacheById(advId int64) *WatchesCache {
+	watchesRWMutex.RLock()
+	defer watchesRWMutex.RUnlock()
 	low := 0
 	high := len(watches) - 1
 
@@ -432,6 +293,8 @@ func FindAdvs(minDollarPrice int64, maxDollarPrice int64, minLongitude float64,
 	maxLongitude float64, minLatitude float64, maxLatitude float64, countryCode string,
 	location string, offset int, limit int, firstNew bool) ([]*dto.GetAdvResponseItem, int) {
 	result := make([]*dto.GetAdvResponseItem, 0, limit)
+	advsRWMutex.RLock()
+	defer advsRWMutex.RUnlock()
 	var i, step, count int
 	length := len(advs)
 	if firstNew {
@@ -483,7 +346,7 @@ func FindAdvs(minDollarPrice int64, maxDollarPrice int64, minLongitude float64,
 				Address:      adv.Address,
 				Latitude:     adv.Latitude,
 				Longitude:    adv.Longitude,
-				Watches:      adv.Watches.Watches,
+				Watches:      advs[i].Watches.Watches.Watches,
 				SeVisible:    adv.SeVisible,
 			}
 			result = append(result, response)
@@ -493,6 +356,8 @@ func FindAdvs(minDollarPrice int64, maxDollarPrice int64, minLongitude float64,
 }
 
 func FindUsersAdvs(userId int64, offset, limit int, firstNew bool) ([]*dto.GetAdvResponseItem, int) {
+	advsRWMutex.RLock()
+	defer advsRWMutex.RUnlock()
 	length := len(advs)
 	if offset > length {
 		return []*dto.GetAdvResponseItem{}, 0 //todo ?
@@ -544,7 +409,7 @@ func FindUsersAdvs(userId int64, offset, limit int, firstNew bool) ([]*dto.GetAd
 				Address:      adv.Address,
 				Latitude:     adv.Latitude,
 				Longitude:    adv.Longitude,
-				Watches:      adv.Watches.Watches,
+				Watches:      advs[i].Watches.Watches.Watches,
 				SeVisible:    adv.SeVisible,
 			}
 			result = append(result, response)
@@ -575,10 +440,6 @@ func CreateAdv(user *models.User, request *dto.CreateAdvRequest) {
 		Address:      request.Address,
 		Latitude:     request.Latitude,
 		Longitude:    request.Longitude,
-		Watches: &models.Watches{
-			AdvId:   id,
-			Watches: 0,
-		},
 		PaidAdv:      0,
 		SeVisible:    true,
 		UserComment:  request.UserComment,
@@ -587,11 +448,31 @@ func CreateAdv(user *models.User, request *dto.CreateAdvRequest) {
 	advCache := &AdvCache{
 		CurrentAdv: *newAdv,
 		OldAdv:     models.Adv{},
-		ToCreate:   true,
+		Watches: &WatchesCache{
+			Watches: models.Watches{
+				AdvId:   id,
+				Watches: 0,
+			},
+			ToCreate: true,
+			ToUpdate: false,
+			ToDelete: false,
+			Deleted:  false,
+			mu:       sync.RWMutex{},
+		},
+		ToCreate: true,
 	}
-	advCache.mu.Lock()
+
+	advCache.mu.Lock() //todo нужно ли это
 	defer advCache.mu.Unlock()
+
+	advsRWMutex.Lock()
 	advs = append(advs, advCache)
+	advsRWMutex.Unlock()
+
+	watchesRWMutex.Lock()
+	watches = append(watches, advCache.Watches)
+	watchesRWMutex.Unlock()
+
 	toSave <- advCache
 }
 
@@ -618,7 +499,7 @@ func UpdateAdv(adv *AdvCache, request *dto.UpdateAdvRequest) {
 func IncAdvWatches(adv *AdvCache) {
 	adv.mu.Lock()
 	defer adv.mu.Unlock()
-	adv.CurrentAdv.Watches.Watches++
+	adv.Watches.Watches.Watches++
 	adv.ToUpdate = true
 	//toSave <- adv мы специально не отправляем в канал
 }
@@ -700,11 +581,14 @@ func CreatePhoto(adv *AdvCache, photo *models.Photo) {
 	}
 	photoCache.mu.Lock() //todo нужно ли тут вообще лочить
 	toSave <- photoCache
-	defer photoCache.mu.Unlock()
+	photoCache.mu.Unlock()
 
-	photos = append(photos, photoCache) //todo тут видимо отдельный лок нужен для слайсов
+	photosRWMutex.Lock()
+	photos = append(photos, photoCache)
+	photosRWMutex.Unlock()
+
 	adv.photoMu.Lock()
-	adv.CurrentAdv.Photos = append(adv.CurrentAdv.Photos, &photoCache.Photo)
+	adv.Photos = append(adv.Photos, photoCache)
 	adv.photoMu.Unlock()
 
 }
@@ -716,23 +600,16 @@ func DeletePhoto(adv *AdvCache, photoCache *PhotoCache) {
 	}
 	toSave <- photoCache
 	photoCache.mu.Unlock()
-
-	adv.photoMu.RLock()
-	ind := slices.Index(adv.CurrentAdv.Photos, &photoCache.Photo)
-	adv.photoMu.RUnlock()
-	if ind != -1 {
-		adv.photoMu.Lock()
-		adv.CurrentAdv.Photos = slices.Delete(adv.CurrentAdv.Photos, ind, ind)
-		adv.photoMu.Unlock()
-	}
 }
 
-func GetPhotosByAdvId(advId int64) []*models.Photo {
-	result := make([]*models.Photo, 0, 15)
+func GetPhotosByAdvId(advId int64) []*PhotoCache {
+	result := make([]*PhotoCache, 0, 15)
+	photosRWMutex.RLock()
 	for i := 0; i < len(photos); i++ {
 		if photos[i].Photo.AdvId == advId && !photos[i].Deleted && !photos[i].ToDelete {
-			result = append(result, &photos[i].Photo)
+			result = append(result, photos[i])
 		}
 	}
+	photosRWMutex.RUnlock()
 	return result
 }
