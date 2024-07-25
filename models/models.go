@@ -31,8 +31,8 @@ type Photo struct {
 }
 
 type Watches struct {
-	AdvId   int64
-	Watches int64
+	AdvId int64
+	Count int64
 }
 
 type Adv struct {

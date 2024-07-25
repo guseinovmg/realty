@@ -162,12 +162,12 @@ func GetAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *htt
 		Address:      adv.Address,
 		Latitude:     adv.Latitude,
 		Longitude:    adv.Longitude,
-		Watches:      rd.Adv.Watches.Watches.Watches,
+		Watches:      rd.Adv.Watches.Watches.Count,
 		SeVisible:    adv.SeVisible,
 		UserComment:  adv.UserComment,
 	}
 	_ = render.Json(writer, http.StatusOK, response)
-	cache.IncAdvWatches(rd.Adv)
+	cache.IncAdvWatches(rd.Adv.Watches)
 	return
 }
 

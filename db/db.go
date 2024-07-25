@@ -113,7 +113,7 @@ func CreateInMemoryDB() error {
 	if _, err := db_watches.Exec(`
     CREATE TABLE watches (
         adv_id INTEGER PRIMARY KEY,
-        watches INTEGER NOT NULL
+        count INTEGER NOT NULL
     ) without ROWID, strict;
 `); err != nil {
 		return err
@@ -537,13 +537,13 @@ func DeletePhoto(id int64) error {
 func CreateWatches(watches models.Watches) error {
 	query := `
 		INSERT INTO watches (
-			adv_id, ext
+			adv_id, count
 		) VALUES (
-			?, ?, ?
+			?, ?
 		)
 	`
 	_, err := db_watches.Exec(query,
-		watches.AdvId, watches.Watches,
+		watches.AdvId, watches.Count,
 	)
 	if err != nil {
 		return err
@@ -553,7 +553,7 @@ func CreateWatches(watches models.Watches) error {
 }
 
 func GetWatches() ([]*models.Watches, error) {
-	rows, err := db_watches.Query("SELECT adv_id, watches FROM watches ORDER BY id")
+	rows, err := db_watches.Query("SELECT adv_id, count FROM watches ORDER BY id")
 	if err != nil {
 		return nil, err
 	}
@@ -562,7 +562,7 @@ func GetWatches() ([]*models.Watches, error) {
 	for rows.Next() {
 		watch := &models.Watches{}
 		err := rows.Scan(
-			&watch.AdvId, &watch.Watches,
+			&watch.AdvId, &watch.Count,
 		)
 		if err != nil {
 			return nil, err
@@ -575,11 +575,11 @@ func GetWatches() ([]*models.Watches, error) {
 func UpdateWatches(watch *models.Watches) error {
 	query := `
 		UPDATE watches SET
-			watches = ?
+			count = ?
 		WHERE id = ?
 	`
 	_, err := db_watches.Exec(query,
-		watch.Watches, watch.AdvId,
+		watch.Count, watch.AdvId,
 	)
 
 	return err

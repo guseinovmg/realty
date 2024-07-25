@@ -20,13 +20,15 @@ var users []*UserCache
 var advs []*AdvCache
 var photos []*PhotoCache
 var watches []*WatchesCache
-var toSave chan SaveCache
-var gracefullyStop atomic.Bool
-var idGenerationMutex sync.Mutex
+
 var usersRWMutex sync.RWMutex
 var advsRWMutex sync.RWMutex
 var photosRWMutex sync.RWMutex
 var watchesRWMutex sync.RWMutex
+
+var toSave chan SaveCache
+
+var idGenerationMutex sync.Mutex
 
 func GenerateId() int64 {
 	idGenerationMutex.Lock()
@@ -34,6 +36,8 @@ func GenerateId() int64 {
 	time.Sleep(time.Microsecond)
 	return time.Now().UnixNano()
 }
+
+var gracefullyStop atomic.Bool
 
 func GracefullyStopAndExitApp() {
 	if !gracefullyStop.Load() {
@@ -346,7 +350,7 @@ func FindAdvs(minDollarPrice int64, maxDollarPrice int64, minLongitude float64,
 				Address:      adv.Address,
 				Latitude:     adv.Latitude,
 				Longitude:    adv.Longitude,
-				Watches:      advs[i].Watches.Watches.Watches,
+				Watches:      advs[i].Watches.Watches.Count,
 				SeVisible:    adv.SeVisible,
 			}
 			result = append(result, response)
@@ -409,7 +413,7 @@ func FindUsersAdvs(userId int64, offset, limit int, firstNew bool) ([]*dto.GetAd
 				Address:      adv.Address,
 				Latitude:     adv.Latitude,
 				Longitude:    adv.Longitude,
-				Watches:      advs[i].Watches.Watches.Watches,
+				Watches:      advs[i].Watches.Watches.Count,
 				SeVisible:    adv.SeVisible,
 			}
 			result = append(result, response)
@@ -450,8 +454,8 @@ func CreateAdv(user *models.User, request *dto.CreateAdvRequest) {
 		OldAdv:     models.Adv{},
 		Watches: &WatchesCache{
 			Watches: models.Watches{
-				AdvId:   id,
-				Watches: 0,
+				AdvId: id,
+				Count: 0,
 			},
 			ToCreate: true,
 			ToUpdate: false,
@@ -496,12 +500,12 @@ func UpdateAdv(adv *AdvCache, request *dto.UpdateAdvRequest) {
 	toSave <- adv
 }
 
-func IncAdvWatches(adv *AdvCache) {
-	adv.mu.Lock()
-	defer adv.mu.Unlock()
-	adv.Watches.Watches.Watches++
-	adv.ToUpdate = true
-	//toSave <- adv мы специально не отправляем в канал
+func IncAdvWatches(watch *WatchesCache) {
+	watch.mu.Lock()
+	defer watch.mu.Unlock()
+	watch.Watches.Count++
+	watch.ToUpdate = true
+	//toSave <- watch мы специально не отправляем в канал
 }
 
 func DeleteAdv(adv *AdvCache) {

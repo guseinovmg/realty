@@ -29,6 +29,7 @@ func (watch *WatchesCache) Save() error {
 		watch.Deleted = true
 		watch.ToDelete = false
 		watch.ToCreate = false
+		watch.ToUpdate = false
 	}
 	if watch.ToCreate {
 		err := db.CreateWatches(watch.Watches)
@@ -36,6 +37,7 @@ func (watch *WatchesCache) Save() error {
 			return err
 		}
 		watch.ToCreate = false
+		watch.ToUpdate = false
 	}
 	if watch.ToUpdate {
 		err := db.UpdateWatches(&watch.Watches)
