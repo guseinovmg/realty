@@ -23,7 +23,6 @@ func Initialize() *http.ServeMux {
 
 	mux.Handle("GET /adv/{advId}", mw.Handler(mw.FindAdv, handlers.GetAdv))
 	mux.Handle("GET /adv", mw.Handler(handlers.GetAdvList))
-	mux.Handle("POST /adv", mw.Handler(handlers.GetAdvList))
 
 	mux.Handle("GET /user/adv/{advId}", mw.Handler(mw.Auth, mw.FindAdv, mw.CheckAdvOwner, mw.SetAuthCookie, handlers.GetUsersAdv))
 	mux.Handle("GET /user/adv", mw.Handler(mw.Auth, mw.SetAuthCookie, handlers.GetUsersAdvList))
