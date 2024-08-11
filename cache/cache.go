@@ -29,12 +29,17 @@ var watchesRWMutex sync.RWMutex
 var toSave chan SaveCache
 
 var idGenerationMutex sync.Mutex
+var lastGeneratedId int64
 
 func GenerateId() int64 {
 	idGenerationMutex.Lock()
 	defer idGenerationMutex.Unlock()
-	time.Sleep(time.Microsecond)
-	return time.Now().UnixNano()
+	newId := time.Now().UnixNano()
+	if newId <= lastGeneratedId {
+		newId = lastGeneratedId + 1
+		lastGeneratedId = newId
+	}
+	return newId
 }
 
 var gracefullyStop atomic.Bool
