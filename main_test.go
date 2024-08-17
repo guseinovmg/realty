@@ -19,7 +19,7 @@ func getMux() *http.ServeMux {
 func TestStaticFiles(t *testing.T) {
 	mux = getMux()
 
-	req, err := http.NewRequest("GET", "/static/file.txt", nil)
+	req, err := http.NewRequest("GET", "/static/static/file.txt", nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
 	}
@@ -31,7 +31,7 @@ func TestStaticFiles(t *testing.T) {
 		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
 
-	expected := "expected content" // Replace with actual expected content
+	expected := "bla bla bla" // Replace with actual expected content
 	if rr.Body.String() != expected {
 		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}

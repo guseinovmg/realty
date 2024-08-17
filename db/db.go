@@ -3,6 +3,7 @@ package db
 import (
 	"bytes"
 	"database/sql"
+	"errors"
 	"log"
 	"realty/config"
 	"realty/models"
@@ -61,7 +62,7 @@ func CreateInMemoryDB() error {
     enabled        INTEGER   not null,
     description    TEXT
 ) without ROWID, strict;`); err != nil {
-		return err
+		return errors.Join(err, errors.New("db.CreateInMemoryDB()"))
 	}
 
 	if _, err := dbUsers.Exec(`create table invites
@@ -69,7 +70,7 @@ func CreateInMemoryDB() error {
     id   TEXT primary key,
 	name TEXT
 ) without ROWID, strict;`); err != nil {
-		return err
+		return errors.Join(err, errors.New("db.CreateInMemoryDB()"))
 	}
 
 	if _, err := dbAdvs.Exec(`
@@ -97,7 +98,7 @@ func CreateInMemoryDB() error {
         admin_comment TEXT NOT NULL
     ) without ROWID, strict;
 `); err != nil {
-		return err
+		return errors.Join(err, errors.New("db.CreateInMemoryDB()"))
 	}
 
 	if _, err := dbPhotos.Exec(`
@@ -107,7 +108,7 @@ func CreateInMemoryDB() error {
         ext INTEGER NOT NULL
     ) without ROWID, strict;
 `); err != nil {
-		return err
+		return errors.Join(err, errors.New("db.CreateInMemoryDB()"))
 	}
 
 	if _, err := dbWatches.Exec(`
@@ -116,7 +117,7 @@ func CreateInMemoryDB() error {
         count INTEGER NOT NULL
     ) without ROWID, strict;
 `); err != nil {
-		return err
+		return errors.Join(err, errors.New("db.CreateInMemoryDB()"))
 	}
 	return nil
 }
@@ -156,7 +157,7 @@ func CreateAdv(adv *models.Adv) error {
 		adv.AdminComment, adv.TranslatedTo,
 	)
 	if err != nil {
-		return err
+		return errors.Join(err, errors.New("db.CreateAdv()"))
 	}
 
 	return nil
@@ -173,7 +174,7 @@ func GetAdv(id int64) (*models.Adv, error) {
 		&adv.UserComment, &adv.AdminComment, &adv.TranslatedTo,
 	)
 	if err != nil {
-		return nil, err
+		return nil, errors.Join(err, errors.New("db.GetAdv()"))
 	}
 
 	return adv, nil
@@ -182,7 +183,7 @@ func GetAdv(id int64) (*models.Adv, error) {
 func GetAdvs() ([]*models.Adv, error) {
 	rows, err := dbAdvs.Query("SELECT * FROM advs ORDER BY id")
 	if err != nil {
-		return nil, err
+		return nil, errors.Join(err, errors.New("db.GetAdvs()"))
 	}
 	defer rows.Close() //todo нужо ли закрывать соединение?
 
@@ -198,7 +199,7 @@ func GetAdvs() ([]*models.Adv, error) {
 			&adv.UserComment, &adv.AdminComment, &adv.TranslatedTo,
 		)
 		if err != nil {
-			return nil, err
+			return nil, errors.Join(err, errors.New("db.GetAdvs()"))
 		}
 		advs = append(advs, adv)
 	}
@@ -238,7 +239,7 @@ func UpdateAdv(adv *models.Adv) error {
 		adv.AdminComment, adv.TranslatedTo, adv.Id,
 	)
 
-	return err
+	return errors.Join(err, errors.New("db.UpdateAdv()"))
 }
 
 func UpdateAdvChanges(oldAdv, newAdv *models.Adv) error {
@@ -330,13 +331,13 @@ func UpdateAdvChanges(oldAdv, newAdv *models.Adv) error {
 	args = append(args, oldAdv.Id)
 
 	_, err := dbAdvs.Exec(query, args...)
-	return err
+	return errors.Join(err, errors.New("db.UpdateAdvChanges()"))
 }
 
 func DeleteAdv(id int64) error {
 	query := "DELETE FROM advs WHERE id = ?"
 	_, err := dbAdvs.Exec(query, id)
-	return err
+	return errors.Join(err, errors.New("db.DeleteAdv()"))
 }
 
 func CreateUser(user *models.User) error {
@@ -354,7 +355,7 @@ func CreateUser(user *models.User) error {
 		user.Created, user.Description,
 	)
 	if err != nil {
-		return err
+		return errors.Join(err, errors.New("db.CreateUser()"))
 	}
 
 	return nil
@@ -369,7 +370,7 @@ func GetUser(id int64) (*models.User, error) {
 		&user.Balance, &user.Created, &user.Description,
 	)
 	if err != nil {
-		return nil, err
+		return nil, errors.Join(err, errors.New("db.()"))
 	}
 
 	return user, nil
@@ -396,7 +397,7 @@ func UpdateUser(user *models.User) error {
 		user.Created, user.Description, user.Id,
 	)
 
-	return err
+	return errors.Join(err, errors.New("db.UpdateUser()"))
 }
 
 func UpdateUserChanges(oldUser, newUser *models.User) error {
@@ -453,13 +454,13 @@ func UpdateUserChanges(oldUser, newUser *models.User) error {
 	args = append(args, oldUser.Id)
 
 	_, err := dbUsers.Exec(query, args...)
-	return err
+	return errors.Join(err, errors.New("db.UpdateUserChanges()"))
 }
 
 func GetUsers() ([]*models.User, error) {
 	rows, err := dbUsers.Query("SELECT * FROM users ORDER BY id")
 	if err != nil {
-		return nil, err
+		return nil, errors.Join(err, errors.New("db.GetUsers()"))
 	}
 	defer rows.Close()
 
@@ -473,7 +474,7 @@ func GetUsers() ([]*models.User, error) {
 			&user.Balance, &user.Created, &user.Description,
 		)
 		if err != nil {
-			return nil, err
+			return nil, errors.Join(err, errors.New("db.GetUsers()"))
 		}
 		users = append(users, user)
 	}
@@ -484,7 +485,7 @@ func GetUsers() ([]*models.User, error) {
 func DeleteUser(id int64) error {
 	query := "DELETE FROM users WHERE id = ?"
 	_, err := dbUsers.Exec(query, id)
-	return err
+	return errors.Join(err, errors.New("db.DeleteUser()"))
 }
 
 func CreatePhoto(photo models.Photo) error {
@@ -499,7 +500,7 @@ func CreatePhoto(photo models.Photo) error {
 		photo.Id, photo.AdvId, photo.Ext,
 	)
 	if err != nil {
-		return err
+		return errors.Join(err, errors.New("db.CreatePhoto()"))
 	}
 
 	return nil
@@ -508,7 +509,7 @@ func CreatePhoto(photo models.Photo) error {
 func GetPhotos() ([]*models.Photo, error) {
 	rows, err := dbPhotos.Query("SELECT id, adv_id, ext FROM photos ORDER BY id")
 	if err != nil {
-		return nil, err
+		return nil, errors.Join(err, errors.New("db.GetPhotos()"))
 	}
 	defer rows.Close()
 
@@ -520,7 +521,7 @@ func GetPhotos() ([]*models.Photo, error) {
 			&photo.Id, &photo.AdvId, &photo.Ext,
 		)
 		if err != nil {
-			return nil, err
+			return nil, errors.Join(err, errors.New("db.GetPhotos()"))
 		}
 		photos = append(photos, photo)
 	}
@@ -531,7 +532,7 @@ func GetPhotos() ([]*models.Photo, error) {
 func DeletePhoto(id int64) error {
 	query := "DELETE FROM photos WHERE id = ?"
 	_, err := dbPhotos.Exec(query, id)
-	return err
+	return errors.Join(err, errors.New("db.DeletePhoto()"))
 }
 
 func CreateWatches(watches models.Watches) error {
@@ -546,16 +547,16 @@ func CreateWatches(watches models.Watches) error {
 		watches.AdvId, watches.Count,
 	)
 	if err != nil {
-		return err
+		return errors.Join(err, errors.New("db.CreateWatches()"))
 	}
 
 	return nil
 }
 
 func GetWatches() ([]*models.Watches, error) {
-	rows, err := dbWatches.Query("SELECT adv_id, count FROM watches ORDER BY id")
+	rows, err := dbWatches.Query("SELECT adv_id, count FROM watches ORDER BY adv_id")
 	if err != nil {
-		return nil, err
+		return nil, errors.Join(err, errors.New("db.GetWatches()"))
 	}
 	defer rows.Close()
 	var watches []*models.Watches
@@ -565,7 +566,7 @@ func GetWatches() ([]*models.Watches, error) {
 			&watch.AdvId, &watch.Count,
 		)
 		if err != nil {
-			return nil, err
+			return nil, errors.Join(err, errors.New("db.GetWatches()"))
 		}
 		watches = append(watches, watch)
 	}
@@ -582,11 +583,11 @@ func UpdateWatches(watch *models.Watches) error {
 		watch.Count, watch.AdvId,
 	)
 
-	return err
+	return errors.Join(err, errors.New("db.UpdateWatches()"))
 }
 
 func DeleteWatches(id int64) error {
 	query := "DELETE FROM watches WHERE adv_id = ?"
 	_, err := dbWatches.Exec(query, id)
-	return err
+	return errors.Join(err, errors.New("db.DeleteWatches()"))
 }

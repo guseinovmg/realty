@@ -86,7 +86,7 @@ func Initialize() {
 	for i := range len(users_) {
 		user := users_[i]
 		users[i] = &UserCache{
-			CurrentUser: *user, //todo надо подумать, может непосредственно ссылку оптимальнее использовать
+			CurrentUser: *user,
 			OldUser:     *user,
 			ToUpdate:    false,
 			ToDelete:    false,
