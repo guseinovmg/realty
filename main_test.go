@@ -88,7 +88,10 @@ func TestRegistration(t *testing.T) {
 }
 
 func TestLogin(t *testing.T) {
-	req, err := utils.NewRequest("POST", nil, "/login", nil, nil, nil)
+	req, err := utils.NewRequest("POST", nil, "/login", nil, nil, &dto.LoginRequest{
+		Email:    "guseinovmg@gmail.com",
+		Password: "12345678",
+	})
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
 	}
@@ -100,7 +103,7 @@ func TestLogin(t *testing.T) {
 		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
 
-	expected := "expected response" // Replace with actual expected response
+	expected := render.ResultOk // Replace with actual expected response
 	if rr.Body.String() != expected {
 		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}
