@@ -4,6 +4,7 @@ import (
 	"crypto/sha1"
 	"crypto/sha256"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -81,7 +82,7 @@ func GenerateSessionsSecret(randomBytes []byte) [24]byte {
 	return [24]byte(hash.Sum(nil))
 }
 
-func NewRequest(method string, headers H, url string, pathParams H, queryParams H, body any) *http.Request {
+func NewRequest(method string, headers H, url string, pathParams H, queryParams H, body any) (*http.Request, error) {
 	if pathParams != nil {
 		for k, v := range pathParams {
 			url = strings.Replace(url, k, "{"+v+"}", 1)
@@ -89,20 +90,20 @@ func NewRequest(method string, headers H, url string, pathParams H, queryParams 
 	}
 
 	if strings.Contains(url, "{") || strings.Contains(url, "}") {
-		panic("неправильно сформирован путь " + url)
+		return nil, errors.New("неправильно сформирован путь " + url)
 	}
 	var buf io.Reader
 	if body != nil {
 		bytes, err := json.Marshal(body)
 		if err != nil {
-			panic(err)
+			return nil, err
 		}
 		buf = strings.NewReader(string(bytes))
 	}
 
 	req, err := http.NewRequest(method, url, buf)
 	if err != nil {
-		panic(fmt.Sprintf("fail to create request: %s", err.Error()))
+		return nil, errors.New(fmt.Sprintf("fail to create request: %s", err.Error()))
 	}
 
 	if headers != nil {
@@ -118,5 +119,5 @@ func NewRequest(method string, headers H, url string, pathParams H, queryParams 
 		}
 		req.URL.RawQuery = q.Encode()
 	}
-	return req
+	return req, nil
 }
