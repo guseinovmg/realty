@@ -16,20 +16,15 @@ import (
 
 var mux *http.ServeMux
 
-func getMux() *http.ServeMux {
-	if mux == nil {
-		log.SetFlags(log.Lshortfile)
-		config.Initialize()
-		db.Initialize()
-		cache.Initialize()
-		mux = router.Initialize()
-	}
-	return mux
+func init() {
+	log.SetFlags(log.Lshortfile)
+	config.Initialize()
+	db.Initialize()
+	cache.Initialize()
+	mux = router.Initialize()
 }
 
 func TestStaticFiles(t *testing.T) {
-	mux = getMux()
-
 	req, err := utils.NewRequest("GET", nil, "/static/file.txt", nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
@@ -49,8 +44,6 @@ func TestStaticFiles(t *testing.T) {
 }
 
 func TestUploadedFiles(t *testing.T) {
-	mux = getMux()
-
 	req, err := utils.NewRequest("GET", nil, "/uploaded/file.txt", nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
@@ -70,8 +63,6 @@ func TestUploadedFiles(t *testing.T) {
 }
 
 func TestRegistration(t *testing.T) {
-	mux = getMux()
-
 	req, err := utils.NewRequest("POST", nil, "/registration", nil, nil, &dto.RegisterRequest{
 		Email:    "guseinovmg@gmail.com",
 		Name:     "Murad",
@@ -97,8 +88,6 @@ func TestRegistration(t *testing.T) {
 }
 
 func TestLogin(t *testing.T) {
-	mux = getMux()
-
 	req, err := utils.NewRequest("POST", nil, "/login", nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
@@ -118,8 +107,6 @@ func TestLogin(t *testing.T) {
 }
 
 func TestLogoutMe(t *testing.T) {
-	mux = getMux()
-
 	req, err := utils.NewRequest("GET", nil, "/logout/me", nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
@@ -139,8 +126,6 @@ func TestLogoutMe(t *testing.T) {
 }
 
 func TestLogoutAll(t *testing.T) {
-	mux = getMux()
-
 	req, err := utils.NewRequest("GET", nil, "/logout/all", nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
@@ -160,8 +145,6 @@ func TestLogoutAll(t *testing.T) {
 }
 
 func TestUpdatePassword(t *testing.T) {
-	mux = getMux()
-
 	req, err := utils.NewRequest("PUT", nil, "/password", nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
@@ -181,8 +164,6 @@ func TestUpdatePassword(t *testing.T) {
 }
 
 func TestUpdateUser(t *testing.T) {
-	mux = getMux()
-
 	req, err := utils.NewRequest("PUT", nil, "/user", nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
@@ -202,8 +183,6 @@ func TestUpdateUser(t *testing.T) {
 }
 
 func TestGetAdv(t *testing.T) {
-	mux = getMux()
-
 	req, err := utils.NewRequest("GET", nil, "/adv/123", nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
@@ -223,8 +202,6 @@ func TestGetAdv(t *testing.T) {
 }
 
 func TestGetAdvList(t *testing.T) {
-	mux = getMux()
-
 	req, err := utils.NewRequest("GET", nil, "/adv", nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
@@ -244,8 +221,6 @@ func TestGetAdvList(t *testing.T) {
 }
 
 func TestCreateAdv(t *testing.T) {
-	mux = getMux()
-
 	req, err := utils.NewRequest("POST", nil, "/adv", nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
@@ -265,8 +240,6 @@ func TestCreateAdv(t *testing.T) {
 }
 
 func TestUpdateAdv(t *testing.T) {
-	mux = getMux()
-
 	req, err := utils.NewRequest("PUT", nil, "/adv/123", nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
@@ -286,8 +259,6 @@ func TestUpdateAdv(t *testing.T) {
 }
 
 func TestDeleteAdv(t *testing.T) {
-	mux = getMux()
-
 	req, err := utils.NewRequest("DELETE", nil, "/adv/123", nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
@@ -307,8 +278,6 @@ func TestDeleteAdv(t *testing.T) {
 }
 
 func TestAddAdvPhoto(t *testing.T) {
-	mux = getMux()
-
 	req, err := utils.NewRequest("POST", nil, "/adv/123/photos", nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
@@ -328,8 +297,6 @@ func TestAddAdvPhoto(t *testing.T) {
 }
 
 func TestDeleteAdvPhoto(t *testing.T) {
-	mux = getMux()
-
 	req, err := utils.NewRequest("DELETE", nil, "/adv/123/photos/456", nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
@@ -349,8 +316,6 @@ func TestDeleteAdvPhoto(t *testing.T) {
 }
 
 func TestStaticFilesNotFound(t *testing.T) {
-	mux = getMux()
-
 	req, err := utils.NewRequest("GET", nil, "/static/nonexistentfile.txt", nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
@@ -365,8 +330,6 @@ func TestStaticFilesNotFound(t *testing.T) {
 }
 
 func TestUploadedFilesNotFound(t *testing.T) {
-	mux = getMux()
-
 	req, err := utils.NewRequest("GET", nil, "/uploaded/nonexistentfile.txt", nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
@@ -381,8 +344,6 @@ func TestUploadedFilesNotFound(t *testing.T) {
 }
 
 func TestLoginError(t *testing.T) {
-	mux = getMux()
-
 	req, err := utils.NewRequest("POST", nil, "/login", nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
@@ -402,8 +363,6 @@ func TestLoginError(t *testing.T) {
 }
 
 func TestLogoutMeError(t *testing.T) {
-	mux = getMux()
-
 	req, err := utils.NewRequest("GET", nil, "/logout/me", nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
@@ -423,8 +382,6 @@ func TestLogoutMeError(t *testing.T) {
 }
 
 func TestLogoutAllError(t *testing.T) {
-	mux = getMux()
-
 	req, err := utils.NewRequest("GET", nil, "/logout/all", nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
@@ -444,8 +401,6 @@ func TestLogoutAllError(t *testing.T) {
 }
 
 func TestRegistrationError(t *testing.T) {
-	mux = getMux()
-
 	req, err := utils.NewRequest("POST", nil, "/registration", nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
@@ -465,8 +420,6 @@ func TestRegistrationError(t *testing.T) {
 }
 
 func TestUpdatePasswordError(t *testing.T) {
-	mux = getMux()
-
 	req, err := utils.NewRequest("PUT", nil, "/password", nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
@@ -486,8 +439,6 @@ func TestUpdatePasswordError(t *testing.T) {
 }
 
 func TestUpdateUserError(t *testing.T) {
-	mux = getMux()
-
 	req, err := utils.NewRequest("PUT", nil, "/user", nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
@@ -507,8 +458,6 @@ func TestUpdateUserError(t *testing.T) {
 }
 
 func TestGetAdvNotFound(t *testing.T) {
-	mux = getMux()
-
 	req, err := utils.NewRequest("GET", nil, "/adv/nonexistent", nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
@@ -528,8 +477,6 @@ func TestGetAdvNotFound(t *testing.T) {
 }
 
 func TestGetAdvListError(t *testing.T) {
-	mux = getMux()
-
 	req, err := utils.NewRequest("GET", nil, "/adv", nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
@@ -549,8 +496,6 @@ func TestGetAdvListError(t *testing.T) {
 }
 
 func TestCreateAdvError(t *testing.T) {
-	mux = getMux()
-
 	req, err := utils.NewRequest("POST", nil, "/adv", nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
@@ -570,8 +515,6 @@ func TestCreateAdvError(t *testing.T) {
 }
 
 func TestUpdateAdvError(t *testing.T) {
-	mux = getMux()
-
 	req, err := utils.NewRequest("PUT", nil, "/adv/nonexistent", nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
@@ -591,8 +534,6 @@ func TestUpdateAdvError(t *testing.T) {
 }
 
 func TestDeleteAdvError(t *testing.T) {
-	mux = getMux()
-
 	req, err := utils.NewRequest("DELETE", nil, "/adv/nonexistent", nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
@@ -612,8 +553,6 @@ func TestDeleteAdvError(t *testing.T) {
 }
 
 func TestAddAdvPhotoError(t *testing.T) {
-	mux = getMux()
-
 	req, err := utils.NewRequest("POST", nil, "/adv/nonexistent/photos", nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
@@ -633,8 +572,6 @@ func TestAddAdvPhotoError(t *testing.T) {
 }
 
 func TestDeleteAdvPhotoError(t *testing.T) {
-	mux = getMux()
-
 	req, err := utils.NewRequest("DELETE", nil, "/adv/nonexistent/photos/nonexistent", nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
