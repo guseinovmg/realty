@@ -1,15 +1,11 @@
 package router
 
 import (
-	"encoding/json"
-	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"net/http/httptest"
 	"realty/dto"
 	"realty/utils"
-	"strings"
 	"testing"
 )
 
@@ -24,13 +20,13 @@ func TestAuth(t *testing.T) {
 	}{
 		{
 			name:          "must return http.StatusUnauthorized",
-			request:       NewRequest("POST", nil, "/login", nil, nil, nil),
+			request:       utils.NewRequest("POST", nil, "/login", nil, nil, nil),
 			wantCode:      http.StatusUnauthorized,
 			checkResponse: nil,
 		},
 		{
 			name: "must return http.StatusOK",
-			request: NewRequest("POST", nil, "/login", nil, nil, &dto.LoginRequest{
+			request: utils.NewRequest("POST", nil, "/login", nil, nil, &dto.LoginRequest{
 				Email:    "guseinovmg@gmail.com",
 				Password: "Password",
 			}),
@@ -52,44 +48,4 @@ func TestAuth(t *testing.T) {
 			}
 		})
 	}
-}
-
-func NewRequest(method string, headers utils.H, url string, pathParams utils.H, queryParams utils.H, body any) *http.Request {
-	if pathParams != nil {
-		for k, v := range pathParams {
-			url = strings.Replace(url, k, "{"+v+"}", 1)
-		}
-	}
-
-	if strings.Contains(url, "{") || strings.Contains(url, "}") {
-		panic("неправильно сформирован путь " + url)
-	}
-	var buf io.Reader
-	if body != nil {
-		bytes, err := json.Marshal(body)
-		if err != nil {
-			panic(err)
-		}
-		buf = strings.NewReader(string(bytes))
-	}
-
-	req, err := http.NewRequest(method, url, buf)
-	if err != nil {
-		panic(fmt.Sprintf("fail to create request: %s", err.Error()))
-	}
-
-	if headers != nil {
-		for k, v := range headers {
-			req.Header.Set(k, v)
-		}
-	}
-
-	if queryParams != nil {
-		q := req.URL.Query()
-		for k, v := range queryParams {
-			q.Add(k, v)
-		}
-		req.URL.RawQuery = q.Encode()
-	}
-	return req
 }

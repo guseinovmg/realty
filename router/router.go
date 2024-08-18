@@ -1,14 +1,18 @@
 package router
 
 import (
-	"log"
 	"net/http"
 	"realty/config"
 	"realty/handlers"
 	mw "realty/middleware"
 )
 
+var serveMux *http.ServeMux
+
 func Initialize() *http.ServeMux {
+	if serveMux != nil {
+		return serveMux
+	}
 	mux := http.NewServeMux()
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir(config.GetStaticFilesPath()))))
 	mux.Handle("GET /uploaded/", http.StripPrefix("/uploaded/", http.FileServer(http.Dir(config.GetUploadedFilesPath()))))
@@ -35,8 +39,7 @@ func Initialize() *http.ServeMux {
 	mux.Handle("POST /adv/{advId}/photos", mw.Handler(mw.CheckGracefullyStop, mw.Auth, mw.FindAdv, mw.CheckAdvOwner, mw.SetAuthCookie, handlers.AddAdvPhoto))
 	mux.Handle("DELETE /adv/{advId}/photos/{photoId}", mw.Handler(mw.CheckGracefullyStop, mw.Auth, mw.FindAdv, mw.CheckAdvOwner, mw.SetAuthCookie, handlers.DeleteAdvPhoto))
 
-	go log.Fatal(http.ListenAndServe(config.GetHttpServerPort(), mux))
-
+	serveMux = mux
 	return mux
 
 }

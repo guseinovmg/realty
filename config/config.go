@@ -24,7 +24,7 @@ func Initialize() {
 		uploadedFilesPath:  "/home/murad/GolandProjects/realty/uploaded/",
 		staticFilesPath:    "/home/murad/GolandProjects/realty/static/",
 		httpServerPort:     ":8080",
-		dataDir:            "/home/murad/GolandProjects/realty/data",
+		dataDir:            ":memory:",
 		availableCountries: make([]string, 0),
 		domain:             "localhost",
 		adminId:            35456456,
@@ -64,28 +64,28 @@ func GetDataDir() string {
 }
 
 func GetDbUsersPath() string {
-	if c.dataDir == ":memory" {
+	if c.dataDir == ":memory:" {
 		return c.dataDir
 	}
 	return c.dataDir + "/users.sqlite"
 }
 
 func GetDbAdvsPath() string {
-	if c.dataDir == ":memory" {
+	if c.dataDir == ":memory:" {
 		return c.dataDir
 	}
 	return c.dataDir + "/advs.sqlite"
 }
 
 func GetDbPhotosPath() string {
-	if c.dataDir == ":memory" {
+	if c.dataDir == ":memory:" {
 		return c.dataDir
 	}
 	return c.dataDir + "/photos.sqlite"
 }
 
 func GetDbWatchesPath() string {
-	if c.dataDir == ":memory" {
+	if c.dataDir == ":memory:" {
 		return c.dataDir
 	}
 	return c.dataDir + "/watches.sqlite"

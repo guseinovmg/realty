@@ -47,7 +47,6 @@ var gracefullyStop atomic.Bool
 func GracefullyStopAndExitApp() {
 	if !gracefullyStop.Load() {
 		gracefullyStop.Store(true)
-		close(toSave)
 	}
 }
 
@@ -56,9 +55,9 @@ func IsGracefullyStopped() bool {
 }
 
 func Initialize() {
-	users_, advs_, photos_, watches_, err := db.ReadDb()
-	if err != nil {
-		panic(err)
+	users_, advs_, photos_, watches_, errDb := db.ReadDb()
+	if errDb != nil {
+		panic(errDb)
 	}
 
 	photos = make([]*PhotoCache, len(photos_), len(photos_)+500)
@@ -110,20 +109,18 @@ func Initialize() {
 	}
 
 	//todo надо просмотры и фото в adv добавить
-	toSave = make(chan SaveCache, 100)
+	toSave = make(chan SaveCache, 1000)
 
 	go func() {
 		for saveCache := range toSave {
 			for range 2 {
-				err := saveCache.Save()
-				if err == nil {
+				if errSave := saveCache.Save(); errSave == nil {
 					break
 				}
-				if gracefullyStop.Load() {
-					break
-				} else {
-					time.Sleep(time.Millisecond * 500)
-				}
+				time.Sleep(time.Millisecond * 100)
+			}
+			if gracefullyStop.Load() && len(toSave) == 0 {
+				break
 			}
 		}
 		os.Exit(1)
@@ -136,8 +133,7 @@ func Initialize() {
 				if gracefullyStop.Load() {
 					return
 				}
-				err := advs[i].Save()
-				if err != nil {
+				if err := advs[i].Save(); err != nil {
 					time.Sleep(time.Millisecond * 100)
 				}
 			}
@@ -146,8 +142,7 @@ func Initialize() {
 				if gracefullyStop.Load() {
 					return
 				}
-				err := users[i].Save()
-				if err != nil {
+				if err := users[i].Save(); err != nil {
 					time.Sleep(time.Millisecond * 100)
 				}
 			}
@@ -156,8 +151,7 @@ func Initialize() {
 				if gracefullyStop.Load() {
 					return
 				}
-				err := photos[i].Save()
-				if err != nil {
+				if err := photos[i].Save(); err != nil {
 					time.Sleep(time.Millisecond * 100)
 				}
 			}
@@ -166,8 +160,7 @@ func Initialize() {
 				if gracefullyStop.Load() {
 					return
 				}
-				err := watches[i].Save()
-				if err != nil {
+				if err := watches[i].Save(); err != nil {
 					time.Sleep(time.Millisecond * 100)
 				}
 			}

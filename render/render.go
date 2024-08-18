@@ -6,7 +6,9 @@ import (
 	"realty/dto"
 )
 
-var resultOkBytes = []byte(`{"result":"OK"}`)
+var ResultOk = `{"result":"OK"}`
+
+var resultOkBytes = []byte(ResultOk)
 
 func RenderLoginPage(writer http.ResponseWriter, errDto *dto.Err) error {
 	return nil

@@ -18,7 +18,7 @@ func Initialize() {
 	if db, err := sql.Open("sqlite", config.GetDbUsersPath()); err != nil {
 		log.Fatal(err)
 	} else {
-		db.SetMaxOpenConns(1)
+		db.SetMaxOpenConns(10)
 		dbUsers = db
 	}
 	if db, err := sql.Open("sqlite", config.GetDbAdvsPath()); err != nil {
@@ -39,7 +39,7 @@ func Initialize() {
 		db.SetMaxOpenConns(1)
 		dbWatches = db
 	}
-	if config.GetDataDir() == ":memory" {
+	if config.GetDataDir() == ":memory:" {
 		if err := CreateInMemoryDB(); err != nil {
 			log.Fatal(err)
 		}
@@ -62,7 +62,7 @@ func CreateInMemoryDB() error {
     enabled        INTEGER   not null,
     description    TEXT
 ) without ROWID, strict;`); err != nil {
-		return errors.Join(err, errors.New("db.CreateInMemoryDB()"))
+		return errors.Join(err, errors.New("db.CreateInMemoryDB() 1"))
 	}
 
 	if _, err := dbUsers.Exec(`create table invites
@@ -70,45 +70,45 @@ func CreateInMemoryDB() error {
     id   TEXT primary key,
 	name TEXT
 ) without ROWID, strict;`); err != nil {
-		return errors.Join(err, errors.New("db.CreateInMemoryDB()"))
+		return errors.Join(err, errors.New("db.CreateInMemoryDB() 2"))
 	}
 
 	if _, err := dbAdvs.Exec(`
-    CREATE TABLE advs (
-        id INTEGER PRIMARY KEY,
-        user_id INTEGER NOT NULL,
-        updated INTEGER NOT NULL,
-        approved INTEGER NOT NULL,
-        lang INTEGER NOT NULL,
-        origin_lang INTEGER NOT NULL,
-        translated_by INTEGER NOT NULL,
-        translated_to TEXT NOT NULL,
-        title TEXT NOT NULL,
-        description TEXT NOT NULL,
-        price INTEGER NOT NULL,
-        currency TEXT NOT NULL,
-        country TEXT NOT NULL,
-        city TEXT NOT NULL,
-        address TEXT NOT NULL,
-        latitude REAL NOT NULL,
-        longitude REAL NOT NULL,
-        paid_adv INTEGER NOT NULL,
-        se_visible INTEGER NOT NULL,
-        user_comment TEXT NOT NULL,
-        admin_comment TEXT NOT NULL
-    ) without ROWID, strict;
-`); err != nil {
-		return errors.Join(err, errors.New("db.CreateInMemoryDB()"))
+		    CREATE TABLE advs (
+		        id INTEGER PRIMARY KEY,
+		        user_id INTEGER NOT NULL,
+		        updated INTEGER NOT NULL,
+		        approved INTEGER NOT NULL,
+		        lang INTEGER NOT NULL,
+		        origin_lang INTEGER NOT NULL,
+		        translated_by INTEGER NOT NULL,
+		        translated_to TEXT NOT NULL,
+		        title TEXT NOT NULL,
+		        description TEXT NOT NULL,
+		        price INTEGER NOT NULL,
+		        currency TEXT NOT NULL,
+		        country TEXT NOT NULL,
+		        city TEXT NOT NULL,
+		        address TEXT NOT NULL,
+		        latitude REAL NOT NULL,
+		        longitude REAL NOT NULL,
+		        paid_adv INTEGER NOT NULL,
+		        se_visible INTEGER NOT NULL,
+		        user_comment TEXT NOT NULL,
+		        admin_comment TEXT NOT NULL
+		    ) without ROWID, strict;
+		`); err != nil {
+		return errors.Join(err, errors.New("db.CreateInMemoryDB() 3"))
 	}
 
 	if _, err := dbPhotos.Exec(`
-    CREATE TABLE photos (
-        id INTEGER PRIMARY KEY,
-        adv_id INTEGER NOT NULL,
-        ext INTEGER NOT NULL
-    ) without ROWID, strict;
-`); err != nil {
-		return errors.Join(err, errors.New("db.CreateInMemoryDB()"))
+		    CREATE TABLE photos (
+		        id INTEGER PRIMARY KEY,
+		        adv_id INTEGER NOT NULL,
+		        ext INTEGER NOT NULL
+		    ) without ROWID, strict;
+		`); err != nil {
+		return errors.Join(err, errors.New("db.CreateInMemoryDB() 4"))
 	}
 
 	if _, err := dbWatches.Exec(`
@@ -117,7 +117,7 @@ func CreateInMemoryDB() error {
         count INTEGER NOT NULL
     ) without ROWID, strict;
 `); err != nil {
-		return errors.Join(err, errors.New("db.CreateInMemoryDB()"))
+		return errors.Join(err, errors.New("db.CreateInMemoryDB() 5"))
 	}
 	return nil
 }

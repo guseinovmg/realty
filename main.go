@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"net/http"
 	"realty/cache"
 	"realty/config"
 	"realty/db"
@@ -13,5 +14,6 @@ func main() {
 	config.Initialize()
 	db.Initialize()
 	cache.Initialize()
-	router.Initialize()
+	mux := router.Initialize()
+	log.Fatal(http.ListenAndServe(config.GetHttpServerPort(), mux))
 }

@@ -1,9 +1,16 @@
 package main
 
 import (
+	"log"
 	"net/http"
 	"net/http/httptest"
+	"realty/cache"
+	"realty/config"
+	"realty/db"
+	"realty/dto"
+	"realty/render"
 	"realty/router"
+	"realty/utils"
 	"testing"
 )
 
@@ -11,6 +18,10 @@ var mux *http.ServeMux
 
 func getMux() *http.ServeMux {
 	if mux == nil {
+		log.SetFlags(log.Lshortfile)
+		config.Initialize()
+		db.Initialize()
+		cache.Initialize()
 		mux = router.Initialize()
 	}
 	return mux
@@ -19,7 +30,7 @@ func getMux() *http.ServeMux {
 func TestStaticFiles(t *testing.T) {
 	mux = getMux()
 
-	req, err := http.NewRequest("GET", "/static/static/file.txt", nil)
+	req, err := http.NewRequest("GET", "/static/file.txt", nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
 	}
@@ -52,7 +63,30 @@ func TestUploadedFiles(t *testing.T) {
 		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
 
-	expected := "expected content" // Replace with actual expected content
+	expected := "bla bla bla" // Replace with actual expected content
+	if rr.Body.String() != expected {
+		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
+	}
+}
+
+func TestRegistration(t *testing.T) {
+	mux = getMux()
+
+	req := utils.NewRequest("POST", nil, "/registration", nil, nil, &dto.RegisterRequest{
+		Email:    "guseinovmg@gmail.com",
+		Name:     "Murad",
+		Password: "12345678",
+		InviteId: "",
+	})
+
+	rr := httptest.NewRecorder()
+	mux.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
+
+	expected := render.ResultOk // Replace with actual expected response
 	if rr.Body.String() != expected {
 		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}
@@ -104,27 +138,6 @@ func TestLogoutAll(t *testing.T) {
 	mux = getMux()
 
 	req, err := http.NewRequest("GET", "/logout/all", nil)
-	if err != nil {
-		t.Fatalf("Failed to create request: %v", err)
-	}
-
-	rr := httptest.NewRecorder()
-	mux.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
-	}
-
-	expected := "expected response" // Replace with actual expected response
-	if rr.Body.String() != expected {
-		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
-	}
-}
-
-func TestRegistration(t *testing.T) {
-	mux = getMux()
-
-	req, err := http.NewRequest("POST", "/registration", nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
 	}
