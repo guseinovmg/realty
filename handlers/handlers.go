@@ -74,7 +74,7 @@ func Login(rd *middleware.RequestData, writer http.ResponseWriter, request *http
 		return false
 	}
 	rd.User = userCache
-	return true
+	return false
 }
 
 func LogoutMe(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) bool {
@@ -84,7 +84,7 @@ func LogoutMe(rd *middleware.RequestData, writer http.ResponseWriter, request *h
 func LogoutAll(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) bool {
 	cache.UpdateSessionSecret(rd.User)
 	_ = render.JsonOK(writer, http.StatusOK)
-	return true
+	return false
 }
 
 func Registration(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) bool {
@@ -99,7 +99,7 @@ func Registration(rd *middleware.RequestData, writer http.ResponseWriter, reques
 	}
 	cache.CreateUser(requestDto)
 	_ = render.JsonOK(writer, http.StatusOK)
-	return true
+	return false
 }
 
 func UpdatePassword(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) bool {
@@ -118,7 +118,7 @@ func UpdatePassword(rd *middleware.RequestData, writer http.ResponseWriter, requ
 	}
 	cache.UpdatePassword(rd.User, requestDto)
 	_ = render.JsonOK(writer, http.StatusOK)
-	return true
+	return false
 }
 
 func UpdateUser(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) bool {
@@ -133,7 +133,7 @@ func UpdateUser(rd *middleware.RequestData, writer http.ResponseWriter, request 
 	}
 	cache.UpdateUser(rd.User, requestDto)
 	_ = render.JsonOK(writer, http.StatusOK)
-	return true
+	return false
 }
 
 func CreateAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) bool {
@@ -148,7 +148,7 @@ func CreateAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *
 	}
 	cache.CreateAdv(&rd.User.CurrentUser, requestDto)
 	_ = render.JsonOK(writer, http.StatusOK)
-	return true
+	return false
 }
 
 func GetAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) bool {
@@ -187,7 +187,7 @@ func GetAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *htt
 	}
 	_ = render.Json(writer, http.StatusOK, response)
 	cache.IncAdvWatches(rd.Adv.Watches)
-	return true
+	return false
 }
 
 func GetAdvList(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) bool {
@@ -230,12 +230,12 @@ func GetAdvList(rd *middleware.RequestData, writer http.ResponseWriter, request 
 		limit,
 		requestDto.FirstNew)
 	_ = render.Json(writer, http.StatusOK, &dto.GetAdvListResponse{List: advs, Count: count})
-	return true
+	return false
 }
 
 func GetUsersAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) bool {
 	_ = render.Json(writer, http.StatusOK, rd.Adv.CurrentAdv)
-	return true
+	return false
 }
 
 func GetUsersAdvList(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) bool {
@@ -256,7 +256,7 @@ func GetUsersAdvList(rd *middleware.RequestData, writer http.ResponseWriter, req
 	offset = (int(requestDto.Page) - 1) * limit
 	advs, count := cache.FindUsersAdvs(rd.User.CurrentUser.Id, offset, limit, firstNew)
 	_ = render.Json(writer, http.StatusOK, &dto.GetAdvListResponse{List: advs, Count: count})
-	return true
+	return false
 }
 
 func UpdateAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) bool {
@@ -271,13 +271,13 @@ func UpdateAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *
 	}
 	cache.UpdateAdv(rd.Adv, requestDto)
 	_ = render.JsonOK(writer, http.StatusOK)
-	return true
+	return false
 }
 
 func DeleteAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) bool {
 	cache.DeleteAdv(rd.Adv)
 	_ = render.JsonOK(writer, http.StatusOK)
-	return true
+	return false
 }
 
 func AddAdvPhoto(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) bool {
@@ -332,7 +332,7 @@ func AddAdvPhoto(rd *middleware.RequestData, writer http.ResponseWriter, request
 	}
 	cache.CreatePhoto(rd.Adv, photo)
 	_ = render.JsonOK(writer, http.StatusOK)
-	return true
+	return false
 }
 
 func DeleteAdvPhoto(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) bool {
@@ -357,5 +357,5 @@ func DeleteAdvPhoto(rd *middleware.RequestData, writer http.ResponseWriter, requ
 	}
 	cache.DeletePhoto(rd.Adv, photoCache)
 	_ = render.JsonOK(writer, http.StatusOK)
-	return true
+	return false
 }
