@@ -10,6 +10,7 @@ import (
 	"realty/config"
 	"realty/currency"
 	"realty/dto"
+	"realty/metrics"
 	"realty/middleware"
 	"realty/models"
 	"realty/parsing_input"
@@ -32,6 +33,24 @@ func JsonError(recovered any, rd *middleware.RequestData, writer http.ResponseWr
 
 func JsonOK(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) bool {
 	_ = render.JsonOK(writer, http.StatusOK)
+	return false
+}
+
+func GetMetrics(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) bool {
+	m := dto.Metrics{
+		InstanceStartTime:           metrics.GetInstanceStartTime(),
+		FreeRAM:                     metrics.GetFreeRAM(),
+		CPUTemp:                     metrics.GetCPUTemp(),
+		CPUConsumption:              metrics.GetCPUConsumption(),
+		UnSavedChangesQueueCount:    metrics.GetUnSavedChangesQueueCount(),
+		DiskUsagePercent:            metrics.GetDiskUsagePercent(),
+		RecoveredPanicsCount:        metrics.GetRecoveredPanicsCount(),
+		MaxRAMConsumptions:          metrics.GetMaxRAMConsumptions(),
+		MaxCPUConsumptions:          metrics.GetMaxCPUConsumptions(),
+		MaxRPS:                      metrics.GetMaxRPS(),
+		MaxUnSavedChangesQueueCount: metrics.GetMaxUnSavedChangesQueueCount(),
+	}
+	_ = render.Json(writer, http.StatusOK, &m)
 	return false
 }
 

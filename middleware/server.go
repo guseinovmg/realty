@@ -49,10 +49,15 @@ func (m *Chain) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 			//todo в любом случае нужно создать оповещение админу(sms или email)
 		}
 	}()
+	next := true
 	for _, f := range m.handlers {
-		if !f(rd, writer, request) {
-			return
+		next = f(rd, writer, request)
+		if !next {
+			break
 		}
+	}
+	if next {
+		//todo пишем в лог что так не должно быть
 	}
 }
 
