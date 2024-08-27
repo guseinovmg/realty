@@ -1,6 +1,10 @@
 package config
 
-import "os"
+import (
+	"log"
+	"log/slog"
+	"os"
+)
 
 type conf struct {
 	uploadedFilesPath  string
@@ -14,7 +18,7 @@ type conf struct {
 	language           string
 	domain             string
 	adminId            int64
-	logLevel           int
+	logLevel           slog.Level
 }
 
 var c conf
@@ -28,7 +32,7 @@ func Initialize() {
 		availableCountries: make([]string, 0),
 		domain:             "localhost",
 		adminId:            35456456,
-		logLevel:           1,
+		logLevel:           slog.LevelInfo,
 	}
 	if v, ok := os.LookupEnv("UPLOADED_FILES_PATH"); ok {
 		c.uploadedFilesPath = v
@@ -44,6 +48,20 @@ func Initialize() {
 	}
 	if v, ok := os.LookupEnv("DOMAIN"); ok {
 		c.domain = v
+	}
+	if v, ok := os.LookupEnv("LOG_LEVEL"); ok {
+		switch v {
+		case "debug":
+			c.logLevel = slog.LevelDebug
+		case "info":
+			c.logLevel = slog.LevelInfo
+		case "warn":
+			c.logLevel = slog.LevelWarn
+		case "error":
+			c.logLevel = slog.LevelError
+		default:
+			log.Fatal("unknown log level")
+		}
 	}
 }
 
@@ -105,4 +123,8 @@ func GetDomain() string {
 
 func GetAdminId() int64 {
 	return c.adminId
+}
+
+func GetLogLevel() slog.Level {
+	return c.logLevel
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"log"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"realty/cache"
@@ -19,8 +20,9 @@ import (
 var mux *http.ServeMux
 
 func init() {
-	log.SetFlags(log.Lshortfile)
+	log.SetFlags(log.Lshortfile | log.Ldate | log.Ltime)
 	config.Initialize()
+	slog.SetLogLoggerLevel(config.GetLogLevel())
 	db.Initialize()
 	cache.Initialize()
 	mux = router.Initialize()

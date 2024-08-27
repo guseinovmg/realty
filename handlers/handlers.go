@@ -54,29 +54,6 @@ func GetMetrics(rd *middleware.RequestData, writer http.ResponseWriter, request 
 	return false
 }
 
-func Login(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) bool {
-	requestDto := &dto.LoginRequest{}
-	if err := parsing_input.ParseRawJson(request, requestDto); err != nil {
-		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
-		return false
-	}
-	if err := validator.ValidateLoginRequest(requestDto); err != nil {
-		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
-		return false
-	}
-	userCache := cache.FindUserCacheByLogin(requestDto.Email)
-	if userCache == nil {
-		_ = render.Json(writer, http.StatusNotFound, &dto.Err{ErrMessage: "пользователь не найден"})
-		return false
-	}
-	if !bytes.Equal(utils.GeneratePasswordHash(requestDto.Password), userCache.CurrentUser.PasswordHash) {
-		_ = render.Json(writer, http.StatusUnauthorized, &dto.Err{ErrMessage: "неверный пароль"})
-		return false
-	}
-	rd.User = userCache
-	return false
-}
-
 func LogoutMe(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) bool {
 	return false
 }

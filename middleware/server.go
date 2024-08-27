@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"log/slog"
 	"net/http"
 	"realty/cache"
 	"strings"
@@ -26,7 +27,7 @@ func (m *Chain) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	rd := &RequestData{}
 	defer func() {
 		if err := recover(); err != nil {
-			//todo логировать паники нужно
+			slog.Error("panic", "recovered", err)
 			if m.onPanic != nil {
 				m.onPanic(err, rd, writer, request)
 			} else {
@@ -57,7 +58,7 @@ func (m *Chain) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 		}
 	}
 	if next {
-		//todo пишем в лог что так не должно быть
+		slog.Error("wrong handler returning value", "url", request.URL.RawPath)
 	}
 }
 

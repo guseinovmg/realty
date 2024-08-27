@@ -9,7 +9,9 @@ import (
 	"realty/cache"
 	"realty/config"
 	"realty/dto"
+	"realty/parsing_input"
 	"realty/render"
+	"realty/utils"
 	"realty/validator"
 	"strconv"
 	"time"
@@ -63,6 +65,29 @@ func Auth(rd *RequestData, writer http.ResponseWriter, request *http.Request) bo
 	}
 	if !IsValidToken(tokenBytesArr, userCache.CurrentUser.SessionSecret) {
 		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: "неверный токен"})
+		return false
+	}
+	rd.User = userCache
+	return true
+}
+
+func Login(rd *RequestData, writer http.ResponseWriter, request *http.Request) bool {
+	requestDto := &dto.LoginRequest{}
+	if err := parsing_input.ParseRawJson(request, requestDto); err != nil {
+		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
+		return false
+	}
+	if err := validator.ValidateLoginRequest(requestDto); err != nil {
+		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
+		return false
+	}
+	userCache := cache.FindUserCacheByLogin(requestDto.Email)
+	if userCache == nil {
+		_ = render.Json(writer, http.StatusNotFound, &dto.Err{ErrMessage: "пользователь не найден"})
+		return false
+	}
+	if !bytes.Equal(utils.GeneratePasswordHash(requestDto.Password), userCache.CurrentUser.PasswordHash) {
+		_ = render.Json(writer, http.StatusUnauthorized, &dto.Err{ErrMessage: "неверный пароль"})
 		return false
 	}
 	rd.User = userCache
