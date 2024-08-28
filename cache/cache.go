@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"log/slog"
 	"os"
 	"realty/db"
 	"realty/dto"
@@ -16,6 +17,11 @@ type SaveCache interface {
 	Save() error
 }
 
+type SaveTask struct {
+	Cache     SaveCache
+	RequestId int64
+}
+
 var users []*UserCache
 var advs []*AdvCache
 var photos []*PhotoCache
@@ -26,21 +32,7 @@ var advsRWMutex sync.RWMutex
 var photosRWMutex sync.RWMutex
 var watchesRWMutex sync.RWMutex
 
-var toSave chan SaveCache
-
-var idGenerationMutex sync.Mutex
-var lastGeneratedId int64
-
-func GenerateId() int64 {
-	idGenerationMutex.Lock()
-	defer idGenerationMutex.Unlock()
-	newId := time.Now().UnixNano()
-	if newId <= lastGeneratedId {
-		newId = lastGeneratedId + 1
-		lastGeneratedId = newId
-	}
-	return newId
-}
+var toSave chan SaveTask
 
 var gracefullyStop atomic.Bool
 
@@ -109,13 +101,16 @@ func Initialize() {
 	}
 
 	//todo надо просмотры и фото в adv добавить
-	toSave = make(chan SaveCache, 1000)
+	toSave = make(chan SaveTask, 1000)
 
 	go func() {
 		for saveCache := range toSave {
 			for range 2 {
-				if errSave := saveCache.Save(); errSave == nil {
+				if errSave := saveCache.Cache.Save(); errSave == nil {
+					slog.Debug("saved", "requestId", saveCache.RequestId)
 					break
+				} else {
+					slog.Error(errSave.Error(), "requestId", saveCache.RequestId)
 				}
 				time.Sleep(time.Millisecond * 100)
 			}
@@ -134,6 +129,7 @@ func Initialize() {
 					return
 				}
 				if err := advs[i].Save(); err != nil {
+					slog.Error(err.Error())
 					time.Sleep(time.Millisecond * 100)
 				}
 			}
@@ -143,6 +139,7 @@ func Initialize() {
 					return
 				}
 				if err := users[i].Save(); err != nil {
+					slog.Error(err.Error())
 					time.Sleep(time.Millisecond * 100)
 				}
 			}
@@ -152,6 +149,7 @@ func Initialize() {
 					return
 				}
 				if err := photos[i].Save(); err != nil {
+					slog.Error(err.Error())
 					time.Sleep(time.Millisecond * 100)
 				}
 			}
@@ -161,6 +159,7 @@ func Initialize() {
 					return
 				}
 				if err := watches[i].Save(); err != nil {
+					slog.Error(err.Error())
 					time.Sleep(time.Millisecond * 100)
 				}
 			}
@@ -420,8 +419,8 @@ func FindUsersAdvs(userId int64, offset, limit int, firstNew bool) ([]*dto.GetAd
 	return result, count
 }
 
-func CreateAdv(user *models.User, request *dto.CreateAdvRequest) {
-	id := GenerateId()
+func CreateAdv(requestId int64, user *models.User, request *dto.CreateAdvRequest) {
+	id := utils.GenerateId()
 	newAdv := &models.Adv{
 		Id:           id,
 		UserId:       user.Id,
@@ -475,10 +474,10 @@ func CreateAdv(user *models.User, request *dto.CreateAdvRequest) {
 	watches = append(watches, advCache.Watches)
 	watchesRWMutex.Unlock()
 
-	toSave <- advCache
+	toSave <- SaveTask{Cache: advCache, RequestId: requestId}
 }
 
-func UpdateAdv(adv *AdvCache, request *dto.UpdateAdvRequest) {
+func UpdateAdv(requestId int64, adv *AdvCache, request *dto.UpdateAdvRequest) {
 	adv.mu.Lock()
 	defer adv.mu.Unlock()
 	adv.CurrentAdv.OriginLang = request.OriginLang
@@ -495,7 +494,7 @@ func UpdateAdv(adv *AdvCache, request *dto.UpdateAdvRequest) {
 	adv.CurrentAdv.Longitude = request.Longitude
 	adv.CurrentAdv.UserComment = request.UserComment
 	adv.ToUpdate = true
-	toSave <- adv
+	toSave <- SaveTask{Cache: adv, RequestId: requestId}
 }
 
 func IncAdvWatches(watch *WatchesCache) {
@@ -506,19 +505,19 @@ func IncAdvWatches(watch *WatchesCache) {
 	//toSave <- watch мы специально не отправляем в канал
 }
 
-func DeleteAdv(adv *AdvCache) {
+func DeleteAdv(requestId int64, adv *AdvCache) {
 	adv.mu.Lock()
 	defer adv.mu.Unlock()
 	if !adv.Deleted {
 		adv.ToDelete = true
 	}
-	toSave <- adv
+	toSave <- SaveTask{Cache: adv, RequestId: requestId}
 }
 
-func CreateUser(request *dto.RegisterRequest) {
+func CreateUser(requestId int64, request *dto.RegisterRequest) {
 	passwordHash := utils.GeneratePasswordHash(request.Password)
 	newUser := &models.User{
-		Id:            GenerateId(),
+		Id:            utils.GenerateId(),
 		Email:         request.Email,
 		Name:          request.Name,
 		PasswordHash:  passwordHash,
@@ -538,51 +537,51 @@ func CreateUser(request *dto.RegisterRequest) {
 	userCache.mu.Lock()
 	defer userCache.mu.Unlock()
 	users = append(users, userCache)
-	toSave <- userCache
+	toSave <- SaveTask{Cache: userCache, RequestId: requestId}
 }
 
-func UpdateUser(userCache *UserCache, request *dto.UpdateUserRequest) {
+func UpdateUser(requestId int64, userCache *UserCache, request *dto.UpdateUserRequest) {
 	userCache.mu.Lock()
 	defer userCache.mu.Unlock()
 	userCache.CurrentUser.Name = request.Name
 	userCache.CurrentUser.Description = request.Description
 	userCache.ToUpdate = true
-	toSave <- userCache
+	toSave <- SaveTask{Cache: userCache, RequestId: requestId}
 }
 
-func UpdatePassword(userCache *UserCache, request *dto.UpdatePasswordRequest) {
+func UpdatePassword(requestId int64, userCache *UserCache, request *dto.UpdatePasswordRequest) {
 	userCache.mu.Lock()
 	defer userCache.mu.Unlock()
 	userCache.CurrentUser.PasswordHash = utils.GeneratePasswordHash(request.NewPassword)
 	userCache.CurrentUser.SessionSecret = utils.GenerateSessionsSecret(userCache.CurrentUser.SessionSecret[:])
 	userCache.ToUpdate = true
-	toSave <- userCache
+	toSave <- SaveTask{Cache: userCache, RequestId: requestId}
 }
 
-func UpdateSessionSecret(userCache *UserCache) {
+func UpdateSessionSecret(requestId int64, userCache *UserCache) {
 	userCache.mu.Lock()
 	defer userCache.mu.Unlock()
 	userCache.CurrentUser.SessionSecret = utils.GenerateSessionsSecret(userCache.CurrentUser.SessionSecret[:])
 	userCache.ToUpdate = true
-	toSave <- userCache
+	toSave <- SaveTask{Cache: userCache, RequestId: requestId}
 }
 
-func DeleteUser(userCache *UserCache) {
+func DeleteUser(requestId int64, userCache *UserCache) {
 	userCache.mu.Lock()
 	defer userCache.mu.Unlock()
 	if !userCache.Deleted {
 		userCache.ToDelete = true
 	}
-	toSave <- userCache
+	toSave <- SaveTask{Cache: userCache, RequestId: requestId}
 }
 
-func CreatePhoto(adv *AdvCache, photo *models.Photo) {
+func CreatePhoto(requestId int64, adv *AdvCache, photo *models.Photo) {
 	photoCache := &PhotoCache{
 		Photo:    *photo,
 		ToCreate: true,
 	}
 	photoCache.mu.Lock() //todo нужно ли тут вообще лочить
-	toSave <- photoCache
+	toSave <- SaveTask{Cache: photoCache, RequestId: requestId}
 	photoCache.mu.Unlock()
 
 	photosRWMutex.Lock()
@@ -595,12 +594,12 @@ func CreatePhoto(adv *AdvCache, photo *models.Photo) {
 
 }
 
-func DeletePhoto(adv *AdvCache, photoCache *PhotoCache) {
+func DeletePhoto(requestId int64, adv *AdvCache, photoCache *PhotoCache) {
 	photoCache.mu.Lock()
 	if !photoCache.Deleted {
 		photoCache.ToDelete = true
 	}
-	toSave <- photoCache
+	toSave <- SaveTask{Cache: photoCache, RequestId: requestId}
 	photoCache.mu.Unlock()
 }
 

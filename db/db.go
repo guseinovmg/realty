@@ -370,7 +370,7 @@ func GetUser(id int64) (*models.User, error) {
 		&user.Balance, &user.Created, &user.Description,
 	)
 	if err != nil {
-		return nil, errors.Join(err, errors.New("db.()"))
+		return nil, errors.Join(err, errors.New("db.GetUser()"))
 	}
 
 	return user, nil

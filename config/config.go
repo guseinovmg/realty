@@ -32,7 +32,7 @@ func Initialize() {
 		availableCountries: make([]string, 0),
 		domain:             "localhost",
 		adminId:            35456456,
-		logLevel:           slog.LevelInfo,
+		logLevel:           slog.LevelDebug,
 	}
 	if v, ok := os.LookupEnv("UPLOADED_FILES_PATH"); ok {
 		c.uploadedFilesPath = v

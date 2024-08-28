@@ -59,7 +59,7 @@ func LogoutMe(rd *middleware.RequestData, writer http.ResponseWriter, request *h
 }
 
 func LogoutAll(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) bool {
-	cache.UpdateSessionSecret(rd.User)
+	cache.UpdateSessionSecret(rd.RequestId, rd.User)
 	_ = render.JsonOK(writer, http.StatusOK)
 	return false
 }
@@ -74,7 +74,7 @@ func Registration(rd *middleware.RequestData, writer http.ResponseWriter, reques
 		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
 		return false
 	}
-	cache.CreateUser(requestDto)
+	cache.CreateUser(rd.RequestId, requestDto)
 	_ = render.JsonOK(writer, http.StatusOK)
 	return false
 }
@@ -93,7 +93,7 @@ func UpdatePassword(rd *middleware.RequestData, writer http.ResponseWriter, requ
 		_ = render.Json(writer, http.StatusUnauthorized, &dto.Err{ErrMessage: "неверный пароль"})
 		return false
 	}
-	cache.UpdatePassword(rd.User, requestDto)
+	cache.UpdatePassword(rd.RequestId, rd.User, requestDto)
 	_ = render.JsonOK(writer, http.StatusOK)
 	return false
 }
@@ -108,7 +108,7 @@ func UpdateUser(rd *middleware.RequestData, writer http.ResponseWriter, request 
 		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
 		return false
 	}
-	cache.UpdateUser(rd.User, requestDto)
+	cache.UpdateUser(rd.RequestId, rd.User, requestDto)
 	_ = render.JsonOK(writer, http.StatusOK)
 	return false
 }
@@ -123,7 +123,7 @@ func CreateAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *
 		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
 		return false
 	}
-	cache.CreateAdv(&rd.User.CurrentUser, requestDto)
+	cache.CreateAdv(rd.RequestId, &rd.User.CurrentUser, requestDto)
 	_ = render.JsonOK(writer, http.StatusOK)
 	return false
 }
@@ -246,13 +246,13 @@ func UpdateAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *
 		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
 		return false
 	}
-	cache.UpdateAdv(rd.Adv, requestDto)
+	cache.UpdateAdv(rd.RequestId, rd.Adv, requestDto)
 	_ = render.JsonOK(writer, http.StatusOK)
 	return false
 }
 
 func DeleteAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) bool {
-	cache.DeleteAdv(rd.Adv)
+	cache.DeleteAdv(rd.RequestId, rd.Adv)
 	_ = render.JsonOK(writer, http.StatusOK)
 	return false
 }
@@ -282,7 +282,7 @@ func AddAdvPhoto(rd *middleware.RequestData, writer http.ResponseWriter, request
 	}
 	photo := &models.Photo{
 		AdvId: rd.Adv.CurrentAdv.Id,
-		Id:    cache.GenerateId(),
+		Id:    utils.GenerateId(),
 	}
 
 	switch ext {
@@ -307,7 +307,7 @@ func AddAdvPhoto(rd *middleware.RequestData, writer http.ResponseWriter, request
 		_ = render.Json(writer, http.StatusInternalServerError, &dto.Err{ErrMessage: err.Error()})
 		return false
 	}
-	cache.CreatePhoto(rd.Adv, photo)
+	cache.CreatePhoto(rd.RequestId, rd.Adv, photo)
 	_ = render.JsonOK(writer, http.StatusOK)
 	return false
 }
@@ -332,7 +332,7 @@ func DeleteAdvPhoto(rd *middleware.RequestData, writer http.ResponseWriter, requ
 		_ = render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: "фото принадлежит другому объявлению"})
 		return false
 	}
-	cache.DeletePhoto(rd.Adv, photoCache)
+	cache.DeletePhoto(rd.RequestId, rd.Adv, photoCache)
 	_ = render.JsonOK(writer, http.StatusOK)
 	return false
 }

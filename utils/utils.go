@@ -10,11 +10,26 @@ import (
 	"net/http"
 	"reflect"
 	"strings"
+	"sync"
 	"time"
 	"unsafe"
 )
 
 type H map[string]string
+
+var idGenerationMutex sync.Mutex
+var lastGeneratedId int64
+
+func GenerateId() int64 {
+	idGenerationMutex.Lock()
+	defer idGenerationMutex.Unlock()
+	newId := time.Now().UnixNano()
+	if newId <= lastGeneratedId {
+		newId = lastGeneratedId + 1
+		lastGeneratedId = newId
+	}
+	return newId
+}
 
 // UnsafeStringToBytes converts string to byte slice without a memory allocation.
 // For more details, see https://github.com/golang/go/issues/53003#issuecomment-1140276077.
