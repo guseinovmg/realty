@@ -22,8 +22,8 @@ func Json(requestId int64, writer http.ResponseWriter, statusCode int, v any) {
 	err := json.NewEncoder(writer).Encode(v)
 	nanoSec := time.Now().UnixNano() - requestId
 	if err != nil {
-		slog.Error("response", "resultId", requestId, "tm", fmt.Sprintf("%dns", nanoSec), "httpCode", statusCode, "msg", err.Error())
+		slog.Error("response", "requestId", requestId, "tm", fmt.Sprintf("%dns", nanoSec), "httpCode", statusCode, "msg", err.Error())
 	} else {
-		slog.Debug("response", "resultId", requestId, "tm", fmt.Sprintf("%dns", nanoSec), "httpCode", statusCode)
+		slog.Debug("response", "requestId", requestId, "tm", fmt.Sprintf("%dns", nanoSec), "httpCode", statusCode)
 	}
 }
