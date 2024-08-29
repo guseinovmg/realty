@@ -13,7 +13,6 @@ type User struct {
 	InviteId      string
 	Balance       float64
 	Trusted       bool
-	Created       time.Time
 	Enabled       bool
 	Description   string
 }

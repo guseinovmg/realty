@@ -23,8 +23,8 @@ import (
 )
 
 func TextError(recovered any, rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) {
-	writer.WriteHeader(500)
-	_, _ = writer.Write(utils.UnsafeStringToBytes("Internal error"))
+	writer.WriteHeader(http.StatusInternalServerError)
+	_, _ = writer.Write(utils.UnsafeStringToBytes("Internal error, requestId=" + strconv.FormatInt(rd.RequestId, 10)))
 }
 
 func JsonError(recovered any, rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) {

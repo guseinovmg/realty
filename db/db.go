@@ -238,8 +238,10 @@ func UpdateAdv(adv *models.Adv) error {
 		adv.PaidAdv, adv.SeVisible, adv.UserComment,
 		adv.AdminComment, adv.TranslatedTo, adv.Id,
 	)
-
-	return errors.Join(err, errors.New("db.UpdateAdv()"))
+	if err != nil {
+		return errors.Join(err, errors.New("db.UpdateAdv()"))
+	}
+	return nil
 }
 
 func UpdateAdvChanges(oldAdv, newAdv *models.Adv) error {
@@ -331,28 +333,35 @@ func UpdateAdvChanges(oldAdv, newAdv *models.Adv) error {
 	args = append(args, oldAdv.Id)
 
 	_, err := dbAdvs.Exec(query, args...)
-	return errors.Join(err, errors.New("db.UpdateAdvChanges()"))
+
+	if err != nil {
+		return errors.Join(err, errors.New("db.UpdateAdvChanges()"))
+	}
+	return nil
 }
 
 func DeleteAdv(id int64) error {
 	query := "DELETE FROM advs WHERE id = ?"
 	_, err := dbAdvs.Exec(query, id)
-	return errors.Join(err, errors.New("db.DeleteAdv()"))
+	if err != nil {
+		return errors.Join(err, errors.New("db.DeleteAdv()"))
+	}
+	return nil
 }
 
 func CreateUser(user *models.User) error {
 	query := `
 		INSERT INTO users (
-			email, name, password_hash, session_secret, invite_id, trusted,
-			enabled, balance, created, description
+			id, email, name, password_hash, session_secret, invite_id, trusted,
+			enabled, balance, description
 		) VALUES (
 			?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 		)
 	`
 	_, err := dbUsers.Exec(query,
-		user.Email, user.Name, user.PasswordHash, user.SessionSecret,
+		user.Id, user.Email, user.Name, user.PasswordHash, user.SessionSecret[:],
 		user.InviteId, user.Trusted, user.Enabled, user.Balance,
-		user.Created, user.Description,
+		user.Description,
 	)
 	if err != nil {
 		return errors.Join(err, errors.New("db.CreateUser()"))
@@ -367,7 +376,7 @@ func GetUser(id int64) (*models.User, error) {
 	err := dbUsers.QueryRow(query, id).Scan(
 		&user.Id, &user.Email, &user.Name, &user.PasswordHash,
 		&user.SessionSecret, &user.InviteId, &user.Trusted, &user.Enabled,
-		&user.Balance, &user.Created, &user.Description,
+		&user.Balance, &user.Description,
 	)
 	if err != nil {
 		return nil, errors.Join(err, errors.New("db.GetUser()"))
@@ -387,17 +396,19 @@ func UpdateUser(user *models.User) error {
 			trusted = ?,
 			enabled = ?,
 			balance = ?,
-			created = ?,
 			description = ?
 		WHERE id = ?
 	`
 	_, err := dbUsers.Exec(query,
-		user.Email, user.Name, user.PasswordHash, user.SessionSecret,
+		user.Email, user.Name, user.PasswordHash, user.SessionSecret[:],
 		user.InviteId, user.Trusted, user.Enabled, user.Balance,
-		user.Created, user.Description, user.Id,
+		user.Description, user.Id,
 	)
 
-	return errors.Join(err, errors.New("db.UpdateUser()"))
+	if err != nil {
+		return errors.Join(err, errors.New("db.UpdateUser()"))
+	}
+	return nil
 }
 
 func UpdateUserChanges(oldUser, newUser *models.User) error {
@@ -419,7 +430,7 @@ func UpdateUserChanges(oldUser, newUser *models.User) error {
 	}
 	if !bytes.Equal(oldUser.SessionSecret[:], newUser.SessionSecret[:]) {
 		setClauses = append(setClauses, "session_secret = ?")
-		args = append(args, newUser.SessionSecret)
+		args = append(args, newUser.SessionSecret[:])
 	}
 	if oldUser.InviteId != newUser.InviteId {
 		setClauses = append(setClauses, "invite_id = ?")
@@ -437,10 +448,6 @@ func UpdateUserChanges(oldUser, newUser *models.User) error {
 		setClauses = append(setClauses, "balance = ?")
 		args = append(args, newUser.Balance)
 	}
-	if !oldUser.Created.Equal(newUser.Created) {
-		setClauses = append(setClauses, "created = ?")
-		args = append(args, newUser.Created)
-	}
 	if oldUser.Description != newUser.Description {
 		setClauses = append(setClauses, "description = ?")
 		args = append(args, newUser.Description)
@@ -454,7 +461,10 @@ func UpdateUserChanges(oldUser, newUser *models.User) error {
 	args = append(args, oldUser.Id)
 
 	_, err := dbUsers.Exec(query, args...)
-	return errors.Join(err, errors.New("db.UpdateUserChanges()"))
+	if err != nil {
+		return errors.Join(err, errors.New("db.UpdateUserChanges()"))
+	}
+	return nil
 }
 
 func GetUsers() ([]*models.User, error) {
@@ -471,7 +481,7 @@ func GetUsers() ([]*models.User, error) {
 		err := rows.Scan(
 			&user.Id, &user.Email, &user.Name, &user.PasswordHash,
 			&user.SessionSecret, &user.InviteId, &user.Trusted, &user.Enabled,
-			&user.Balance, &user.Created, &user.Description,
+			&user.Balance, &user.Description,
 		)
 		if err != nil {
 			return nil, errors.Join(err, errors.New("db.GetUsers()"))
@@ -485,7 +495,10 @@ func GetUsers() ([]*models.User, error) {
 func DeleteUser(id int64) error {
 	query := "DELETE FROM users WHERE id = ?"
 	_, err := dbUsers.Exec(query, id)
-	return errors.Join(err, errors.New("db.DeleteUser()"))
+	if err != nil {
+		return errors.Join(err, errors.New("db.DeleteUser()"))
+	}
+	return nil
 }
 
 func CreatePhoto(photo models.Photo) error {
@@ -532,7 +545,10 @@ func GetPhotos() ([]*models.Photo, error) {
 func DeletePhoto(id int64) error {
 	query := "DELETE FROM photos WHERE id = ?"
 	_, err := dbPhotos.Exec(query, id)
-	return errors.Join(err, errors.New("db.DeletePhoto()"))
+	if err != nil {
+		return errors.Join(err, errors.New("db.DeletePhoto()"))
+	}
+	return nil
 }
 
 func CreateWatches(watches models.Watches) error {
@@ -583,11 +599,17 @@ func UpdateWatches(watch *models.Watches) error {
 		watch.Count, watch.AdvId,
 	)
 
-	return errors.Join(err, errors.New("db.UpdateWatches()"))
+	if err != nil {
+		return errors.Join(err, errors.New("db.UpdateWatches()"))
+	}
+	return nil
 }
 
 func DeleteWatches(id int64) error {
 	query := "DELETE FROM watches WHERE adv_id = ?"
 	_, err := dbWatches.Exec(query, id)
-	return errors.Join(err, errors.New("db.DeleteWatches()"))
+	if err != nil {
+		return errors.Join(err, errors.New("db.DeleteWatches()"))
+	}
+	return nil
 }

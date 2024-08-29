@@ -20,11 +20,11 @@ import (
 func Auth(rd *RequestData, writer http.ResponseWriter, request *http.Request) bool {
 	cookie, err := request.Cookie("auth_token")
 	if err != nil {
-		render.Json(rd.RequestId, writer, http.StatusUnauthorized, &dto.Err{ErrMessage: "ошибка авторизации"})
+		render.Json(rd.RequestId, writer, http.StatusUnauthorized, &dto.Err{ErrMessage: "ошибка авторизации 1"})
 		return false
 	}
 	if cookie.Value == "" {
-		render.Json(rd.RequestId, writer, http.StatusUnauthorized, &dto.Err{ErrMessage: "ошибка авторизации"})
+		render.Json(rd.RequestId, writer, http.StatusUnauthorized, &dto.Err{ErrMessage: "ошибка авторизации 2 "})
 		return false
 	}
 	tokenBytes, err := base64.StdEncoding.DecodeString(cookie.Value)
@@ -37,17 +37,18 @@ func Auth(rd *RequestData, writer http.ResponseWriter, request *http.Request) bo
 		return false
 	}
 	tokenBytesArr := [36]byte(tokenBytes)
-	userId, expireTime := UnpackToken(UnShuffle(tokenBytesArr))
+	tokenBytesArr = UnShuffle(tokenBytesArr)
+	userId, expireTime := UnpackToken(tokenBytesArr)
 	if time.Now().UnixNano() > expireTime {
-		render.Json(rd.RequestId, writer, http.StatusUnauthorized, &dto.Err{ErrMessage: "ошибка авторизации"})
+		render.Json(rd.RequestId, writer, http.StatusUnauthorized, &dto.Err{ErrMessage: "ошибка авторизации 3"})
 		return false
 	}
 	if time.Now().Add(time.Hour*24*30).UnixNano() < expireTime {
-		render.Json(rd.RequestId, writer, http.StatusUnauthorized, &dto.Err{ErrMessage: "ошибка авторизации"})
+		render.Json(rd.RequestId, writer, http.StatusUnauthorized, &dto.Err{ErrMessage: "ошибка авторизации 4"})
 		return false
 	}
-	if validator.IsValidUnixNanoId(userId) {
-		render.Json(rd.RequestId, writer, http.StatusUnauthorized, &dto.Err{ErrMessage: "ошибка авторизации"})
+	if !validator.IsValidUnixNanoId(userId) {
+		render.Json(rd.RequestId, writer, http.StatusUnauthorized, &dto.Err{ErrMessage: "ошибка авторизации 5"})
 		return false
 	}
 	userCache := cache.FindUserCacheById(userId)

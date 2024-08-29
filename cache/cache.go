@@ -107,7 +107,7 @@ func Initialize() {
 		for saveCache := range toSave {
 			for range 2 {
 				if errSave := saveCache.Cache.Save(); errSave == nil {
-					slog.Debug("saving", "requestId", saveCache.RequestId, "msg", nil)
+					slog.Debug("saving", "requestId", saveCache.RequestId, "msg", "ok")
 					break
 				} else {
 					slog.Error("saving", "requestId", saveCache.RequestId, "msg", errSave.Error())
@@ -525,7 +525,6 @@ func CreateUser(requestId int64, request *dto.RegisterRequest) {
 		InviteId:      request.InviteId,
 		Balance:       0,
 		Trusted:       false,
-		Created:       time.Now(),
 		Enabled:       true,
 		Description:   "",
 	}

@@ -3,19 +3,11 @@ package utils
 import (
 	"crypto/sha1"
 	"crypto/sha256"
-	"encoding/json"
-	"errors"
-	"fmt"
-	"io"
-	"net/http"
 	"reflect"
-	"strings"
 	"sync"
 	"time"
 	"unsafe"
 )
-
-type H map[string]string
 
 var idGenerationMutex sync.Mutex
 var lastGeneratedId int64
@@ -95,44 +87,4 @@ func GenerateSessionsSecret(randomBytes []byte) [24]byte {
 	hash.Write(UnsafeStringToBytes(time.Now().Add(time.Hour * 24 * 100).String()))
 	hash.Write(randomBytes)
 	return [24]byte(hash.Sum(nil))
-}
-
-func NewRequest(method string, headers H, url string, pathParams H, queryParams H, body any) (*http.Request, error) {
-	if pathParams != nil {
-		for k, v := range pathParams {
-			url = strings.Replace(url, k, "{"+v+"}", 1)
-		}
-	}
-
-	if strings.Contains(url, "{") || strings.Contains(url, "}") {
-		return nil, errors.New("неправильно сформирован путь " + url)
-	}
-	var buf io.Reader
-	if body != nil {
-		bytes, err := json.Marshal(body)
-		if err != nil {
-			return nil, err
-		}
-		buf = strings.NewReader(string(bytes))
-	}
-
-	req, err := http.NewRequest(method, url, buf)
-	if err != nil {
-		return nil, errors.New(fmt.Sprintf("fail to create request: %s", err.Error()))
-	}
-
-	if headers != nil {
-		for k, v := range headers {
-			req.Header.Set(k, v)
-		}
-	}
-
-	if queryParams != nil {
-		q := req.URL.Query()
-		for k, v := range queryParams {
-			q.Add(k, v)
-		}
-		req.URL.RawQuery = q.Encode()
-	}
-	return req, nil
 }
