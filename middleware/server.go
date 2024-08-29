@@ -29,6 +29,7 @@ type Chain struct {
 func (m *Chain) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	rd := &RequestData{}
 	rd.RequestId = utils.GenerateId()
+	slog.Debug("request", "requestId", rd.RequestId, "method", request.Method, "path", request.URL.Path, "query", request.URL.RawQuery)
 	writer.Header().Set("X-Request-ID", strconv.FormatInt(rd.RequestId, 10))
 	defer func() {
 		if err := recover(); err != nil {
@@ -63,7 +64,7 @@ func (m *Chain) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 		}
 	}
 	if next {
-		slog.Error("wrong handler returning value", "requestId", rd.RequestId, "url", request.URL.RawPath)
+		slog.Error("next=true", "requestId", rd.RequestId, "path", request.URL.Path)
 	}
 }
 

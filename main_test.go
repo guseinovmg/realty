@@ -162,10 +162,15 @@ func TestRegistration(t *testing.T) {
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
-
-	expected := render.ResultOk // Replace with actual expected response
-	if rr.Body.String() != expected {
-		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
+	var response dto.Result
+	err = json.NewDecoder(rr.Body).Decode(&response)
+	if err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	expected := render.ResultOK
+	expectedBytes, _ := json.Marshal(expected)
+	if response != *render.ResultOK {
+		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), string(expectedBytes))
 	}
 }
 
@@ -185,9 +190,15 @@ func TestLogin(t *testing.T) {
 		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
 
-	expected := render.ResultOk // Replace with actual expected response
-	if rr.Body.String() != expected {
-		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
+	var response dto.Result
+	err = json.NewDecoder(rr.Body).Decode(&response)
+	if err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	expected := render.ResultOK
+	expectedBytes, _ := json.Marshal(expected)
+	if response != *render.ResultOK {
+		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), string(expectedBytes))
 	}
 }
 

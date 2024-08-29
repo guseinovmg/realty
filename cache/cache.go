@@ -107,10 +107,10 @@ func Initialize() {
 		for saveCache := range toSave {
 			for range 2 {
 				if errSave := saveCache.Cache.Save(); errSave == nil {
-					slog.Debug("saved", "requestId", saveCache.RequestId)
+					slog.Debug("saving", "requestId", saveCache.RequestId, "msg", nil)
 					break
 				} else {
-					slog.Error(errSave.Error(), "requestId", saveCache.RequestId)
+					slog.Error("saving", "requestId", saveCache.RequestId, "msg", errSave.Error())
 				}
 				time.Sleep(time.Millisecond * 100)
 			}
@@ -129,7 +129,7 @@ func Initialize() {
 					return
 				}
 				if err := advs[i].Save(); err != nil {
-					slog.Error(err.Error())
+					slog.Error("saving", "msg", err.Error())
 					time.Sleep(time.Millisecond * 100)
 				}
 			}
@@ -139,7 +139,7 @@ func Initialize() {
 					return
 				}
 				if err := users[i].Save(); err != nil {
-					slog.Error(err.Error())
+					slog.Error("saving", "msg", err.Error())
 					time.Sleep(time.Millisecond * 100)
 				}
 			}
@@ -149,7 +149,7 @@ func Initialize() {
 					return
 				}
 				if err := photos[i].Save(); err != nil {
-					slog.Error(err.Error())
+					slog.Error("saving", "msg", err.Error())
 					time.Sleep(time.Millisecond * 100)
 				}
 			}
@@ -159,7 +159,7 @@ func Initialize() {
 					return
 				}
 				if err := watches[i].Save(); err != nil {
-					slog.Error(err.Error())
+					slog.Error("saving", "msg", err.Error())
 					time.Sleep(time.Millisecond * 100)
 				}
 			}

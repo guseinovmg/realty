@@ -2,29 +2,25 @@ package render
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"realty/dto"
 )
 
-var ResultOk = `{"result":"OK"}`
-
-var resultOkBytes = []byte(ResultOk)
+var ResultOK = &dto.Result{Result: "OK"}
 
 func RenderLoginPage(writer http.ResponseWriter, errDto *dto.Err) error {
 	return nil
 }
 
-func Json(writer http.ResponseWriter, statusCode int, v any) error {
+func Json(requestId int64, writer http.ResponseWriter, statusCode int, v any) {
 	writer.Header().Set("Content-Type", "application/json; charset=utf-8")
 	writer.Header().Set("X-Content-Type-Options", "nosniff")
 	writer.WriteHeader(statusCode)
-	return json.NewEncoder(writer).Encode(v)
-}
-
-func JsonOK(writer http.ResponseWriter, statusCode int) error {
-	writer.Header().Set("Content-Type", "application/json; charset=utf-8")
-	writer.Header().Set("X-Content-Type-Options", "nosniff")
-	writer.WriteHeader(statusCode)
-	_, err := writer.Write(resultOkBytes)
-	return err
+	err := json.NewEncoder(writer).Encode(v)
+	if err != nil {
+		slog.Error("response", "resultId", requestId, "httpCode", statusCode, "msg", err.Error())
+	} else {
+		slog.Debug("response", "resultId", requestId, "httpCode", statusCode)
+	}
 }

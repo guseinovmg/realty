@@ -16,6 +16,10 @@ type Metrics struct {
 	MaxUnSavedChangesQueueCount int64   `json:"maxUnSavedChangesCount,omitempty"`
 }
 
+type Result struct {
+	Result string `json:"result"`
+}
+
 type LoginRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
