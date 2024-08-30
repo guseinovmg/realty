@@ -23,7 +23,7 @@ func Initialize() *http.ServeMux {
 	mux.Handle("GET /logout/me", mw.Handler(handlers.LogoutMe))
 	mux.Handle("GET /logout/all", mw.Handler(mw.CheckGracefullyStop, mw.Auth, handlers.LogoutAll))
 	mux.Handle("POST /registration", mw.Handler(mw.CheckGracefullyStop, handlers.Registration))
-	mux.Handle("PUT /password", mw.Handler(mw.CheckGracefullyStop, mw.Auth, handlers.UpdatePassword))
+	mux.Handle("PUT /password", mw.Handler(mw.CheckGracefullyStop, mw.Auth, mw.SetAuthCookie, handlers.UpdatePassword))
 
 	mux.Handle("PUT /user", mw.Handler(mw.CheckGracefullyStop, mw.Auth, mw.SetAuthCookie, handlers.UpdateUser).OnPanic(handlers.JsonError))
 

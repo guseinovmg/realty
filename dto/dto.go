@@ -127,5 +127,6 @@ type UpdatePasswordRequest struct {
 }
 
 type Err struct {
+	RequestId  int64  `json:"requestId"`
 	ErrMessage string `json:"errMessage,omitempty"`
 }
