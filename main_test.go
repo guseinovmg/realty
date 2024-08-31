@@ -155,7 +155,6 @@ func TestRegistration(t *testing.T) {
 		Password: "12345678",
 		InviteId: "",
 	})
-
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
 	}
@@ -213,28 +212,11 @@ func TestLogin(t *testing.T) {
 	cookie = rr.Header().Get("Set-Cookie")
 }
 
-func TestLogoutMe(t *testing.T) {
-	req, err := NewRequest("GET", H{"Cookie": cookie}, "/logout/me", nil, nil, nil)
-	if err != nil {
-		t.Fatalf("Failed to create request: %v", err)
-	}
-
-	rr := httptest.NewRecorder()
-	mux.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
-	}
-
-	expected := "expected response" // Replace with actual expected response
-	if rr.Body.String() != expected {
-		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
-	}
-}
-
-func TestLogoutAll(t *testing.T) {
-	req, err := NewRequest("GET", H{"Cookie": cookie}, "/logout/all", nil, nil, nil)
-	if err != nil {
+/*func TestUpdatePassword(t *testing.T) {
+	req, err := NewRequest("PUT", H{"Cookie": cookie}, "/password", nil, nil, &dto.UpdatePasswordRequest{
+		OldPassword: "12345678",
+		NewPassword: "123456789",
+	})	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
 	}
 
@@ -256,10 +238,40 @@ func TestLogoutAll(t *testing.T) {
 		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), string(expectedBytes))
 	}
 	t.Log(response)
+}*/
+
+func TestUpdateUser(t *testing.T) {
+	req, err := NewRequest("PUT", H{"Cookie": cookie}, "/user", nil, nil, &dto.UpdateUserRequest{
+		Name:        "Mamluk",
+		Description: "hah",
+	})
+	if err != nil {
+		t.Fatalf("Failed to create request: %v", err)
+	}
+
+	rr := httptest.NewRecorder()
+	mux.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Log(rr.Body.String())
+		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
+
+	var response dto.Result
+	err = json.NewDecoder(rr.Body).Decode(&response)
+	if err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	expected := render.ResultOK
+	expectedBytes, _ := json.Marshal(expected)
+	if response != *render.ResultOK {
+		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), string(expectedBytes))
+	}
+	t.Log(response)
 }
 
-func TestUpdatePassword(t *testing.T) {
-	req, err := NewRequest("PUT", nil, "/password", nil, nil, nil)
+func TestCreateAdv(t *testing.T) {
+	req, err := NewRequest("POST", H{"Cookie": cookie}, "/adv", nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
 	}
@@ -277,8 +289,8 @@ func TestUpdatePassword(t *testing.T) {
 	}
 }
 
-func TestUpdateUser(t *testing.T) {
-	req, err := NewRequest("PUT", nil, "/user", nil, nil, nil)
+func TestUpdateAdv(t *testing.T) {
+	req, err := NewRequest("PUT", H{"Cookie": cookie}, "/adv/123", nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
 	}
@@ -334,65 +346,8 @@ func TestGetAdvList(t *testing.T) {
 	}
 }
 
-func TestCreateAdv(t *testing.T) {
-	req, err := NewRequest("POST", nil, "/adv", nil, nil, nil)
-	if err != nil {
-		t.Fatalf("Failed to create request: %v", err)
-	}
-
-	rr := httptest.NewRecorder()
-	mux.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
-	}
-
-	expected := "expected response" // Replace with actual expected response
-	if rr.Body.String() != expected {
-		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
-	}
-}
-
-func TestUpdateAdv(t *testing.T) {
-	req, err := NewRequest("PUT", nil, "/adv/123", nil, nil, nil)
-	if err != nil {
-		t.Fatalf("Failed to create request: %v", err)
-	}
-
-	rr := httptest.NewRecorder()
-	mux.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
-	}
-
-	expected := "expected response" // Replace with actual expected response
-	if rr.Body.String() != expected {
-		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
-	}
-}
-
-func TestDeleteAdv(t *testing.T) {
-	req, err := NewRequest("DELETE", nil, "/adv/123", nil, nil, nil)
-	if err != nil {
-		t.Fatalf("Failed to create request: %v", err)
-	}
-
-	rr := httptest.NewRecorder()
-	mux.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
-	}
-
-	expected := "expected response" // Replace with actual expected response
-	if rr.Body.String() != expected {
-		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
-	}
-}
-
 func TestAddAdvPhoto(t *testing.T) {
-	req, err := NewRequest("POST", nil, "/adv/123/photos", nil, nil, nil)
+	req, err := NewRequest("POST", H{"Cookie": cookie}, "/adv/123/photos", nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
 	}
@@ -411,7 +366,7 @@ func TestAddAdvPhoto(t *testing.T) {
 }
 
 func TestDeleteAdvPhoto(t *testing.T) {
-	req, err := NewRequest("DELETE", nil, "/adv/123/photos/456", nil, nil, nil)
+	req, err := NewRequest("DELETE", H{"Cookie": cookie}, "/adv/123/photos/456", nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
 	}
@@ -427,6 +382,70 @@ func TestDeleteAdvPhoto(t *testing.T) {
 	if rr.Body.String() != expected {
 		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}
+}
+
+func TestDeleteAdv(t *testing.T) {
+	req, err := NewRequest("DELETE", H{"Cookie": cookie}, "/adv/123", nil, nil, nil)
+	if err != nil {
+		t.Fatalf("Failed to create request: %v", err)
+	}
+
+	rr := httptest.NewRecorder()
+	mux.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
+
+	expected := "expected response" // Replace with actual expected response
+	if rr.Body.String() != expected {
+		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
+	}
+}
+
+func TestLogoutMe(t *testing.T) {
+	req, err := NewRequest("GET", H{"Cookie": cookie}, "/logout/me", nil, nil, nil)
+	if err != nil {
+		t.Fatalf("Failed to create request: %v", err)
+	}
+
+	rr := httptest.NewRecorder()
+	mux.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
+
+	expected := "expected response" // Replace with actual expected response
+	if rr.Body.String() != expected {
+		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
+	}
+}
+
+func TestLogoutAll(t *testing.T) {
+	req, err := NewRequest("GET", H{"Cookie": cookie}, "/logout/all", nil, nil, nil)
+	if err != nil {
+		t.Fatalf("Failed to create request: %v", err)
+	}
+
+	rr := httptest.NewRecorder()
+	mux.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
+
+	var response dto.Result
+	err = json.NewDecoder(rr.Body).Decode(&response)
+	if err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	expected := render.ResultOK
+	expectedBytes, _ := json.Marshal(expected)
+	if response != *render.ResultOK {
+		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), string(expectedBytes))
+	}
+	t.Log(rr.Body.String())
 }
 
 func TestStaticFilesNotFound(t *testing.T) {
@@ -477,7 +496,7 @@ func TestLoginError(t *testing.T) {
 }
 
 func TestLogoutMeError(t *testing.T) {
-	req, err := NewRequest("GET", nil, "/logout/me", nil, nil, nil)
+	req, err := NewRequest("GET", H{"Cookie": cookie}, "/logout/me", nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
 	}
@@ -496,7 +515,7 @@ func TestLogoutMeError(t *testing.T) {
 }
 
 func TestLogoutAllError(t *testing.T) {
-	req, err := NewRequest("GET", nil, "/logout/all", nil, nil, nil)
+	req, err := NewRequest("GET", H{"Cookie": cookie}, "/logout/all", nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
 	}
@@ -534,7 +553,7 @@ func TestRegistrationError(t *testing.T) {
 }
 
 func TestUpdatePasswordError(t *testing.T) {
-	req, err := NewRequest("PUT", nil, "/password", nil, nil, nil)
+	req, err := NewRequest("PUT", H{"Cookie": cookie}, "/password", nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
 	}
@@ -553,7 +572,7 @@ func TestUpdatePasswordError(t *testing.T) {
 }
 
 func TestUpdateUserError(t *testing.T) {
-	req, err := NewRequest("PUT", nil, "/user", nil, nil, nil)
+	req, err := NewRequest("PUT", H{"Cookie": cookie}, "/user", nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
 	}
@@ -572,7 +591,7 @@ func TestUpdateUserError(t *testing.T) {
 }
 
 func TestGetAdvNotFound(t *testing.T) {
-	req, err := NewRequest("GET", nil, "/adv/nonexistent", nil, nil, nil)
+	req, err := NewRequest("GET", H{"Cookie": cookie}, "/adv/nonexistent", nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
 	}
@@ -610,7 +629,7 @@ func TestGetAdvListError(t *testing.T) {
 }
 
 func TestCreateAdvError(t *testing.T) {
-	req, err := NewRequest("POST", nil, "/adv", nil, nil, nil)
+	req, err := NewRequest("POST", H{"Cookie": cookie}, "/adv", nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
 	}
@@ -629,7 +648,7 @@ func TestCreateAdvError(t *testing.T) {
 }
 
 func TestUpdateAdvError(t *testing.T) {
-	req, err := NewRequest("PUT", nil, "/adv/nonexistent", nil, nil, nil)
+	req, err := NewRequest("PUT", H{"Cookie": cookie}, "/adv/nonexistent", nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
 	}
@@ -648,7 +667,7 @@ func TestUpdateAdvError(t *testing.T) {
 }
 
 func TestDeleteAdvError(t *testing.T) {
-	req, err := NewRequest("DELETE", nil, "/adv/nonexistent", nil, nil, nil)
+	req, err := NewRequest("DELETE", H{"Cookie": cookie}, "/adv/nonexistent", nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
 	}
@@ -667,7 +686,7 @@ func TestDeleteAdvError(t *testing.T) {
 }
 
 func TestAddAdvPhotoError(t *testing.T) {
-	req, err := NewRequest("POST", nil, "/adv/nonexistent/photos", nil, nil, nil)
+	req, err := NewRequest("POST", H{"Cookie": cookie}, "/adv/nonexistent/photos", nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
 	}
@@ -686,7 +705,7 @@ func TestAddAdvPhotoError(t *testing.T) {
 }
 
 func TestDeleteAdvPhotoError(t *testing.T) {
-	req, err := NewRequest("DELETE", nil, "/adv/nonexistent/photos/nonexistent", nil, nil, nil)
+	req, err := NewRequest("DELETE", H{"Cookie": cookie}, "/adv/nonexistent/photos/nonexistent", nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
 	}

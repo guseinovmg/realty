@@ -17,101 +17,84 @@ import (
 	"time"
 )
 
-func Auth(rd *RequestData, writer http.ResponseWriter, request *http.Request) bool {
+func Auth(rd *RequestData, writer http.ResponseWriter, request *http.Request) render.RenderResult {
 	cookie, err := request.Cookie("auth_token")
 	if err != nil {
-		render.Json(rd.RequestId, writer, http.StatusUnauthorized, &dto.Err{RequestId: rd.RequestId, ErrMessage: "ошибка авторизации 1"})
-		return false
+		return render.Json(writer, http.StatusUnauthorized, &dto.Err{RequestId: rd.RequestId, ErrMessage: "ошибка авторизации 1"})
 	}
 	if cookie.Value == "" {
-		render.Json(rd.RequestId, writer, http.StatusUnauthorized, &dto.Err{RequestId: rd.RequestId, ErrMessage: "ошибка авторизации 2 "})
-		return false
+		return render.Json(writer, http.StatusUnauthorized, &dto.Err{RequestId: rd.RequestId, ErrMessage: "ошибка авторизации 2 "})
 	}
 	tokenBytes, err := base64.StdEncoding.DecodeString(cookie.Value)
 	if err != nil {
-		render.Json(rd.RequestId, writer, http.StatusUnauthorized, &dto.Err{RequestId: rd.RequestId, ErrMessage: "неверный формат токена авторизации"})
-		return false
+		return render.Json(writer, http.StatusUnauthorized, &dto.Err{RequestId: rd.RequestId, ErrMessage: "неверный формат токена авторизации"})
 	}
 	if len(tokenBytes) != 36 {
-		render.Json(rd.RequestId, writer, http.StatusUnauthorized, &dto.Err{RequestId: rd.RequestId, ErrMessage: "неверная длина токена авторизации"})
-		return false
+		return render.Json(writer, http.StatusUnauthorized, &dto.Err{RequestId: rd.RequestId, ErrMessage: "неверная длина токена авторизации"})
 	}
 	tokenBytesArr := [36]byte(tokenBytes)
 	tokenBytesArr = UnShuffle(tokenBytesArr)
 	userId, expireTime := UnpackToken(tokenBytesArr)
 	if time.Now().UnixNano() > expireTime {
-		render.Json(rd.RequestId, writer, http.StatusUnauthorized, &dto.Err{RequestId: rd.RequestId, ErrMessage: "ошибка авторизации 3"})
-		return false
+		return render.Json(writer, http.StatusUnauthorized, &dto.Err{RequestId: rd.RequestId, ErrMessage: "ошибка авторизации 3"})
 	}
 	if time.Now().Add(time.Hour*24*30).UnixNano() < expireTime {
-		render.Json(rd.RequestId, writer, http.StatusUnauthorized, &dto.Err{RequestId: rd.RequestId, ErrMessage: "ошибка авторизации 4"})
-		return false
+		return render.Json(writer, http.StatusUnauthorized, &dto.Err{RequestId: rd.RequestId, ErrMessage: "ошибка авторизации 4"})
 	}
 	if !validator.IsValidUnixNanoId(userId) {
-		render.Json(rd.RequestId, writer, http.StatusUnauthorized, &dto.Err{RequestId: rd.RequestId, ErrMessage: "ошибка авторизации 5"})
-		return false
+		return render.Json(writer, http.StatusUnauthorized, &dto.Err{RequestId: rd.RequestId, ErrMessage: "ошибка авторизации 5"})
 	}
 	userCache := cache.FindUserCacheById(userId)
 	if userCache == nil {
-		render.Json(rd.RequestId, writer, http.StatusNotFound, &dto.Err{RequestId: rd.RequestId, ErrMessage: "пользователь не найден"})
-		return false
+		return render.Json(writer, http.StatusNotFound, &dto.Err{RequestId: rd.RequestId, ErrMessage: "пользователь не найден"})
 	}
 	if userCache.Deleted {
-		render.Json(rd.RequestId, writer, http.StatusNotFound, &dto.Err{RequestId: rd.RequestId, ErrMessage: "пользователь удален"})
-		return false
+		return render.Json(writer, http.StatusNotFound, &dto.Err{RequestId: rd.RequestId, ErrMessage: "пользователь удален"})
 	}
 	if !userCache.CurrentUser.Enabled {
-		render.Json(rd.RequestId, writer, http.StatusForbidden, &dto.Err{RequestId: rd.RequestId, ErrMessage: "пользователь заблокирован"})
-		return false
+		return render.Json(writer, http.StatusForbidden, &dto.Err{RequestId: rd.RequestId, ErrMessage: "пользователь заблокирован"})
 	}
 	if !IsValidToken(tokenBytesArr, userCache.CurrentUser.SessionSecret) {
-		render.Json(rd.RequestId, writer, http.StatusBadRequest, &dto.Err{RequestId: rd.RequestId, ErrMessage: "неверный токен"})
-		return false
+		return render.Json(writer, http.StatusBadRequest, &dto.Err{RequestId: rd.RequestId, ErrMessage: "неверный токен"})
 	}
 	rd.User = userCache
-	return true
+	return render.Next
 }
 
-func Login(rd *RequestData, writer http.ResponseWriter, request *http.Request) bool {
+func Login(rd *RequestData, writer http.ResponseWriter, request *http.Request) render.RenderResult {
 	requestDto := &dto.LoginRequest{}
 	if err := parsing_input.ParseRawJson(request, requestDto); err != nil {
-		render.Json(rd.RequestId, writer, http.StatusBadRequest, &dto.Err{RequestId: rd.RequestId, ErrMessage: err.Error()})
-		return false
+		return render.Json(writer, http.StatusBadRequest, &dto.Err{RequestId: rd.RequestId, ErrMessage: err.Error()})
 	}
 	if err := validator.ValidateLoginRequest(requestDto); err != nil {
-		render.Json(rd.RequestId, writer, http.StatusBadRequest, &dto.Err{RequestId: rd.RequestId, ErrMessage: err.Error()})
-		return false
+		return render.Json(writer, http.StatusBadRequest, &dto.Err{RequestId: rd.RequestId, ErrMessage: err.Error()})
 	}
 	userCache := cache.FindUserCacheByLogin(requestDto.Email)
 	if userCache == nil {
-		render.Json(rd.RequestId, writer, http.StatusNotFound, &dto.Err{RequestId: rd.RequestId, ErrMessage: "пользователь не найден"})
-		return false
+		return render.Json(writer, http.StatusNotFound, &dto.Err{RequestId: rd.RequestId, ErrMessage: "пользователь не найден"})
 	}
 	if !bytes.Equal(utils.GeneratePasswordHash(requestDto.Password), userCache.CurrentUser.PasswordHash) {
-		render.Json(rd.RequestId, writer, http.StatusUnauthorized, &dto.Err{RequestId: rd.RequestId, ErrMessage: "неверный пароль"})
-		return false
+		return render.Json(writer, http.StatusUnauthorized, &dto.Err{RequestId: rd.RequestId, ErrMessage: "неверный пароль"})
 	}
 	rd.User = userCache
-	return true
+	return render.Next
 }
 
-func CheckIsAdmin(rd *RequestData, writer http.ResponseWriter, request *http.Request) bool {
+func CheckIsAdmin(rd *RequestData, writer http.ResponseWriter, request *http.Request) render.RenderResult {
 	if rd.User == nil || rd.User.CurrentUser.Id != config.GetAdminId() {
-		render.Json(rd.RequestId, writer, http.StatusForbidden, &dto.Err{RequestId: rd.RequestId, ErrMessage: "пользователь не админ"})
-		return false
+		return render.Json(writer, http.StatusForbidden, &dto.Err{RequestId: rd.RequestId, ErrMessage: "пользователь не админ"})
 	}
-	return true
+	return render.Next
 }
 
-func CheckGracefullyStop(rd *RequestData, writer http.ResponseWriter, request *http.Request) bool {
+func CheckGracefullyStop(rd *RequestData, writer http.ResponseWriter, request *http.Request) render.RenderResult {
 	if cache.IsGracefullyStopped() {
-		render.Json(rd.RequestId, writer, http.StatusServiceUnavailable, &dto.Err{RequestId: rd.RequestId, ErrMessage: "сервис временно недоступен"})
-		return false
+		return render.Json(writer, http.StatusServiceUnavailable, &dto.Err{RequestId: rd.RequestId, ErrMessage: "сервис временно недоступен"})
 	}
-	return true
+	return render.Next
 }
 
-func SetAuthCookie(rd *RequestData, writer http.ResponseWriter, request *http.Request) bool {
+func SetAuthCookie(rd *RequestData, writer http.ResponseWriter, request *http.Request) render.RenderResult {
 	cookieDuration := time.Hour * 24 * 3
 	newTokenBytes := CreateToken(rd.User.CurrentUser.Id, time.Now().Add(cookieDuration).UnixNano(), rd.User.CurrentUser.SessionSecret)
 	newTokenBytes = Shuffle(newTokenBytes)
@@ -126,35 +109,31 @@ func SetAuthCookie(rd *RequestData, writer http.ResponseWriter, request *http.Re
 		Secure:   true, // only sent over HTTPS
 		HttpOnly: true, // not accessible via JavaScript
 	})
-	return true
+	return render.Next
 }
 
-func FindAdv(rd *RequestData, writer http.ResponseWriter, request *http.Request) bool {
+func FindAdv(rd *RequestData, writer http.ResponseWriter, request *http.Request) render.RenderResult {
 	advIdStr := request.PathValue("advId")
 	advId, errConv := strconv.ParseInt(advIdStr, 10, 64)
 	if errConv != nil {
-		render.Json(rd.RequestId, writer, http.StatusBadRequest, &dto.Err{RequestId: rd.RequestId, ErrMessage: errConv.Error()})
-		return false
+		return render.Json(writer, http.StatusBadRequest, &dto.Err{RequestId: rd.RequestId, ErrMessage: errConv.Error()})
 	}
 	if !validator.IsValidUnixNanoId(advId) {
-		render.Json(rd.RequestId, writer, http.StatusNotFound, &dto.Err{RequestId: rd.RequestId, ErrMessage: "объявление не найдено"})
-		return false
+		return render.Json(writer, http.StatusNotFound, &dto.Err{RequestId: rd.RequestId, ErrMessage: "объявление не найдено"})
 	}
 	advCache := cache.FindAdvCacheById(advId)
 	if advCache == nil {
-		render.Json(rd.RequestId, writer, http.StatusNotFound, &dto.Err{RequestId: rd.RequestId, ErrMessage: "объявление не найдено"})
-		return false
+		return render.Json(writer, http.StatusNotFound, &dto.Err{RequestId: rd.RequestId, ErrMessage: "объявление не найдено"})
 	}
 	rd.Adv = advCache
-	return true
+	return render.Next
 }
 
-func CheckAdvOwner(rd *RequestData, writer http.ResponseWriter, request *http.Request) bool {
+func CheckAdvOwner(rd *RequestData, writer http.ResponseWriter, request *http.Request) render.RenderResult {
 	if rd.Adv.CurrentAdv.UserId != rd.User.CurrentUser.Id {
-		render.Json(rd.RequestId, writer, http.StatusNotFound, &dto.Err{RequestId: rd.RequestId, ErrMessage: "объявление не принадлежит текущему пользователю"})
-		return false
+		return render.Json(writer, http.StatusNotFound, &dto.Err{RequestId: rd.RequestId, ErrMessage: "объявление не принадлежит текущему пользователю"})
 	}
-	return true
+	return render.Next
 }
 
 func CreateToken(userId int64, nanoseconds int64, sessionSecret [24]byte) [36]byte {
