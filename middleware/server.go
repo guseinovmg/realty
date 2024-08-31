@@ -20,7 +20,7 @@ type RequestData struct {
 	RequestId int64
 }
 
-type HandlerFunction func(rd *RequestData, writer http.ResponseWriter, request *http.Request) render.RenderResult
+type HandlerFunction func(rd *RequestData, writer http.ResponseWriter, request *http.Request) render.Result
 
 type PanicHandlerFunction func(recovered any, rd *RequestData, writer http.ResponseWriter, request *http.Request)
 
@@ -59,10 +59,10 @@ func (m *Chain) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 			cache.GracefullyStopAndExitApp()
 		}
 	}()
-	var renderResult render.RenderResult
+	var renderResult render.Result
 	for _, f := range m.handlers {
 		renderResult = f(rd, writer, request)
-		if renderResult != render.Next {
+		if renderResult != render.Next() {
 			break
 		}
 	}
@@ -72,7 +72,7 @@ func (m *Chain) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	} else {
 		slog.Debug("response", "requestId", rd.RequestId, "tm", fmt.Sprintf("%dns", nanoSec), "httpCode", renderResult.StatusCode)
 	}
-	if renderResult == render.Next {
+	if renderResult == render.Next() {
 		slog.Error("unreached writing", "requestId", rd.RequestId, "path", request.URL.Path)
 	}
 }

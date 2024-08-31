@@ -17,7 +17,7 @@ import (
 	"time"
 )
 
-func Auth(rd *RequestData, writer http.ResponseWriter, request *http.Request) render.RenderResult {
+func Auth(rd *RequestData, writer http.ResponseWriter, request *http.Request) render.Result {
 	cookie, err := request.Cookie("auth_token")
 	if err != nil {
 		return render.Json(writer, http.StatusUnauthorized, &dto.Err{RequestId: rd.RequestId, ErrMessage: "ошибка авторизации 1"})
@@ -58,10 +58,10 @@ func Auth(rd *RequestData, writer http.ResponseWriter, request *http.Request) re
 		return render.Json(writer, http.StatusBadRequest, &dto.Err{RequestId: rd.RequestId, ErrMessage: "неверный токен"})
 	}
 	rd.User = userCache
-	return render.Next
+	return render.Next()
 }
 
-func Login(rd *RequestData, writer http.ResponseWriter, request *http.Request) render.RenderResult {
+func Login(rd *RequestData, writer http.ResponseWriter, request *http.Request) render.Result {
 	requestDto := &dto.LoginRequest{}
 	if err := parsing_input.ParseRawJson(request, requestDto); err != nil {
 		return render.Json(writer, http.StatusBadRequest, &dto.Err{RequestId: rd.RequestId, ErrMessage: err.Error()})
@@ -77,24 +77,24 @@ func Login(rd *RequestData, writer http.ResponseWriter, request *http.Request) r
 		return render.Json(writer, http.StatusUnauthorized, &dto.Err{RequestId: rd.RequestId, ErrMessage: "неверный пароль"})
 	}
 	rd.User = userCache
-	return render.Next
+	return render.Next()
 }
 
-func CheckIsAdmin(rd *RequestData, writer http.ResponseWriter, request *http.Request) render.RenderResult {
+func CheckIsAdmin(rd *RequestData, writer http.ResponseWriter, request *http.Request) render.Result {
 	if rd.User == nil || rd.User.CurrentUser.Id != config.GetAdminId() {
 		return render.Json(writer, http.StatusForbidden, &dto.Err{RequestId: rd.RequestId, ErrMessage: "пользователь не админ"})
 	}
-	return render.Next
+	return render.Next()
 }
 
-func CheckGracefullyStop(rd *RequestData, writer http.ResponseWriter, request *http.Request) render.RenderResult {
+func CheckGracefullyStop(rd *RequestData, writer http.ResponseWriter, request *http.Request) render.Result {
 	if cache.IsGracefullyStopped() {
 		return render.Json(writer, http.StatusServiceUnavailable, &dto.Err{RequestId: rd.RequestId, ErrMessage: "сервис временно недоступен"})
 	}
-	return render.Next
+	return render.Next()
 }
 
-func SetAuthCookie(rd *RequestData, writer http.ResponseWriter, request *http.Request) render.RenderResult {
+func SetAuthCookie(rd *RequestData, writer http.ResponseWriter, request *http.Request) render.Result {
 	cookieDuration := time.Hour * 24 * 3
 	newTokenBytes := CreateToken(rd.User.CurrentUser.Id, time.Now().Add(cookieDuration).UnixNano(), rd.User.CurrentUser.SessionSecret)
 	newTokenBytes = Shuffle(newTokenBytes)
@@ -109,10 +109,10 @@ func SetAuthCookie(rd *RequestData, writer http.ResponseWriter, request *http.Re
 		Secure:   true, // only sent over HTTPS
 		HttpOnly: true, // not accessible via JavaScript
 	})
-	return render.Next
+	return render.Next()
 }
 
-func FindAdv(rd *RequestData, writer http.ResponseWriter, request *http.Request) render.RenderResult {
+func FindAdv(rd *RequestData, writer http.ResponseWriter, request *http.Request) render.Result {
 	advIdStr := request.PathValue("advId")
 	advId, errConv := strconv.ParseInt(advIdStr, 10, 64)
 	if errConv != nil {
@@ -126,14 +126,14 @@ func FindAdv(rd *RequestData, writer http.ResponseWriter, request *http.Request)
 		return render.Json(writer, http.StatusNotFound, &dto.Err{RequestId: rd.RequestId, ErrMessage: "объявление не найдено"})
 	}
 	rd.Adv = advCache
-	return render.Next
+	return render.Next()
 }
 
-func CheckAdvOwner(rd *RequestData, writer http.ResponseWriter, request *http.Request) render.RenderResult {
+func CheckAdvOwner(rd *RequestData, writer http.ResponseWriter, request *http.Request) render.Result {
 	if rd.Adv.CurrentAdv.UserId != rd.User.CurrentUser.Id {
 		return render.Json(writer, http.StatusNotFound, &dto.Err{RequestId: rd.RequestId, ErrMessage: "объявление не принадлежит текущему пользователю"})
 	}
-	return render.Next
+	return render.Next()
 }
 
 func CreateToken(userId int64, nanoseconds int64, sessionSecret [24]byte) [36]byte {
