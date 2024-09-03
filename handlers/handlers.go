@@ -28,7 +28,7 @@ func TextError(recovered any, rd *middleware.RequestData, writer http.ResponseWr
 }
 
 func JsonError(recovered any, rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) {
-	render.Json(writer, http.StatusInternalServerError, &dto.Err{RequestId: rd.RequestId, ErrMessage: "Internal error"})
+	render.Json(writer, http.StatusInternalServerError, &dto.Err{ErrMessage: "Internal error"})
 }
 
 func JsonOK(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) render.Result {
@@ -65,10 +65,10 @@ func LogoutAll(rd *middleware.RequestData, writer http.ResponseWriter, request *
 func Registration(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) render.Result {
 	requestDto := &dto.RegisterRequest{}
 	if err := parsing_input.ParseRawJson(request, requestDto); err != nil {
-		return render.Json(writer, http.StatusBadRequest, &dto.Err{RequestId: rd.RequestId, ErrMessage: err.Error()})
+		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
 	}
 	if err := validator.ValidateRegisterRequest(requestDto); err != nil {
-		return render.Json(writer, http.StatusBadRequest, &dto.Err{RequestId: rd.RequestId, ErrMessage: err.Error()})
+		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
 	}
 	cache.CreateUser(rd.RequestId, requestDto)
 	return render.Json(writer, http.StatusOK, render.ResultOK)
@@ -78,13 +78,13 @@ func Registration(rd *middleware.RequestData, writer http.ResponseWriter, reques
 func UpdatePassword(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) render.Result {
 	requestDto := &dto.UpdatePasswordRequest{}
 	if err := parsing_input.ParseRawJson(request, requestDto); err != nil {
-		return render.Json(writer, http.StatusBadRequest, &dto.Err{RequestId: rd.RequestId, ErrMessage: err.Error()})
+		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
 	}
 	if err := validator.ValidateUpdatePasswordRequest(requestDto); err != nil {
-		return render.Json(writer, http.StatusBadRequest, &dto.Err{RequestId: rd.RequestId, ErrMessage: err.Error()})
+		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
 	}
 	if !bytes.Equal(rd.User.CurrentUser.PasswordHash, utils.GeneratePasswordHash(requestDto.OldPassword)) {
-		return render.Json(writer, http.StatusUnauthorized, &dto.Err{RequestId: rd.RequestId, ErrMessage: "неверный пароль"})
+		return render.Json(writer, http.StatusUnauthorized, &dto.Err{ErrMessage: "неверный пароль"})
 	}
 	cache.UpdatePassword(rd.RequestId, rd.User, requestDto)
 	return render.Json(writer, http.StatusOK, render.ResultOK)
@@ -94,10 +94,10 @@ func UpdatePassword(rd *middleware.RequestData, writer http.ResponseWriter, requ
 func UpdateUser(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) render.Result {
 	requestDto := &dto.UpdateUserRequest{}
 	if err := parsing_input.ParseRawJson(request, requestDto); err != nil {
-		return render.Json(writer, http.StatusBadRequest, &dto.Err{RequestId: rd.RequestId, ErrMessage: err.Error()})
+		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
 	}
 	if err := validator.ValidateUpdateUserRequest(requestDto); err != nil {
-		return render.Json(writer, http.StatusBadRequest, &dto.Err{RequestId: rd.RequestId, ErrMessage: err.Error()})
+		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
 	}
 	cache.UpdateUser(rd.RequestId, rd.User, requestDto)
 	return render.Json(writer, http.StatusOK, render.ResultOK)
@@ -107,10 +107,10 @@ func UpdateUser(rd *middleware.RequestData, writer http.ResponseWriter, request 
 func CreateAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) render.Result {
 	requestDto := &dto.CreateAdvRequest{}
 	if err := parsing_input.ParseRawJson(request, requestDto); err != nil {
-		return render.Json(writer, http.StatusBadRequest, &dto.Err{RequestId: rd.RequestId, ErrMessage: err.Error()})
+		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
 	}
 	if err := validator.ValidateCreateAdvRequest(requestDto); err != nil {
-		return render.Json(writer, http.StatusBadRequest, &dto.Err{RequestId: rd.RequestId, ErrMessage: err.Error()})
+		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
 	}
 	advId := cache.CreateAdv(rd.RequestId, &rd.User.CurrentUser, requestDto)
 	return render.Json(writer, http.StatusOK, &dto.CreateAdvResponse{RequestId: rd.RequestId, AdvId: advId})
@@ -119,7 +119,7 @@ func CreateAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *
 func GetAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) render.Result {
 	adv := rd.Adv.CurrentAdv
 	if !adv.Approved {
-		return render.Json(writer, http.StatusLocked, &dto.Err{RequestId: rd.RequestId, ErrMessage: "объявление на проверке"})
+		return render.Json(writer, http.StatusLocked, &dto.Err{ErrMessage: "объявление на проверке"})
 	}
 	if !adv.SeVisible {
 		//todo
@@ -166,13 +166,13 @@ func GetAdvList(rd *middleware.RequestData, writer http.ResponseWriter, request 
 	)
 	requestDto := &dto.GetAdvListRequest{}
 	if err := parsing_input.Parse(request, requestDto); err != nil {
-		return render.Json(writer, http.StatusBadRequest, &dto.Err{RequestId: rd.RequestId, ErrMessage: err.Error()})
+		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
 	}
 	if err := validator.ValidateGetAdvListRequest(requestDto); err != nil {
-		return render.Json(writer, http.StatusBadRequest, &dto.Err{RequestId: rd.RequestId, ErrMessage: err.Error()})
+		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
 	}
 	if !currency.IsValidCurrency(requestDto.Currency) {
-		return render.Json(writer, http.StatusBadRequest, &dto.Err{RequestId: rd.RequestId, ErrMessage: "неверный currency"})
+		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: "неверный currency"})
 	}
 	if requestDto.MinPrice > 0 {
 		minDollarPrice = currency.CalcDollarPrice(requestDto.Currency, requestDto.MinPrice)
@@ -220,10 +220,10 @@ func GetUsersAdvList(rd *middleware.RequestData, writer http.ResponseWriter, req
 	)
 	requestDto := &dto.GetUserAdvListRequest{}
 	if err := parsing_input.Parse(request, requestDto); err != nil {
-		return render.Json(writer, http.StatusBadRequest, &dto.Err{RequestId: rd.RequestId, ErrMessage: err.Error()})
+		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
 	}
 	if err := validator.ValidateGetUserAdvListRequest(requestDto); err != nil {
-		return render.Json(writer, http.StatusBadRequest, &dto.Err{RequestId: rd.RequestId, ErrMessage: err.Error()})
+		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
 	}
 	offset = (int(requestDto.Page) - 1) * limit
 	advs, count := cache.FindUsersAdvs(rd.User.CurrentUser.Id, offset, limit, firstNew)
@@ -233,10 +233,10 @@ func GetUsersAdvList(rd *middleware.RequestData, writer http.ResponseWriter, req
 func UpdateAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) render.Result {
 	requestDto := &dto.UpdateAdvRequest{}
 	if err := parsing_input.ParseRawJson(request, requestDto); err != nil {
-		return render.Json(writer, http.StatusBadRequest, &dto.Err{RequestId: rd.RequestId, ErrMessage: err.Error()})
+		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
 	}
 	if err := validator.ValidateUpdateAdvRequest(requestDto); err != nil {
-		return render.Json(writer, http.StatusBadRequest, &dto.Err{RequestId: rd.RequestId, ErrMessage: err.Error()})
+		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
 	}
 	cache.UpdateAdv(rd.RequestId, rd.Adv, requestDto)
 	return render.Json(writer, http.StatusOK, render.ResultOK)
@@ -251,13 +251,13 @@ func AddAdvPhoto(rd *middleware.RequestData, writer http.ResponseWriter, request
 	// ParseMultipartForm parses a request body as multipart/form-data
 	err := request.ParseMultipartForm(32 << 20)
 	if err != nil {
-		return render.Json(writer, http.StatusInternalServerError, &dto.Err{RequestId: rd.RequestId, ErrMessage: err.Error()})
+		return render.Json(writer, http.StatusInternalServerError, &dto.Err{ErrMessage: err.Error()})
 	}
 
 	file, header, err := request.FormFile("file") // Retrieve the file from form data
 
 	if err != nil {
-		return render.Json(writer, http.StatusInternalServerError, &dto.Err{RequestId: rd.RequestId, ErrMessage: err.Error()})
+		return render.Json(writer, http.StatusInternalServerError, &dto.Err{ErrMessage: err.Error()})
 	}
 	defer file.Close() // Close the file when we finish
 	splits := strings.Split(header.Filename, ".")
@@ -265,7 +265,7 @@ func AddAdvPhoto(rd *middleware.RequestData, writer http.ResponseWriter, request
 	var buf bytes.Buffer
 	_, err = io.Copy(&buf, file)
 	if err != nil {
-		return render.Json(writer, http.StatusInternalServerError, &dto.Err{RequestId: rd.RequestId, ErrMessage: err.Error()})
+		return render.Json(writer, http.StatusInternalServerError, &dto.Err{ErrMessage: err.Error()})
 	}
 	photo := &models.Photo{
 		AdvId: rd.Adv.CurrentAdv.Id,
@@ -280,16 +280,16 @@ func AddAdvPhoto(rd *middleware.RequestData, writer http.ResponseWriter, request
 	case ".gif":
 		photo.Ext = 3
 	default:
-		return render.Json(writer, http.StatusBadRequest, &dto.Err{RequestId: rd.RequestId, ErrMessage: "не поддерживается тип изображения"})
+		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: "не поддерживается тип изображения"})
 	}
 
 	f, err := os.Create(config.GetUploadedFilesPath() + strconv.FormatInt(photo.Id, 10) + ext)
 	if err != nil {
-		return render.Json(writer, http.StatusInternalServerError, &dto.Err{RequestId: rd.RequestId, ErrMessage: err.Error()})
+		return render.Json(writer, http.StatusInternalServerError, &dto.Err{ErrMessage: err.Error()})
 	}
 	_, err = f.Write(buf.Bytes())
 	if err != nil {
-		return render.Json(writer, http.StatusInternalServerError, &dto.Err{RequestId: rd.RequestId, ErrMessage: err.Error()})
+		return render.Json(writer, http.StatusInternalServerError, &dto.Err{ErrMessage: err.Error()})
 	}
 	cache.CreatePhoto(rd.RequestId, rd.Adv, photo)
 	return render.Json(writer, http.StatusOK, render.ResultOK)
@@ -299,17 +299,17 @@ func DeleteAdvPhoto(rd *middleware.RequestData, writer http.ResponseWriter, requ
 	photoIdStr := request.PathValue("photoId")
 	photoId, errConv := strconv.ParseInt(photoIdStr, 10, 64)
 	if errConv != nil {
-		return render.Json(writer, http.StatusBadRequest, &dto.Err{RequestId: rd.RequestId, ErrMessage: errConv.Error()})
+		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: errConv.Error()})
 	}
 	if !validator.IsValidUnixNanoId(photoId) {
-		return render.Json(writer, http.StatusNotFound, &dto.Err{RequestId: rd.RequestId, ErrMessage: "фото не найдено"})
+		return render.Json(writer, http.StatusNotFound, &dto.Err{ErrMessage: "фото не найдено"})
 	}
 	photoCache := cache.FindPhotoCacheById(photoId)
 	if photoCache == nil {
-		return render.Json(writer, http.StatusNotFound, &dto.Err{RequestId: rd.RequestId, ErrMessage: "фото не найдено"})
+		return render.Json(writer, http.StatusNotFound, &dto.Err{ErrMessage: "фото не найдено"})
 	}
 	if rd.Adv.CurrentAdv.Id != photoCache.Photo.AdvId {
-		return render.Json(writer, http.StatusBadRequest, &dto.Err{RequestId: rd.RequestId, ErrMessage: "фото принадлежит другому объявлению"})
+		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: "фото принадлежит другому объявлению"})
 	}
 	cache.DeletePhoto(rd.RequestId, rd.Adv, photoCache)
 	return render.Json(writer, http.StatusOK, render.ResultOK)
