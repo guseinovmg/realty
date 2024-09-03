@@ -35,14 +35,6 @@ func UnsafeBytesToString(b []byte) string {
 	return unsafe.String(unsafe.SliceData(b), len(b))
 }
 
-func Iff[T any](cond bool, a T, b T) T {
-	if cond {
-		return a
-	} else {
-		return b
-	}
-}
-
 func Is(value any) bool {
 	if value == nil {
 		return true

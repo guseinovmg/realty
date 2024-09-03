@@ -36,7 +36,8 @@ func (m *Chain) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	writer.Header().Set("X-Request-ID", strconv.FormatInt(rd.RequestId, 10))
 	defer func() {
 		if err := recover(); err != nil {
-			slog.Error("panic", "requestId", rd.RequestId, "recovered", err)
+			nanoSec := time.Now().UnixNano() - rd.RequestId
+			slog.Error("panic", "requestId", rd.RequestId, "tm", fmt.Sprintf("%dns", nanoSec), "recovered", err)
 			if m.onPanic != nil {
 				m.onPanic(err, rd, writer, request)
 			} else {

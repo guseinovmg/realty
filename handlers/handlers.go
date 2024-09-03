@@ -112,15 +112,14 @@ func CreateAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *
 	if err := validator.ValidateCreateAdvRequest(requestDto); err != nil {
 		return render.Json(writer, http.StatusBadRequest, &dto.Err{RequestId: rd.RequestId, ErrMessage: err.Error()})
 	}
-	cache.CreateAdv(rd.RequestId, &rd.User.CurrentUser, requestDto)
-	return render.Json(writer, http.StatusOK, render.ResultOK)
-
+	advId := cache.CreateAdv(rd.RequestId, &rd.User.CurrentUser, requestDto)
+	return render.Json(writer, http.StatusOK, &dto.CreateAdvResponse{RequestId: rd.RequestId, AdvId: advId})
 }
 
 func GetAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) render.Result {
 	adv := rd.Adv.CurrentAdv
 	if !adv.Approved {
-		return render.Json(writer, http.StatusNotFound, &dto.Err{RequestId: rd.RequestId, ErrMessage: "объявление на проверке"})
+		return render.Json(writer, http.StatusLocked, &dto.Err{RequestId: rd.RequestId, ErrMessage: "объявление на проверке"})
 	}
 	if !adv.SeVisible {
 		//todo

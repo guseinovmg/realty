@@ -22,6 +22,7 @@ import (
 
 var mux *http.ServeMux
 var cookie string
+var advId int64
 
 func init() {
 	log.SetFlags(log.Lshortfile | log.Ldate | log.Ltime)
@@ -271,7 +272,22 @@ func TestUpdateUser(t *testing.T) {
 }
 
 func TestCreateAdv(t *testing.T) {
-	req, err := NewRequest("POST", H{"Cookie": cookie}, "/adv", nil, nil, nil)
+	req, err := NewRequest("POST", H{"Cookie": cookie}, "/adv", nil, nil, &dto.CreateAdvRequest{
+		OriginLang:   1,
+		TranslatedBy: 1,
+		TranslatedTo: "ru",
+		Title:        "Пентхаус",
+		Description:  "Описание пентхауса",
+		Photos:       "",
+		Price:        22220,
+		Currency:     "rub",
+		Country:      "Russia",
+		City:         "Москва",
+		Address:      "ул. Пушкина, дом Кукушника",
+		Latitude:     2,
+		Longitude:    34,
+		UserComment:  "",
+	})
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
 	}
@@ -283,14 +299,34 @@ func TestCreateAdv(t *testing.T) {
 		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
 
-	expected := "expected response" // Replace with actual expected response
-	if rr.Body.String() != expected {
-		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
+	var response dto.CreateAdvResponse
+	err = json.NewDecoder(rr.Body).Decode(&response)
+	if err != nil {
+		t.Fatalf("failed to decode response: %v", err)
 	}
+	if response.AdvId == 0 {
+		t.Fatalf("advId: %v", response.AdvId)
+	}
+	advId = response.AdvId
 }
 
 func TestUpdateAdv(t *testing.T) {
-	req, err := NewRequest("PUT", H{"Cookie": cookie}, "/adv/123", nil, nil, nil)
+	req, err := NewRequest("PUT", H{"Cookie": cookie}, fmt.Sprintf("/adv/%d", advId), nil, nil, &dto.UpdateAdvRequest{
+		OriginLang:   1,
+		TranslatedBy: 1,
+		TranslatedTo: "ru",
+		Title:        "Пентхаус",
+		Description:  "Описание пентхауса",
+		Photos:       "",
+		Price:        22220,
+		Currency:     "rub",
+		Country:      "Russia",
+		City:         "Москва",
+		Address:      "ул. Пушкина, дом Кукушника",
+		Latitude:     2,
+		Longitude:    34,
+		UserComment:  "",
+	})
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
 	}
@@ -302,29 +338,40 @@ func TestUpdateAdv(t *testing.T) {
 		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
 
-	expected := "expected response" // Replace with actual expected response
-	if rr.Body.String() != expected {
-		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
+	var response dto.Result
+	err = json.NewDecoder(rr.Body).Decode(&response)
+	if err != nil {
+		t.Fatalf("failed to decode response: %v", err)
 	}
+	expected := render.ResultOK
+	expectedBytes, _ := json.Marshal(expected)
+	if response != *render.ResultOK {
+		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), string(expectedBytes))
+	}
+	t.Log(response)
+
 }
 
 func TestGetAdv(t *testing.T) {
-	req, err := NewRequest("GET", nil, "/adv/123", nil, nil, nil)
+	req, err := NewRequest("GET", nil, fmt.Sprintf("/adv/%d", advId), nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
 	}
 
 	rr := httptest.NewRecorder()
 	mux.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	t.Log(rr.Body.String())
+	if status := rr.Code; status != http.StatusLocked {
+		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusLocked)
 	}
 
-	expected := "expected response" // Replace with actual expected response
-	if rr.Body.String() != expected {
-		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
+	var response dto.GetAdvResponseItem
+
+	err = json.NewDecoder(rr.Body).Decode(&response)
+	if err != nil {
+		t.Fatalf("failed to decode response: %v", err)
 	}
+
 }
 
 func TestGetAdvList(t *testing.T) {

@@ -419,7 +419,7 @@ func FindUsersAdvs(userId int64, offset, limit int, firstNew bool) ([]*dto.GetAd
 	return result, count
 }
 
-func CreateAdv(requestId int64, user *models.User, request *dto.CreateAdvRequest) {
+func CreateAdv(requestId int64, user *models.User, request *dto.CreateAdvRequest) int64 {
 	id := utils.GenerateId()
 	newAdv := &models.Adv{
 		Id:           id,
@@ -475,6 +475,7 @@ func CreateAdv(requestId int64, user *models.User, request *dto.CreateAdvRequest
 	watchesRWMutex.Unlock()
 
 	toSave <- SaveTask{Cache: advCache, RequestId: requestId}
+	return id
 }
 
 func UpdateAdv(requestId int64, adv *AdvCache, request *dto.UpdateAdvRequest) {

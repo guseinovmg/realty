@@ -49,6 +49,11 @@ type CreateAdvRequest struct {
 	UserComment  string  `json:"userComment,omitempty"`
 }
 
+type CreateAdvResponse struct {
+	AdvId     int64 `json:"advId"`
+	RequestId int64 `json:"requestId"`
+}
+
 type GetAdvListRequest struct {
 	Currency     string  `json:"currency,omitempty"`
 	MinPrice     int64   `json:"minPrice,omitempty"`
