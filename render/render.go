@@ -2,8 +2,11 @@ package render
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
+	"realty/config"
 	"realty/dto"
+	"realty/utils"
 )
 
 var ResultOK = &dto.Result{Result: "OK"}
@@ -15,6 +18,7 @@ func RenderLoginPage(writer http.ResponseWriter, errDto *dto.Err) error {
 type Result struct {
 	StatusCode int
 	WriteErr   error
+	Body       string
 }
 
 var next Result = Result{
@@ -30,9 +34,23 @@ func Json(writer http.ResponseWriter, statusCode int, v any) Result {
 	writer.Header().Set("Content-Type", "application/json; charset=utf-8")
 	writer.Header().Set("X-Content-Type-Options", "nosniff")
 	writer.WriteHeader(statusCode)
-	err := json.NewEncoder(writer).Encode(v)
-	return Result{
+	result := Result{
 		StatusCode: statusCode,
-		WriteErr:   err,
 	}
+	if config.GetLogLevel() == slog.LevelDebug { //todo надо бы дополнительные настройки для вывода в логи сделать
+		bytes, err := json.Marshal(v)
+		if err != nil {
+			result.WriteErr = err
+		} else {
+			result.Body = utils.UnsafeBytesToString(bytes)
+			_, err = writer.Write(bytes)
+			if err != nil {
+				result.WriteErr = err
+			}
+		}
+	} else {
+		result.WriteErr = json.NewEncoder(writer).Encode(v)
+	}
+
+	return result
 }

@@ -144,17 +144,17 @@ func CreateAdv(adv *models.Adv) error {
 			id, user_id, updated, approved, lang, origin_lang, title,
 			description, price, currency, country, city, address, latitude,
 			longitude, paid_adv, se_visible, user_comment,
-			admin_comment, translated_to
+			admin_comment, translated_to, translated_by
 		) VALUES (
-			?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+			?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 		)
 	`
 	_, err := dbAdvs.Exec(query,
-		adv.Id, adv.UserId, adv.Updated, adv.Approved, adv.Lang,
+		adv.Id, adv.UserId, adv.Updated.Nanosecond(), adv.Approved, adv.Lang, //todo надо уточнить как даты в sqlite хранятся
 		adv.OriginLang, adv.Title, adv.Description, adv.Price, adv.Currency,
 		adv.Country, adv.City, adv.Address, adv.Latitude, adv.Longitude,
 		adv.PaidAdv, adv.SeVisible, adv.UserComment,
-		adv.AdminComment, adv.TranslatedTo,
+		adv.AdminComment, adv.TranslatedTo, adv.TranslatedBy,
 	)
 	if err != nil {
 		return errors.Join(err, errors.New("db.CreateAdv()"))

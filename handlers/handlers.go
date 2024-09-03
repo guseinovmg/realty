@@ -156,7 +156,11 @@ func GetAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *htt
 func GetAdvList(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) render.Result {
 	var (
 		minDollarPrice int64
-		maxDollarPrice int64 = math.MaxInt64
+		maxDollarPrice int64   = math.MaxInt64
+		minLongitude   float64 = -180
+		maxLongitude   float64 = 180
+		minLatitude    float64 = -180
+		maxLatitude    float64 = 180
 		offset         int
 		limit          int = 20
 	)
@@ -176,14 +180,26 @@ func GetAdvList(rd *middleware.RequestData, writer http.ResponseWriter, request 
 	if requestDto.MaxPrice > 0 {
 		maxDollarPrice = currency.CalcDollarPrice(requestDto.Currency, requestDto.MaxPrice)
 	}
+	if requestDto.MinLongitude != 0 {
+		minLongitude = requestDto.MinLongitude
+	}
+	if requestDto.MaxLongitude != 0 {
+		maxLongitude = requestDto.MaxLongitude
+	}
+	if requestDto.MinLatitude != 0 {
+		minLatitude = requestDto.MinLatitude
+	}
+	if requestDto.MaxLatitude != 0 {
+		maxLatitude = requestDto.MaxLatitude
+	}
 	offset = (requestDto.Page - 1) * limit
 	advs, count := cache.FindAdvs(
 		minDollarPrice,
 		maxDollarPrice,
-		requestDto.MinLongitude,
-		requestDto.MaxLongitude,
-		requestDto.MinLatitude,
-		requestDto.MaxLatitude,
+		minLongitude,
+		maxLongitude,
+		minLatitude,
+		maxLatitude,
 		requestDto.CountryCode,
 		requestDto.Location,
 		offset,

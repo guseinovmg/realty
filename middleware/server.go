@@ -42,7 +42,7 @@ func (m *Chain) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 				m.onPanic(err, rd, writer, request)
 			} else {
 				writer.WriteHeader(500)
-				_, _ = writer.Write([]byte("Internal error"))
+				_, _ = writer.Write([]byte("Internal error. RequestId=" + strconv.FormatInt(rd.RequestId, 10)))
 			}
 			//todo при некоторых паниках перезапуск сервиса не решит проблем, поэтому не завершаем работу
 			//todo в любом случае нужно создать оповещение админу(sms или email)
@@ -71,7 +71,7 @@ func (m *Chain) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	if renderResult.WriteErr != nil {
 		slog.Error("response", "requestId", rd.RequestId, "tm", fmt.Sprintf("%dns", nanoSec), "httpCode", renderResult.StatusCode, "msg", renderResult.WriteErr.Error())
 	} else {
-		slog.Debug("response", "requestId", rd.RequestId, "tm", fmt.Sprintf("%dns", nanoSec), "httpCode", renderResult.StatusCode)
+		slog.Debug("response", "requestId", rd.RequestId, "tm", fmt.Sprintf("%dns", nanoSec), "httpCode", renderResult.StatusCode, "body", renderResult.Body)
 	}
 	if renderResult == render.Next() {
 		slog.Error("unreached writing", "requestId", rd.RequestId, "path", request.URL.Path)

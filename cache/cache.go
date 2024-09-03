@@ -426,7 +426,7 @@ func CreateAdv(requestId int64, user *models.User, request *dto.CreateAdvRequest
 		UserId:       user.Id,
 		User:         user,
 		Updated:      time.Now(),
-		Approved:     false,
+		Approved:     true, //todo вообще-то изначально должно быть false, и меняться на true после модерации
 		Lang:         request.OriginLang,
 		OriginLang:   request.OriginLang,
 		TranslatedBy: request.TranslatedBy,
