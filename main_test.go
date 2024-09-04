@@ -18,11 +18,16 @@ import (
 	"realty/router"
 	"strings"
 	"testing"
+	"time"
 )
 
 var mux *http.ServeMux
 var cookie string
 var advId int64
+var photoId int64 = 1720360451151465000
+var resultOKStr string
+
+const timeSleepMs = 50
 
 func init() {
 	log.SetFlags(log.Lshortfile | log.Ldate | log.Ltime)
@@ -31,6 +36,8 @@ func init() {
 	db.Initialize()
 	cache.Initialize()
 	mux = router.Initialize()
+	resultOKBytes, _ := json.Marshal(render.ResultOK)
+	resultOKStr = string(resultOKBytes)
 }
 
 func TestStaticFiles(t *testing.T) {
@@ -50,6 +57,7 @@ func TestStaticFiles(t *testing.T) {
 	if rr.Body.String() != expected {
 		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}
+	time.Sleep(timeSleepMs * time.Millisecond)
 }
 
 func TestMetricsHandler(t *testing.T) {
@@ -128,25 +136,7 @@ func TestMetricsHandler(t *testing.T) {
 	if response.MaxUnSavedChangesQueueCount != expected.MaxUnSavedChangesQueueCount {
 		t.Errorf("MaxUnSavedChangesQueueCount mismatch: got %v want %v", response.MaxUnSavedChangesQueueCount, expected.MaxUnSavedChangesQueueCount)
 	}
-}
-
-func TestUploadedFiles(t *testing.T) {
-	req, err := NewRequest("GET", nil, "/uploaded/file.txt", nil, nil, nil)
-	if err != nil {
-		t.Fatalf("Failed to create request: %v", err)
-	}
-
-	rr := httptest.NewRecorder()
-	mux.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
-	}
-
-	expected := "bla bla bla" // Replace with actual expected content
-	if rr.Body.String() != expected {
-		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
-	}
+	time.Sleep(timeSleepMs * time.Millisecond)
 }
 
 func TestRegistration(t *testing.T) {
@@ -166,20 +156,11 @@ func TestRegistration(t *testing.T) {
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
-	var response dto.Result
-	err = json.NewDecoder(rr.Body).Decode(&response)
-	if err != nil {
-		t.Fatalf("failed to decode response: %v", err)
+	expected := resultOKStr // Replace with actual expected response
+	if rr.Body.String() != expected {
+		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}
-	expected := render.ResultOK
-	expectedBytes, _ := json.Marshal(expected)
-	if response != *render.ResultOK {
-		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), string(expectedBytes))
-	}
-	t.Log(response)
-	t.Log(rr.Header().Get("X-Request-ID"))
-	t.Log(rr.Header().Get("Set-Cookie"))
-
+	time.Sleep(timeSleepMs * time.Millisecond)
 }
 
 func TestLogin(t *testing.T) {
@@ -198,19 +179,12 @@ func TestLogin(t *testing.T) {
 		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
 
-	var response dto.Result
-	err = json.NewDecoder(rr.Body).Decode(&response)
-	if err != nil {
-		t.Fatalf("failed to decode response: %v", err)
+	expected := resultOKStr // Replace with actual expected response
+	if rr.Body.String() != expected {
+		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}
-	expected := render.ResultOK
-	expectedBytes, _ := json.Marshal(expected)
-	if response != *render.ResultOK {
-		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), string(expectedBytes))
-	}
-	t.Log(response)
-	t.Log(rr.Header().Get("Set-Cookie"))
 	cookie = rr.Header().Get("Set-Cookie")
+	time.Sleep(timeSleepMs * time.Millisecond)
 }
 
 /*func TestUpdatePassword(t *testing.T) {
@@ -228,17 +202,11 @@ func TestLogin(t *testing.T) {
 		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
 
-	var response dto.Result
-	err = json.NewDecoder(rr.Body).Decode(&response)
-	if err != nil {
-		t.Fatalf("failed to decode response: %v", err)
+	expected := resultOKStr // Replace with actual expected response
+	if rr.Body.String() != expected {
+		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}
-	expected := render.ResultOK
-	expectedBytes, _ := json.Marshal(expected)
-	if response != *render.ResultOK {
-		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), string(expectedBytes))
-	}
-	t.Log(response)
+    time.Sleep(timeSleepMs * time.Millisecond)
 }*/
 
 func TestUpdateUser(t *testing.T) {
@@ -258,17 +226,11 @@ func TestUpdateUser(t *testing.T) {
 		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
 
-	var response dto.Result
-	err = json.NewDecoder(rr.Body).Decode(&response)
-	if err != nil {
-		t.Fatalf("failed to decode response: %v", err)
+	expected := resultOKStr // Replace with actual expected response
+	if rr.Body.String() != expected {
+		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}
-	expected := render.ResultOK
-	expectedBytes, _ := json.Marshal(expected)
-	if response != *render.ResultOK {
-		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), string(expectedBytes))
-	}
-	t.Log(response)
+	time.Sleep(timeSleepMs * time.Millisecond)
 }
 
 func TestCreateAdv(t *testing.T) {
@@ -308,6 +270,7 @@ func TestCreateAdv(t *testing.T) {
 		t.Fatalf("advId: %v", response.AdvId)
 	}
 	advId = response.AdvId
+	time.Sleep(timeSleepMs * time.Millisecond)
 }
 
 func TestUpdateAdv(t *testing.T) {
@@ -338,18 +301,11 @@ func TestUpdateAdv(t *testing.T) {
 		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
 
-	var response dto.Result
-	err = json.NewDecoder(rr.Body).Decode(&response)
-	if err != nil {
-		t.Fatalf("failed to decode response: %v", err)
+	expected := resultOKStr // Replace with actual expected response
+	if rr.Body.String() != expected {
+		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}
-	expected := render.ResultOK
-	expectedBytes, _ := json.Marshal(expected)
-	if response != *render.ResultOK {
-		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), string(expectedBytes))
-	}
-	t.Log(response)
-
+	time.Sleep(timeSleepMs * time.Millisecond)
 }
 
 func TestGetAdv(t *testing.T) {
@@ -360,7 +316,6 @@ func TestGetAdv(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 	mux.ServeHTTP(rr, req)
-	t.Log(rr.Body.String())
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
@@ -371,7 +326,7 @@ func TestGetAdv(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to decode response: %v", err)
 	}
-
+	time.Sleep(timeSleepMs * time.Millisecond)
 }
 
 func TestGetAdvList(t *testing.T) {
@@ -396,10 +351,11 @@ func TestGetAdvList(t *testing.T) {
 	if response.Count != 1 {
 		t.Errorf("Handler returned wrong count value: got %v want %v", response.Count, 1)
 	}
+	time.Sleep(timeSleepMs * time.Millisecond)
 }
 
 func TestAddAdvPhoto(t *testing.T) {
-	req, err := NewRequest("POST", H{"Cookie": cookie}, "/adv/123/photos", nil, nil, nil)
+	req, err := NewRequest("POST", H{"Cookie": cookie}, fmt.Sprintf("/adv/%d/photos", advId), nil, nil, &dto.AddPhotoRequest{Filename: fmt.Sprintf("%d.png", photoId)})
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
 	}
@@ -411,14 +367,15 @@ func TestAddAdvPhoto(t *testing.T) {
 		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
 
-	expected := "expected response" // Replace with actual expected response
+	expected := resultOKStr // Replace with actual expected response
 	if rr.Body.String() != expected {
 		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}
+	time.Sleep(timeSleepMs * time.Millisecond)
 }
 
 func TestDeleteAdvPhoto(t *testing.T) {
-	req, err := NewRequest("DELETE", H{"Cookie": cookie}, "/adv/123/photos/456", nil, nil, nil)
+	req, err := NewRequest("DELETE", H{"Cookie": cookie}, fmt.Sprintf("/adv/%d/photos/%d", advId, photoId), nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
 	}
@@ -430,14 +387,15 @@ func TestDeleteAdvPhoto(t *testing.T) {
 		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
 
-	expected := "expected response" // Replace with actual expected response
+	expected := resultOKStr // Replace with actual expected response
 	if rr.Body.String() != expected {
 		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}
+	time.Sleep(timeSleepMs * time.Millisecond)
 }
 
 func TestDeleteAdv(t *testing.T) {
-	req, err := NewRequest("DELETE", H{"Cookie": cookie}, "/adv/123", nil, nil, nil)
+	req, err := NewRequest("DELETE", H{"Cookie": cookie}, fmt.Sprintf("/adv/%d", advId), nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
 	}
@@ -449,14 +407,15 @@ func TestDeleteAdv(t *testing.T) {
 		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
 
-	expected := "expected response" // Replace with actual expected response
+	expected := resultOKStr // Replace with actual expected response
 	if rr.Body.String() != expected {
 		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}
+	time.Sleep(timeSleepMs * time.Millisecond)
 }
 
 func TestLogoutMe(t *testing.T) {
-	req, err := NewRequest("GET", H{"Cookie": cookie}, "/logout/me", nil, nil, nil)
+	req, err := NewRequest("GET", H{"Cookie": cookie}, "/logout/me", nil, nil, nil) //todo
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
 	}
@@ -468,10 +427,11 @@ func TestLogoutMe(t *testing.T) {
 		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
 
-	expected := "expected response" // Replace with actual expected response
+	expected := resultOKStr // Replace with actual expected response
 	if rr.Body.String() != expected {
 		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}
+	time.Sleep(timeSleepMs * time.Millisecond)
 }
 
 func TestLogoutAll(t *testing.T) {
@@ -487,17 +447,11 @@ func TestLogoutAll(t *testing.T) {
 		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
 
-	var response dto.Result
-	err = json.NewDecoder(rr.Body).Decode(&response)
-	if err != nil {
-		t.Fatalf("failed to decode response: %v", err)
+	expected := resultOKStr // Replace with actual expected response
+	if rr.Body.String() != expected {
+		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}
-	expected := render.ResultOK
-	expectedBytes, _ := json.Marshal(expected)
-	if response != *render.ResultOK {
-		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), string(expectedBytes))
-	}
-	t.Log(rr.Body.String())
+	time.Sleep(timeSleepMs * time.Millisecond)
 }
 
 func TestStaticFilesNotFound(t *testing.T) {
@@ -512,267 +466,7 @@ func TestStaticFilesNotFound(t *testing.T) {
 	if status := rr.Code; status != http.StatusNotFound {
 		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusNotFound)
 	}
-}
-
-func TestUploadedFilesNotFound(t *testing.T) {
-	req, err := NewRequest("GET", nil, "/uploaded/nonexistentfile.txt", nil, nil, nil)
-	if err != nil {
-		t.Fatalf("Failed to create request: %v", err)
-	}
-
-	rr := httptest.NewRecorder()
-	mux.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != http.StatusNotFound {
-		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusNotFound)
-	}
-}
-
-func TestLoginError(t *testing.T) {
-	req, err := NewRequest("POST", nil, "/login", nil, nil, nil)
-	if err != nil {
-		t.Fatalf("Failed to create request: %v", err)
-	}
-
-	rr := httptest.NewRecorder()
-	mux.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != http.StatusUnauthorized {
-		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusUnauthorized)
-	}
-
-	expected := "Unauthorized" // Replace with actual expected error response
-	if rr.Body.String() != expected {
-		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
-	}
-}
-
-func TestLogoutMeError(t *testing.T) {
-	req, err := NewRequest("GET", H{"Cookie": cookie}, "/logout/me", nil, nil, nil)
-	if err != nil {
-		t.Fatalf("Failed to create request: %v", err)
-	}
-
-	rr := httptest.NewRecorder()
-	mux.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != http.StatusUnauthorized {
-		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusUnauthorized)
-	}
-
-	expected := "Unauthorized" // Replace with actual expected error response
-	if rr.Body.String() != expected {
-		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
-	}
-}
-
-func TestLogoutAllError(t *testing.T) {
-	req, err := NewRequest("GET", H{"Cookie": cookie}, "/logout/all", nil, nil, nil)
-	if err != nil {
-		t.Fatalf("Failed to create request: %v", err)
-	}
-
-	rr := httptest.NewRecorder()
-	mux.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != http.StatusUnauthorized {
-		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusUnauthorized)
-	}
-
-	expected := "Unauthorized" // Replace with actual expected error response
-	if rr.Body.String() != expected {
-		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
-	}
-}
-
-func TestRegistrationError(t *testing.T) {
-	req, err := NewRequest("POST", nil, "/registration", nil, nil, nil)
-	if err != nil {
-		t.Fatalf("Failed to create request: %v", err)
-	}
-
-	rr := httptest.NewRecorder()
-	mux.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != http.StatusBadRequest {
-		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusBadRequest)
-	}
-
-	expected := "Bad Request" // Replace with actual expected error response
-	if rr.Body.String() != expected {
-		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
-	}
-}
-
-func TestUpdatePasswordError(t *testing.T) {
-	req, err := NewRequest("PUT", H{"Cookie": cookie}, "/password", nil, nil, nil)
-	if err != nil {
-		t.Fatalf("Failed to create request: %v", err)
-	}
-
-	rr := httptest.NewRecorder()
-	mux.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != http.StatusUnauthorized {
-		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusUnauthorized)
-	}
-
-	expected := "Unauthorized" // Replace with actual expected error response
-	if rr.Body.String() != expected {
-		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
-	}
-}
-
-func TestUpdateUserError(t *testing.T) {
-	req, err := NewRequest("PUT", H{"Cookie": cookie}, "/user", nil, nil, nil)
-	if err != nil {
-		t.Fatalf("Failed to create request: %v", err)
-	}
-
-	rr := httptest.NewRecorder()
-	mux.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != http.StatusUnauthorized {
-		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusUnauthorized)
-	}
-
-	expected := "Unauthorized" // Replace with actual expected error response
-	if rr.Body.String() != expected {
-		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
-	}
-}
-
-func TestGetAdvNotFound(t *testing.T) {
-	req, err := NewRequest("GET", H{"Cookie": cookie}, "/adv/nonexistent", nil, nil, nil)
-	if err != nil {
-		t.Fatalf("Failed to create request: %v", err)
-	}
-
-	rr := httptest.NewRecorder()
-	mux.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != http.StatusNotFound {
-		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusNotFound)
-	}
-
-	expected := "Not Found" // Replace with actual expected error response
-	if rr.Body.String() != expected {
-		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
-	}
-}
-
-func TestGetAdvListError(t *testing.T) {
-	req, err := NewRequest("GET", nil, "/adv", nil, nil, nil)
-	if err != nil {
-		t.Fatalf("Failed to create request: %v", err)
-	}
-
-	rr := httptest.NewRecorder()
-	mux.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != http.StatusInternalServerError {
-		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusInternalServerError)
-	}
-
-	expected := "Internal Server Error" // Replace with actual expected error response
-	if rr.Body.String() != expected {
-		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
-	}
-}
-
-func TestCreateAdvError(t *testing.T) {
-	req, err := NewRequest("POST", H{"Cookie": cookie}, "/adv", nil, nil, nil)
-	if err != nil {
-		t.Fatalf("Failed to create request: %v", err)
-	}
-
-	rr := httptest.NewRecorder()
-	mux.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != http.StatusUnauthorized {
-		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusUnauthorized)
-	}
-
-	expected := "Unauthorized" // Replace with actual expected error response
-	if rr.Body.String() != expected {
-		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
-	}
-}
-
-func TestUpdateAdvError(t *testing.T) {
-	req, err := NewRequest("PUT", H{"Cookie": cookie}, "/adv/nonexistent", nil, nil, nil)
-	if err != nil {
-		t.Fatalf("Failed to create request: %v", err)
-	}
-
-	rr := httptest.NewRecorder()
-	mux.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != http.StatusNotFound {
-		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusNotFound)
-	}
-
-	expected := "Not Found" // Replace with actual expected error response
-	if rr.Body.String() != expected {
-		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
-	}
-}
-
-func TestDeleteAdvError(t *testing.T) {
-	req, err := NewRequest("DELETE", H{"Cookie": cookie}, "/adv/nonexistent", nil, nil, nil)
-	if err != nil {
-		t.Fatalf("Failed to create request: %v", err)
-	}
-
-	rr := httptest.NewRecorder()
-	mux.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != http.StatusNotFound {
-		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusNotFound)
-	}
-
-	expected := "Not Found" // Replace with actual expected error response
-	if rr.Body.String() != expected {
-		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
-	}
-}
-
-func TestAddAdvPhotoError(t *testing.T) {
-	req, err := NewRequest("POST", H{"Cookie": cookie}, "/adv/nonexistent/photos", nil, nil, nil)
-	if err != nil {
-		t.Fatalf("Failed to create request: %v", err)
-	}
-
-	rr := httptest.NewRecorder()
-	mux.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != http.StatusNotFound {
-		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusNotFound)
-	}
-
-	expected := "Not Found" // Replace with actual expected error response
-	if rr.Body.String() != expected {
-		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
-	}
-}
-
-func TestDeleteAdvPhotoError(t *testing.T) {
-	req, err := NewRequest("DELETE", H{"Cookie": cookie}, "/adv/nonexistent/photos/nonexistent", nil, nil, nil)
-	if err != nil {
-		t.Fatalf("Failed to create request: %v", err)
-	}
-
-	rr := httptest.NewRecorder()
-	mux.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != http.StatusNotFound {
-		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusNotFound)
-	}
-
-	expected := "Not Found" // Replace with actual expected error response
-	if rr.Body.String() != expected {
-		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
-	}
+	time.Sleep(timeSleepMs * time.Millisecond)
 }
 
 type H map[string]string

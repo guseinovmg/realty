@@ -25,7 +25,6 @@ var c conf
 
 func Initialize() {
 	c = conf{
-		uploadedFilesPath:  "/home/murad/GolandProjects/realty/uploaded/",
 		staticFilesPath:    "/home/murad/GolandProjects/realty/static/",
 		httpServerPort:     ":8080",
 		dataDir:            ":memory:",

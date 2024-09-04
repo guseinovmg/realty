@@ -54,6 +54,10 @@ type CreateAdvResponse struct {
 	RequestId int64 `json:"requestId"`
 }
 
+type AddPhotoRequest struct {
+	Filename string `json:"filename"`
+}
+
 type GetAdvListRequest struct {
 	Currency     string  `json:"currency,omitempty"`
 	MinPrice     int64   `json:"minPrice,omitempty"`

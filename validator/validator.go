@@ -13,6 +13,7 @@ func IsValidUnixNanoId(id int64) bool {
 }
 
 var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`)
+var photoFilenameRegex = regexp.MustCompile(`^\d{19}\.(png|jpg|gif)$`)
 
 func ValidateLoginRequest(req *dto.LoginRequest) error {
 	if err := validateEmail(req.Email); err != nil {
@@ -127,6 +128,13 @@ func ValidateUpdateAdvRequest(req *dto.UpdateAdvRequest) error {
 		return err
 	}
 	if err := validateUserComment(req.UserComment); err != nil {
+		return err
+	}
+	return nil
+}
+
+func ValidateAddPhotoRequest(req *dto.AddPhotoRequest) error {
+	if err := validatePhotoFilename(req.Filename); err != nil {
 		return err
 	}
 	return nil
@@ -398,6 +406,13 @@ func validateLocation(location string) error {
 func validatePage(page int) error {
 	if page < 1 {
 		return fmt.Errorf("page must be greater than or equal to 1")
+	}
+	return nil
+}
+
+func validatePhotoFilename(filename string) error {
+	if !photoFilenameRegex.MatchString(filename) {
+		return errors.New("invalid photo filename")
 	}
 	return nil
 }

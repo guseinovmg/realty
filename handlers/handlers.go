@@ -2,12 +2,9 @@ package handlers
 
 import (
 	"bytes"
-	"io"
 	"math"
 	"net/http"
-	"os"
 	"realty/cache"
-	"realty/config"
 	"realty/currency"
 	"realty/dto"
 	"realty/metrics"
@@ -248,48 +245,35 @@ func DeleteAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *
 }
 
 func AddAdvPhoto(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) render.Result {
-	// ParseMultipartForm parses a request body as multipart/form-data
-	err := request.ParseMultipartForm(32 << 20)
-	if err != nil {
-		return render.Json(writer, http.StatusInternalServerError, &dto.Err{ErrMessage: err.Error()})
+	requestDto := &dto.AddPhotoRequest{}
+	if err := parsing_input.ParseRawJson(request, requestDto); err != nil {
+		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
 	}
-
-	file, header, err := request.FormFile("file") // Retrieve the file from form data
-
-	if err != nil {
-		return render.Json(writer, http.StatusInternalServerError, &dto.Err{ErrMessage: err.Error()})
+	if err := validator.ValidateAddPhotoRequest(requestDto); err != nil {
+		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
 	}
-	defer file.Close() // Close the file when we finish
-	splits := strings.Split(header.Filename, ".")
-	ext := splits[len(splits)-1]
-	var buf bytes.Buffer
-	_, err = io.Copy(&buf, file)
+	splits := strings.Split(requestDto.Filename, ".")
+	ext := splits[1]
+	id, err := strconv.ParseInt(splits[0], 10, 64)
 	if err != nil {
-		return render.Json(writer, http.StatusInternalServerError, &dto.Err{ErrMessage: err.Error()})
+		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
+	}
+	if !validator.IsValidUnixNanoId(id) {
+		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: "неверный id файла"})
 	}
 	photo := &models.Photo{
 		AdvId: rd.Adv.CurrentAdv.Id,
-		Id:    utils.GenerateId(),
+		Id:    id,
 	}
-
 	switch ext {
-	case ".jpg":
+	case "jpg":
 		photo.Ext = 1
-	case ".png":
+	case "png":
 		photo.Ext = 2
-	case ".gif":
+	case "gif":
 		photo.Ext = 3
 	default:
 		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: "не поддерживается тип изображения"})
-	}
-
-	f, err := os.Create(config.GetUploadedFilesPath() + strconv.FormatInt(photo.Id, 10) + ext)
-	if err != nil {
-		return render.Json(writer, http.StatusInternalServerError, &dto.Err{ErrMessage: err.Error()})
-	}
-	_, err = f.Write(buf.Bytes())
-	if err != nil {
-		return render.Json(writer, http.StatusInternalServerError, &dto.Err{ErrMessage: err.Error()})
 	}
 	cache.CreatePhoto(rd.RequestId, rd.Adv, photo)
 	return render.Json(writer, http.StatusOK, render.ResultOK)
