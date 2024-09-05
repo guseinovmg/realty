@@ -25,7 +25,7 @@ func TextError(recovered any, rd *middleware.RequestData, writer http.ResponseWr
 }
 
 func JsonError(recovered any, rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) {
-	render.Json(writer, http.StatusInternalServerError, &dto.Err{ErrMessage: "Internal error"})
+	render.Json(writer, http.StatusInternalServerError, &dto.Err{ErrMessage: "Internal error", RequestId: rd.RequestId})
 }
 
 func JsonOK(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) render.Result {

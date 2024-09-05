@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"realty/cache"
+	"realty/config"
 	"realty/render"
 	"realty/utils"
 	"strconv"
@@ -36,6 +37,7 @@ func (m *Chain) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	writer.Header().Set("X-Request-ID", strconv.FormatInt(rd.RequestId, 10))
 	defer func() {
 		if err := recover(); err != nil {
+			//todo в любом случае нужно создать оповещение админу(sms или email)
 			nanoSec := time.Now().UnixNano() - rd.RequestId
 			slog.Error("panic", "requestId", rd.RequestId, "tm", fmt.Sprintf("%dns", nanoSec), "recovered", err)
 			if m.onPanic != nil {
@@ -45,7 +47,6 @@ func (m *Chain) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 				_, _ = writer.Write([]byte("Internal error. RequestId=" + strconv.FormatInt(rd.RequestId, 10)))
 			}
 			//todo при некоторых паниках перезапуск сервиса не решит проблем, поэтому не завершаем работу
-			//todo в любом случае нужно создать оповещение админу(sms или email)
 			switch err.(type) {
 			case string:
 				if strings.Contains(err.(string), "not implemented") {
@@ -71,7 +72,11 @@ func (m *Chain) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	if renderResult.WriteErr != nil {
 		slog.Error("response", "requestId", rd.RequestId, "tm", fmt.Sprintf("%dns", nanoSec), "httpCode", renderResult.StatusCode, "msg", renderResult.WriteErr.Error())
 	} else {
-		slog.Debug("response", "requestId", rd.RequestId, "tm", fmt.Sprintf("%dns", nanoSec), "httpCode", renderResult.StatusCode, "body", renderResult.Body)
+		if config.GetLogResponse() {
+			slog.Debug("response", "requestId", rd.RequestId, "tm", fmt.Sprintf("%dns", nanoSec), "httpCode", renderResult.StatusCode, "body", renderResult.Body)
+		} else {
+			slog.Debug("response", "requestId", rd.RequestId, "tm", fmt.Sprintf("%dns", nanoSec), "httpCode", renderResult.StatusCode)
+		}
 	}
 	if renderResult == render.Next() {
 		slog.Error("unreached writing", "requestId", rd.RequestId, "path", request.URL.Path)

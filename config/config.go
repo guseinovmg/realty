@@ -4,6 +4,7 @@ import (
 	"log"
 	"log/slog"
 	"os"
+	"strings"
 )
 
 type conf struct {
@@ -19,6 +20,9 @@ type conf struct {
 	domain             string
 	adminId            int64
 	logLevel           slog.Level
+	logSQL             bool
+	logResponse        bool
+	logInput           bool
 }
 
 var c conf
@@ -32,6 +36,9 @@ func Initialize() {
 		domain:             "localhost",
 		adminId:            35456456,
 		logLevel:           slog.LevelDebug,
+		logSQL:             true,
+		logResponse:        true,
+		logInput:           true,
 	}
 	if v, ok := os.LookupEnv("UPLOADED_FILES_PATH"); ok {
 		c.uploadedFilesPath = v
@@ -61,6 +68,15 @@ func Initialize() {
 		default:
 			log.Fatal("unknown log level")
 		}
+	}
+	if v, ok := os.LookupEnv("LOG_SQL"); ok {
+		c.logSQL = strings.ToLower(v) == "true" || v == "1"
+	}
+	if v, ok := os.LookupEnv("LOG_RESPONSE"); ok {
+		c.logResponse = strings.ToLower(v) == "true" || v == "1"
+	}
+	if v, ok := os.LookupEnv("LOG_INPUT"); ok {
+		c.logInput = strings.ToLower(v) == "true" || v == "1"
 	}
 }
 
@@ -126,4 +142,16 @@ func GetAdminId() int64 {
 
 func GetLogLevel() slog.Level {
 	return c.logLevel
+}
+
+func GetLogSql() bool {
+	return c.logLevel == slog.LevelDebug && c.logSQL
+}
+
+func GetLogResponse() bool {
+	return c.logLevel == slog.LevelDebug && c.logResponse
+}
+
+func GetLogInput() bool {
+	return c.logLevel == slog.LevelDebug && c.logInput
 }

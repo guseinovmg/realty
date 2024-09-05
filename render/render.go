@@ -2,7 +2,6 @@ package render
 
 import (
 	"encoding/json"
-	"log/slog"
 	"net/http"
 	"realty/config"
 	"realty/dto"
@@ -37,7 +36,7 @@ func Json(writer http.ResponseWriter, statusCode int, v any) Result {
 	result := Result{
 		StatusCode: statusCode,
 	}
-	if config.GetLogLevel() == slog.LevelDebug { //todo надо бы дополнительные настройки для вывода в логи сделать
+	if config.GetLogResponse() {
 		bytes, err := json.Marshal(v)
 		if err != nil {
 			result.WriteErr = err
