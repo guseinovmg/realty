@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"realty/cache"
 	"realty/config"
+	"realty/metrics"
 	"realty/render"
 	"realty/utils"
 	"strconv"
@@ -38,6 +39,7 @@ func (m *Chain) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	defer func() {
 		if err := recover(); err != nil {
 			//todo в любом случае нужно создать оповещение админу(sms или email)
+			metrics.IncPanicCounter()
 			nanoSec := time.Now().UnixNano() - rd.RequestId
 			slog.Error("panic", "requestId", rd.RequestId, "tm", fmt.Sprintf("%dns", nanoSec), "recovered", err)
 			if m.onPanic != nil {

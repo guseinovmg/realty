@@ -46,6 +46,10 @@ func IsGracefullyStopped() bool {
 	return gracefullyStop.Load()
 }
 
+func GetToSaveCount() int64 {
+	return int64(len(toSave))
+}
+
 func Initialize() {
 	users_, advs_, photos_, watches_, errDb := db.ReadDb()
 	if errDb != nil {

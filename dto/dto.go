@@ -3,17 +3,10 @@ package dto
 import "time"
 
 type Metrics struct {
-	InstanceStartTime           int64   `json:"instanceStartTime,omitempty"`
-	FreeRAM                     int64   `json:"freeRAM,omitempty"`
-	CPUTemp                     float64 `json:"cpuTemp,omitempty"`
-	CPUConsumption              float64 `json:"cpuConsumption,omitempty"`
-	UnSavedChangesQueueCount    int64   `json:"unSavedChangesCount,omitempty"`
-	DiskUsagePercent            float64 `json:"diskUsagePercent,omitempty"`
-	RecoveredPanicsCount        int64   `json:"recoveredPanicsCount,omitempty"`
-	MaxRAMConsumptions          int64   `json:"maxRAMConsumptions,omitempty"`
-	MaxCPUConsumptions          int64   `json:"maxCPUConsumptions,omitempty"`
-	MaxRPS                      int64   `json:"maxRPS,omitempty"`
-	MaxUnSavedChangesQueueCount int64   `json:"maxUnSavedChangesCount,omitempty"`
+	InstanceStartTime           string `json:"instanceStartTime"`
+	UnSavedChangesQueueCount    int64  `json:"unSavedChangesCount"`
+	MaxUnSavedChangesQueueCount int64  `json:"maxUnSavedChangesCount"`
+	RecoveredPanicsCount        int64  `json:"recoveredPanicsCount"`
 }
 
 type Result struct {

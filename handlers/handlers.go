@@ -34,16 +34,9 @@ func JsonOK(rd *middleware.RequestData, writer http.ResponseWriter, request *htt
 
 func GetMetrics(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) render.Result {
 	m := dto.Metrics{
-		InstanceStartTime:           metrics.GetInstanceStartTime(),
-		FreeRAM:                     metrics.GetFreeRAM(),
-		CPUTemp:                     metrics.GetCPUTemp(),
-		CPUConsumption:              metrics.GetCPUConsumption(),
+		InstanceStartTime:           metrics.GetInstanceStartTime().Format("2006/01/02 15:04:05"),
 		UnSavedChangesQueueCount:    metrics.GetUnSavedChangesQueueCount(),
-		DiskUsagePercent:            metrics.GetDiskUsagePercent(),
 		RecoveredPanicsCount:        metrics.GetRecoveredPanicsCount(),
-		MaxRAMConsumptions:          metrics.GetMaxRAMConsumptions(),
-		MaxCPUConsumptions:          metrics.GetMaxCPUConsumptions(),
-		MaxRPS:                      metrics.GetMaxRPS(),
 		MaxUnSavedChangesQueueCount: metrics.GetMaxUnSavedChangesQueueCount(),
 	}
 	return render.Json(writer, http.StatusOK, &m)

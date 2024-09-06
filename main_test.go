@@ -73,68 +73,33 @@ func TestMetricsHandler(t *testing.T) {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
 
-	expected := metrics.Metrics{
-		InstanceStartTime:           metrics.GetInstanceStartTime(),
-		FreeRAM:                     metrics.GetFreeRAM(),
-		CPUTemp:                     metrics.GetCPUTemp(),
-		CPUConsumption:              metrics.GetCPUConsumption(),
+	expected := dto.Metrics{
+		InstanceStartTime:           metrics.GetInstanceStartTime().Format("2006/01/02 15:04:05"),
 		UnSavedChangesQueueCount:    metrics.GetUnSavedChangesQueueCount(),
-		DiskUsagePercent:            metrics.GetDiskUsagePercent(),
 		RecoveredPanicsCount:        metrics.GetRecoveredPanicsCount(),
-		MaxRAMConsumptions:          metrics.GetMaxRAMConsumptions(),
-		MaxCPUConsumptions:          metrics.GetMaxCPUConsumptions(),
-		MaxRPS:                      metrics.GetMaxRPS(),
 		MaxUnSavedChangesQueueCount: metrics.GetMaxUnSavedChangesQueueCount(),
 	}
 
-	var response metrics.Metrics
+	var response dto.Metrics
 	err = json.NewDecoder(rr.Body).Decode(&response)
 	if err != nil {
 		t.Fatalf("failed to decode response: %v", err)
 	}
 
 	if response.InstanceStartTime != expected.InstanceStartTime {
-		t.Errorf("InstanceStartTime mismatch: got %v want %v", response.InstanceStartTime, expected.InstanceStartTime)
-	}
-
-	if response.FreeRAM != expected.FreeRAM {
-		t.Errorf("FreeRAM mismatch: got %v want %v", response.FreeRAM, expected.FreeRAM)
-	}
-
-	if response.CPUTemp != expected.CPUTemp {
-		t.Errorf("CPUTemp mismatch: got %v want %v", response.CPUTemp, expected.CPUTemp)
-	}
-
-	if response.CPUConsumption != expected.CPUConsumption {
-		t.Errorf("CPUConsumption mismatch: got %v want %v", response.CPUConsumption, expected.CPUConsumption)
+		t.Errorf("instanceStartTime mismatch: got %v want %v", response.InstanceStartTime, expected.InstanceStartTime)
 	}
 
 	if response.UnSavedChangesQueueCount != expected.UnSavedChangesQueueCount {
-		t.Errorf("UnSavedChangesQueueCount mismatch: got %v want %v", response.UnSavedChangesQueueCount, expected.UnSavedChangesQueueCount)
-	}
-
-	if response.DiskUsagePercent != expected.DiskUsagePercent {
-		t.Errorf("DiskUsagePercent mismatch: got %v want %v", response.DiskUsagePercent, expected.DiskUsagePercent)
+		t.Errorf("unSavedChangesQueueCount mismatch: got %v want %v", response.UnSavedChangesQueueCount, expected.UnSavedChangesQueueCount)
 	}
 
 	if response.RecoveredPanicsCount != expected.RecoveredPanicsCount {
-		t.Errorf("RecoveredPanicsCount mismatch: got %v want %v", response.RecoveredPanicsCount, expected.RecoveredPanicsCount)
-	}
-
-	if response.MaxRAMConsumptions != expected.MaxRAMConsumptions {
-		t.Errorf("MaxRAMConsumptions mismatch: got %v want %v", response.MaxRAMConsumptions, expected.MaxRAMConsumptions)
-	}
-
-	if response.MaxCPUConsumptions != expected.MaxCPUConsumptions {
-		t.Errorf("MaxCPUConsumptions mismatch: got %v want %v", response.MaxCPUConsumptions, expected.MaxCPUConsumptions)
-	}
-
-	if response.MaxRPS != expected.MaxRPS {
-		t.Errorf("MaxRPS mismatch: got %v want %v", response.MaxRPS, expected.MaxRPS)
+		t.Errorf("recoveredPanicsCount mismatch: got %v want %v", response.RecoveredPanicsCount, expected.RecoveredPanicsCount)
 	}
 
 	if response.MaxUnSavedChangesQueueCount != expected.MaxUnSavedChangesQueueCount {
-		t.Errorf("MaxUnSavedChangesQueueCount mismatch: got %v want %v", response.MaxUnSavedChangesQueueCount, expected.MaxUnSavedChangesQueueCount)
+		t.Errorf("maxUnSavedChangesQueueCount mismatch: got %v want %v", response.MaxUnSavedChangesQueueCount, expected.MaxUnSavedChangesQueueCount)
 	}
 	time.Sleep(timeSleepMs * time.Millisecond)
 }
