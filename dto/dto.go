@@ -6,6 +6,7 @@ type Metrics struct {
 	InstanceStartTime           string `json:"instanceStartTime"`
 	UnSavedChangesQueueCount    int64  `json:"unSavedChangesCount"`
 	MaxUnSavedChangesQueueCount int64  `json:"maxUnSavedChangesCount"`
+	DbErrorCount                int64  `json:"dbErrorCount"`
 	RecoveredPanicsCount        int64  `json:"recoveredPanicsCount"`
 }
 

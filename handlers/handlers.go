@@ -33,9 +33,14 @@ func JsonOK(rd *middleware.RequestData, writer http.ResponseWriter, request *htt
 }
 
 func GetMetrics(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) render.Result {
+	count := cache.GetToSaveCount()
+	if count > metrics.GetMaxUnSavedChangesQueueCount() {
+		metrics.SetMaxUnSavedChangesQueueCount(count)
+	}
 	m := dto.Metrics{
 		InstanceStartTime:           metrics.GetInstanceStartTime().Format("2006/01/02 15:04:05"),
-		UnSavedChangesQueueCount:    metrics.GetUnSavedChangesQueueCount(),
+		UnSavedChangesQueueCount:    count,
+		DbErrorCount:                metrics.GetDbErrorsCount(),
 		RecoveredPanicsCount:        metrics.GetRecoveredPanicsCount(),
 		MaxUnSavedChangesQueueCount: metrics.GetMaxUnSavedChangesQueueCount(),
 	}
@@ -49,7 +54,6 @@ func LogoutMe(rd *middleware.RequestData, writer http.ResponseWriter, request *h
 func LogoutAll(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) render.Result {
 	cache.UpdateSessionSecret(rd.RequestId, rd.User)
 	return render.Json(writer, http.StatusOK, render.ResultOK)
-
 }
 
 func Registration(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) render.Result {
@@ -91,7 +95,6 @@ func UpdateUser(rd *middleware.RequestData, writer http.ResponseWriter, request 
 	}
 	cache.UpdateUser(rd.RequestId, rd.User, requestDto)
 	return render.Json(writer, http.StatusOK, render.ResultOK)
-
 }
 
 func CreateAdv(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) render.Result {

@@ -1,13 +1,13 @@
 package metrics
 
 import (
-	"realty/cache"
 	"sync/atomic"
 	"time"
 )
 
 var instanceStartTime time.Time
 var maxUnSavedChangesQueueCount atomic.Int64
+var dbErrCount atomic.Int64
 var recoveredPanicsCount atomic.Int64
 
 func init() {
@@ -19,13 +19,12 @@ func GetInstanceStartTime() time.Time {
 	return instanceStartTime
 }
 
-// GetUnSavedChangesQueueCount returns the count of unsaved changes in the queue
-func GetUnSavedChangesQueueCount() int64 {
-	count := cache.GetToSaveCount()
-	if count > maxUnSavedChangesQueueCount.Load() {
-		maxUnSavedChangesQueueCount.Store(count)
-	}
-	return count
+func GetDbErrorsCount() int64 {
+	return dbErrCount.Load()
+}
+
+func IncDbErrorCounter() {
+	dbErrCount.Add(1)
 }
 
 // GetRecoveredPanicsCount returns the count of recovered panics
@@ -40,4 +39,8 @@ func IncPanicCounter() {
 // GetMaxUnSavedChangesQueueCount returns the maximum count of unsaved changes in the queue
 func GetMaxUnSavedChangesQueueCount() int64 {
 	return maxUnSavedChangesQueueCount.Load()
+}
+
+func SetMaxUnSavedChangesQueueCount(count int64) {
+	maxUnSavedChangesQueueCount.Store(count)
 }

@@ -75,7 +75,7 @@ func TestMetricsHandler(t *testing.T) {
 
 	expected := dto.Metrics{
 		InstanceStartTime:           metrics.GetInstanceStartTime().Format("2006/01/02 15:04:05"),
-		UnSavedChangesQueueCount:    metrics.GetUnSavedChangesQueueCount(),
+		UnSavedChangesQueueCount:    cache.GetToSaveCount(),
 		RecoveredPanicsCount:        metrics.GetRecoveredPanicsCount(),
 		MaxUnSavedChangesQueueCount: metrics.GetMaxUnSavedChangesQueueCount(),
 	}

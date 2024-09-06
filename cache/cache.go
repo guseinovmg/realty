@@ -5,6 +5,7 @@ import (
 	"os"
 	"realty/db"
 	"realty/dto"
+	"realty/metrics"
 	"realty/models"
 	"realty/utils"
 	"strings"
@@ -111,6 +112,7 @@ func Initialize() {
 		for saveCache := range toSave {
 			for range 2 {
 				if errSave := saveCache.Cache.Save(); errSave == nil {
+					metrics.IncDbErrorCounter()
 					slog.Debug("saving", "requestId", saveCache.RequestId, "msg", "ok")
 					break
 				} else {
@@ -133,6 +135,7 @@ func Initialize() {
 					return
 				}
 				if err := advs[i].Save(); err != nil {
+					metrics.IncDbErrorCounter()
 					slog.Error("saving", "msg", err.Error())
 					time.Sleep(time.Millisecond * 100)
 				}
@@ -143,6 +146,7 @@ func Initialize() {
 					return
 				}
 				if err := users[i].Save(); err != nil {
+					metrics.IncDbErrorCounter()
 					slog.Error("saving", "msg", err.Error())
 					time.Sleep(time.Millisecond * 100)
 				}
@@ -153,6 +157,7 @@ func Initialize() {
 					return
 				}
 				if err := photos[i].Save(); err != nil {
+					metrics.IncDbErrorCounter()
 					slog.Error("saving", "msg", err.Error())
 					time.Sleep(time.Millisecond * 100)
 				}
@@ -163,6 +168,7 @@ func Initialize() {
 					return
 				}
 				if err := watches[i].Save(); err != nil {
+					metrics.IncDbErrorCounter()
 					slog.Error("saving", "msg", err.Error())
 					time.Sleep(time.Millisecond * 100)
 				}
