@@ -8,7 +8,6 @@ import (
 )
 
 type conf struct {
-	uploadedFilesPath  string
 	staticFilesPath    string
 	httpServerPort     string
 	dataDir            string
@@ -39,9 +38,6 @@ func Initialize() {
 		logSQL:             true,
 		logResponse:        true,
 		logInput:           true,
-	}
-	if v, ok := os.LookupEnv("UPLOADED_FILES_PATH"); ok {
-		c.uploadedFilesPath = v
 	}
 	if v, ok := os.LookupEnv("STATIC_FILES_PATH"); ok {
 		c.staticFilesPath = v
@@ -78,10 +74,7 @@ func Initialize() {
 	if v, ok := os.LookupEnv("LOG_INPUT"); ok {
 		c.logInput = strings.ToLower(v) == "true" || v == "1"
 	}
-}
-
-func GetUploadedFilesPath() string {
-	return c.uploadedFilesPath
+	slog.Info("config", "STATIC_FILES_PATH", c.staticFilesPath, "DATA_DIR", c.dataDir, "HTTP_SERVER_PORT", c.httpServerPort, "DOMAIN", c.domain, "LOG_LEVEL", c.logLevel, "LOG_SQL", c.logSQL, "LOG_RESPONSE", c.logResponse, "LOG_INPUT", c.logInput)
 }
 
 func GetStaticFilesPath() string {

@@ -31,6 +31,7 @@ const timeSleepMs = 50
 
 func init() {
 	log.SetFlags(log.Lshortfile | log.Ldate | log.Ltime)
+	slog.Info("start", "time", time.Now().Format("2006/01/02 15:04:05"))
 	config.Initialize()
 	slog.SetLogLoggerLevel(config.GetLogLevel())
 	db.Initialize()

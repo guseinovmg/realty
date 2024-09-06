@@ -15,7 +15,6 @@ func Initialize() *http.ServeMux {
 	}
 	mux := http.NewServeMux()
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir(config.GetStaticFilesPath()))))
-	mux.Handle("GET /uploaded/", http.StripPrefix("/uploaded/", http.FileServer(http.Dir(config.GetUploadedFilesPath()))))
 
 	mux.Handle("/metrics", mw.Handler(handlers.GetMetrics))
 
