@@ -10,6 +10,10 @@ type Metrics struct {
 	RecoveredPanicsCount        int64  `json:"recoveredPanicsCount"`
 }
 
+type GenerateIdResponse struct {
+	Id int64 `json:"id"`
+}
+
 type Result struct {
 	Result string `json:"result"`
 }

@@ -47,6 +47,10 @@ func GetMetrics(rd *middleware.RequestData, writer http.ResponseWriter, request 
 	return render.Json(writer, http.StatusOK, &m)
 }
 
+func GenerateId(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) render.Result {
+	return render.Json(writer, http.StatusOK, &dto.GenerateIdResponse{Id: utils.GenerateId()})
+}
+
 func LogoutMe(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) render.Result {
 	return render.Json(writer, http.StatusOK, render.ResultOK)
 }

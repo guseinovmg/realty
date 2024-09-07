@@ -16,6 +16,7 @@ import (
 	"realty/metrics"
 	"realty/render"
 	"realty/router"
+	"realty/validator"
 	"strings"
 	"testing"
 	"time"
@@ -317,6 +318,31 @@ func TestGetAdvList(t *testing.T) {
 	if response.Count != 1 {
 		t.Errorf("Handler returned wrong count value: got %v want %v", response.Count, 1)
 	}
+	time.Sleep(timeSleepMs * time.Millisecond)
+}
+
+func TestGenerateId(t *testing.T) {
+	req, err := NewRequest("GET", H{"Cookie": cookie}, "/generate/id", nil, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+	mux.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
+
+	var response dto.GenerateIdResponse
+	err = json.NewDecoder(rr.Body).Decode(&response)
+	if err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if !validator.IsValidUnixNanoId(response.Id) {
+		t.Fatalf("is not valid id: %v", response.Id)
+	}
+
 	time.Sleep(timeSleepMs * time.Millisecond)
 }
 

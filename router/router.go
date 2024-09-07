@@ -18,6 +18,8 @@ func Initialize() *http.ServeMux {
 
 	mux.Handle("/metrics", mw.Handler(handlers.GetMetrics))
 
+	mux.Handle("GET /generate/id", mw.Handler(mw.Auth, handlers.GenerateId))
+
 	mux.Handle("POST /login", mw.Handler(mw.Login, mw.SetAuthCookie, handlers.JsonOK).OnPanic(handlers.TextError))
 	mux.Handle("GET /logout/me", mw.Handler(handlers.LogoutMe))
 	mux.Handle("GET /logout/all", mw.Handler(mw.CheckGracefullyStop, mw.Auth, handlers.LogoutAll))
