@@ -5,6 +5,7 @@ import (
 	"math"
 	"net/http"
 	"realty/cache"
+	"realty/config"
 	"realty/currency"
 	"realty/dto"
 	"realty/metrics"
@@ -52,6 +53,16 @@ func GenerateId(rd *middleware.RequestData, writer http.ResponseWriter, request 
 }
 
 func LogoutMe(rd *middleware.RequestData, writer http.ResponseWriter, request *http.Request) render.Result {
+	http.SetCookie(writer, &http.Cookie{
+		SameSite: http.SameSiteStrictMode,
+		Name:     "auth_token",
+		Value:    "",
+		Path:     "/",
+		Domain:   config.GetDomain(),
+		MaxAge:   1,
+		Secure:   true, // only sent over HTTPS
+		HttpOnly: true, // not accessible via JavaScript
+	})
 	return render.Json(writer, http.StatusOK, render.ResultOK)
 }
 

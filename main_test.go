@@ -29,6 +29,9 @@ var photoId int64 = 1720360451151465000
 var resultOKStr string
 
 const timeSleepMs = 50
+const userEmail = "guseinovmg@gmail.com"
+const password = "12345678"
+const newPassword = "123456789"
 
 func init() {
 	log.SetFlags(log.Lshortfile | log.Ldate | log.Ltime)
@@ -108,9 +111,9 @@ func TestMetricsHandler(t *testing.T) {
 
 func TestRegistration(t *testing.T) {
 	req, err := NewRequest("POST", nil, "/registration", nil, nil, &dto.RegisterRequest{
-		Email:    "guseinovmg@gmail.com",
+		Email:    userEmail,
 		Name:     "Murad",
-		Password: "12345678",
+		Password: password,
 		InviteId: "",
 	})
 	if err != nil {
@@ -132,8 +135,8 @@ func TestRegistration(t *testing.T) {
 
 func TestLogin(t *testing.T) {
 	req, err := NewRequest("POST", nil, "/login", nil, nil, &dto.LoginRequest{
-		Email:    "guseinovmg@gmail.com",
-		Password: "12345678",
+		Email:    userEmail,
+		Password: password,
 	})
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
@@ -154,11 +157,12 @@ func TestLogin(t *testing.T) {
 	time.Sleep(timeSleepMs * time.Millisecond)
 }
 
-/*func TestUpdatePassword(t *testing.T) {
+func TestUpdatePassword(t *testing.T) {
 	req, err := NewRequest("PUT", H{"Cookie": cookie}, "/password", nil, nil, &dto.UpdatePasswordRequest{
-		OldPassword: "12345678",
-		NewPassword: "123456789",
-	})	if err != nil {
+		OldPassword: password,
+		NewPassword: newPassword,
+	})
+	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
 	}
 
@@ -173,8 +177,32 @@ func TestLogin(t *testing.T) {
 	if rr.Body.String() != expected {
 		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}
-    time.Sleep(timeSleepMs * time.Millisecond)
-}*/
+	time.Sleep(timeSleepMs * time.Millisecond)
+}
+
+func TestLoginWithNewPassword(t *testing.T) {
+	req, err := NewRequest("POST", nil, "/login", nil, nil, &dto.LoginRequest{
+		Email:    userEmail,
+		Password: newPassword,
+	})
+	if err != nil {
+		t.Fatalf("Failed to create request: %v", err)
+	}
+
+	rr := httptest.NewRecorder()
+	mux.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
+
+	expected := resultOKStr // Replace with actual expected response
+	if rr.Body.String() != expected {
+		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
+	}
+	cookie = rr.Header().Get("Set-Cookie")
+	time.Sleep(timeSleepMs * time.Millisecond)
+}
 
 func TestUpdateUser(t *testing.T) {
 	req, err := NewRequest("PUT", H{"Cookie": cookie}, "/user", nil, nil, &dto.UpdateUserRequest{

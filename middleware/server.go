@@ -34,7 +34,7 @@ type Chain struct {
 func (m *Chain) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	rd := &RequestData{}
 	rd.RequestId = utils.GenerateId()
-	slog.Debug("request", "requestId", rd.RequestId, "method", request.Method, "path", request.URL.Path, "query", request.URL.RawQuery)
+	slog.Debug("request", "requestId", rd.RequestId, "method", request.Method, "pattern", request.Pattern, "path", request.URL.Path, "query", request.URL.RawQuery)
 	writer.Header().Set("X-Request-ID", strconv.FormatInt(rd.RequestId, 10))
 	defer func() {
 		if err := recover(); err != nil {
