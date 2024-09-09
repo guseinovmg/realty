@@ -112,10 +112,10 @@ func Initialize() {
 		for saveCache := range toSave {
 			for range 2 {
 				if errSave := saveCache.Cache.Save(); errSave == nil {
-					metrics.IncDbErrorCounter()
 					slog.Debug("saving", "requestId", saveCache.RequestId, "msg", "ok")
 					break
 				} else {
+					metrics.IncDbErrorCounter()
 					slog.Error("saving", "requestId", saveCache.RequestId, "msg", errSave.Error())
 				}
 				time.Sleep(time.Millisecond * 100)
