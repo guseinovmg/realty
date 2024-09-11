@@ -5,35 +5,17 @@ import (
 	"net/http"
 	"realty/config"
 	"realty/dto"
+	"realty/handlers_chain"
 	"realty/utils"
 )
 
 var ResultOK = &dto.Result{Result: "OK"}
 
-func RenderLoginPage(writer http.ResponseWriter, errDto *dto.Err) error {
-	return nil
-}
-
-type Result struct {
-	StatusCode int
-	WriteErr   error
-	Body       string
-}
-
-var next Result = Result{
-	StatusCode: -1,
-	WriteErr:   nil,
-}
-
-func Next() Result {
-	return next
-}
-
-func Json(writer http.ResponseWriter, statusCode int, v any) Result {
+func Json(writer http.ResponseWriter, statusCode int, v any) handlers_chain.Result {
 	writer.Header().Set("Content-Type", "application/json; charset=utf-8")
 	writer.Header().Set("X-Content-Type-Options", "nosniff")
 	writer.WriteHeader(statusCode)
-	result := Result{
+	result := handlers_chain.Result{
 		StatusCode: statusCode,
 	}
 	if config.GetLogResponse() {

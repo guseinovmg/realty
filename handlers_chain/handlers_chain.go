@@ -1,4 +1,4 @@
-package middleware
+package handlers_chain
 
 import (
 	"fmt"
@@ -7,12 +7,26 @@ import (
 	"realty/cache"
 	"realty/config"
 	"realty/metrics"
-	"realty/render"
 	"realty/utils"
 	"strconv"
 	"strings"
 	"time"
 )
+
+type Result struct {
+	StatusCode int
+	WriteErr   error
+	Body       string
+}
+
+var next Result = Result{
+	StatusCode: -1,
+	WriteErr:   nil,
+}
+
+func Next() Result {
+	return next
+}
 
 // RequestContext
 // можно расширять для передачи данных по цепочке обработчиков
@@ -22,7 +36,7 @@ type RequestContext struct {
 	RequestId int64
 }
 
-type HandlerFunction func(rc *RequestContext, writer http.ResponseWriter, request *http.Request) render.Result
+type HandlerFunction func(rc *RequestContext, writer http.ResponseWriter, request *http.Request) Result
 
 type PanicHandlerFunction func(recovered any, rc *RequestContext, writer http.ResponseWriter, request *http.Request)
 
@@ -63,10 +77,10 @@ func (m *Chain) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 			cache.GracefullyStopAndExitApp()
 		}
 	}()
-	var renderResult render.Result
+	var renderResult Result
 	for _, f := range m.handlers {
 		renderResult = f(rc, writer, request)
-		if renderResult != render.Next() {
+		if renderResult != next {
 			break
 		}
 	}
@@ -80,7 +94,7 @@ func (m *Chain) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 			slog.Debug("response", "requestId", rc.RequestId, "tm", fmt.Sprintf("%dns", nanoSec), "httpCode", renderResult.StatusCode)
 		}
 	}
-	if renderResult == render.Next() {
+	if renderResult == next {
 		slog.Error("unreached writing", "requestId", rc.RequestId, "path", request.URL.Path)
 	}
 }

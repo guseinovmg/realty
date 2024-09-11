@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -14,6 +15,7 @@ import (
 	"realty/db"
 	"realty/dto"
 	"realty/metrics"
+	"realty/middleware"
 	"realty/render"
 	"realty/router"
 	"realty/validator"
@@ -43,6 +45,36 @@ func init() {
 	mux = router.Initialize()
 	resultOKBytes, _ := json.Marshal(render.ResultOK)
 	resultOKStr = string(resultOKBytes)
+}
+
+func TestToken(t *testing.T) {
+	var sessionSecret = [24]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24}
+	var userId int64 = 1657567
+	var expireTime = time.Now().Add(24 * time.Hour).UnixNano()
+	token := middleware.CreateToken(userId, expireTime, sessionSecret)
+	unpackedUserId, unpackedExpireTime := middleware.UnpackToken(token)
+	if unpackedUserId != userId {
+		t.Fatal("userId!=1")
+	}
+	if expireTime != unpackedExpireTime {
+		fmt.Println(expireTime)
+		fmt.Println(unpackedExpireTime)
+		t.Fatal("expireTime")
+	}
+	if !middleware.IsValidToken(token, sessionSecret) {
+		t.Fatal("IsValidToken")
+	}
+}
+
+func TestShuffle(t *testing.T) {
+	var arr = [36]byte([]byte("fsdfsbjfhsjhfvsgefyefiw73wg72rgwehjgrtyu"))
+	shuffled := middleware.Shuffle(arr)
+	fmt.Println(string(shuffled[:]))
+	unShuffled := middleware.UnShuffle(shuffled)
+	fmt.Println(string(unShuffled[:]))
+	if !bytes.Equal(arr[:], unShuffled[:]) {
+		t.Fatal("Shuffle error")
+	}
 }
 
 func TestStaticFiles(t *testing.T) {
