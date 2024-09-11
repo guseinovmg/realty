@@ -2,10 +2,10 @@ package router
 
 import (
 	"net/http"
+	"realty/api/handlers"
+	mw "realty/api/middleware"
 	"realty/config"
-	"realty/handlers"
 	"realty/handlers_chain"
-	mw "realty/middleware"
 )
 
 var serveMux *http.ServeMux
