@@ -10,12 +10,12 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"realty/auth_token"
 	"realty/cache"
 	"realty/config"
 	"realty/db"
 	"realty/dto"
 	"realty/metrics"
-	"realty/middleware"
 	"realty/render"
 	"realty/router"
 	"realty/validator"
@@ -51,8 +51,8 @@ func TestToken(t *testing.T) {
 	var sessionSecret = [24]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24}
 	var userId int64 = 1657567
 	var expireTime = time.Now().Add(24 * time.Hour).UnixNano()
-	token := middleware.CreateToken(userId, expireTime, sessionSecret)
-	unpackedUserId, unpackedExpireTime := middleware.UnpackToken(token)
+	token := auth_token.CreateToken(userId, expireTime, sessionSecret)
+	unpackedUserId, unpackedExpireTime := auth_token.UnpackToken(token)
 	if unpackedUserId != userId {
 		t.Fatal("userId!=1")
 	}
@@ -61,16 +61,16 @@ func TestToken(t *testing.T) {
 		fmt.Println(unpackedExpireTime)
 		t.Fatal("expireTime")
 	}
-	if !middleware.IsValidToken(token, sessionSecret) {
+	if !auth_token.IsValidToken(token, sessionSecret) {
 		t.Fatal("IsValidToken")
 	}
 }
 
 func TestShuffle(t *testing.T) {
 	var arr = [36]byte([]byte("fsdfsbjfhsjhfvsgefyefiw73wg72rgwehjgrtyu"))
-	shuffled := middleware.Shuffle(arr)
+	shuffled := auth_token.Shuffle(arr)
 	fmt.Println(string(shuffled[:]))
-	unShuffled := middleware.UnShuffle(shuffled)
+	unShuffled := auth_token.UnShuffle(shuffled)
 	fmt.Println(string(unShuffled[:]))
 	if !bytes.Equal(arr[:], unShuffled[:]) {
 		t.Fatal("Shuffle error")
