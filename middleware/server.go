@@ -14,17 +14,17 @@ import (
 	"time"
 )
 
-// RequestData
+// RequestContext
 // можно расширять для передачи данных по цепочке обработчиков
-type RequestData struct {
+type RequestContext struct {
 	User      *cache.UserCache
 	Adv       *cache.AdvCache
 	RequestId int64
 }
 
-type HandlerFunction func(rd *RequestData, writer http.ResponseWriter, request *http.Request) render.Result
+type HandlerFunction func(rc *RequestContext, writer http.ResponseWriter, request *http.Request) render.Result
 
-type PanicHandlerFunction func(recovered any, rd *RequestData, writer http.ResponseWriter, request *http.Request)
+type PanicHandlerFunction func(recovered any, rc *RequestContext, writer http.ResponseWriter, request *http.Request)
 
 type Chain struct {
 	onPanic  PanicHandlerFunction
@@ -32,21 +32,21 @@ type Chain struct {
 }
 
 func (m *Chain) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	rd := &RequestData{}
-	rd.RequestId = utils.GenerateId()
-	slog.Debug("request", "requestId", rd.RequestId, "method", request.Method, "pattern", request.Pattern, "path", request.URL.Path, "query", request.URL.RawQuery)
-	writer.Header().Set("X-Request-ID", strconv.FormatInt(rd.RequestId, 10))
+	rc := &RequestContext{}
+	rc.RequestId = utils.GenerateId()
+	slog.Debug("request", "requestId", rc.RequestId, "method", request.Method, "pattern", request.Pattern, "path", request.URL.Path, "query", request.URL.RawQuery)
+	writer.Header().Set("X-Request-ID", strconv.FormatInt(rc.RequestId, 10))
 	defer func() {
 		if err := recover(); err != nil {
 			//todo в любом случае нужно создать оповещение админу(sms или email)
 			metrics.IncPanicCounter()
-			nanoSec := time.Now().UnixNano() - rd.RequestId
-			slog.Error("panic", "requestId", rd.RequestId, "tm", fmt.Sprintf("%dns", nanoSec), "recovered", err)
+			nanoSec := time.Now().UnixNano() - rc.RequestId
+			slog.Error("panic", "requestId", rc.RequestId, "tm", fmt.Sprintf("%dns", nanoSec), "recovered", err)
 			if m.onPanic != nil {
-				m.onPanic(err, rd, writer, request)
+				m.onPanic(err, rc, writer, request)
 			} else {
 				writer.WriteHeader(500)
-				_, _ = writer.Write([]byte("Internal error. RequestId=" + strconv.FormatInt(rd.RequestId, 10)))
+				_, _ = writer.Write([]byte("Internal error. RequestId=" + strconv.FormatInt(rc.RequestId, 10)))
 			}
 			//todo при некоторых паниках перезапуск сервиса не решит проблем, поэтому не завершаем работу
 			switch err.(type) {
@@ -65,23 +65,23 @@ func (m *Chain) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	}()
 	var renderResult render.Result
 	for _, f := range m.handlers {
-		renderResult = f(rd, writer, request)
+		renderResult = f(rc, writer, request)
 		if renderResult != render.Next() {
 			break
 		}
 	}
-	nanoSec := time.Now().UnixNano() - rd.RequestId
+	nanoSec := time.Now().UnixNano() - rc.RequestId
 	if renderResult.WriteErr != nil {
-		slog.Error("response", "requestId", rd.RequestId, "tm", fmt.Sprintf("%dns", nanoSec), "httpCode", renderResult.StatusCode, "msg", renderResult.WriteErr.Error())
+		slog.Error("response", "requestId", rc.RequestId, "tm", fmt.Sprintf("%dns", nanoSec), "httpCode", renderResult.StatusCode, "msg", renderResult.WriteErr.Error())
 	} else {
 		if config.GetLogResponse() {
-			slog.Debug("response", "requestId", rd.RequestId, "tm", fmt.Sprintf("%dns", nanoSec), "httpCode", renderResult.StatusCode, "body", renderResult.Body)
+			slog.Debug("response", "requestId", rc.RequestId, "tm", fmt.Sprintf("%dns", nanoSec), "httpCode", renderResult.StatusCode, "body", renderResult.Body)
 		} else {
-			slog.Debug("response", "requestId", rd.RequestId, "tm", fmt.Sprintf("%dns", nanoSec), "httpCode", renderResult.StatusCode)
+			slog.Debug("response", "requestId", rc.RequestId, "tm", fmt.Sprintf("%dns", nanoSec), "httpCode", renderResult.StatusCode)
 		}
 	}
 	if renderResult == render.Next() {
-		slog.Error("unreached writing", "requestId", rd.RequestId, "path", request.URL.Path)
+		slog.Error("unreached writing", "requestId", rc.RequestId, "path", request.URL.Path)
 	}
 }
 

@@ -17,7 +17,7 @@ import (
 	"time"
 )
 
-func Auth(rd *RequestData, writer http.ResponseWriter, request *http.Request) render.Result {
+func Auth(rc *RequestContext, writer http.ResponseWriter, request *http.Request) render.Result {
 	cookie, err := request.Cookie("auth_token")
 	if err != nil {
 		return render.Json(writer, http.StatusUnauthorized, &dto.Err{ErrMessage: "ошибка авторизации 1"})
@@ -57,11 +57,11 @@ func Auth(rd *RequestData, writer http.ResponseWriter, request *http.Request) re
 	if !IsValidToken(tokenBytesArr, userCache.CurrentUser.SessionSecret) {
 		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: "неверный токен"})
 	}
-	rd.User = userCache
+	rc.User = userCache
 	return render.Next()
 }
 
-func Login(rd *RequestData, writer http.ResponseWriter, request *http.Request) render.Result {
+func Login(rc *RequestContext, writer http.ResponseWriter, request *http.Request) render.Result {
 	requestDto := &dto.LoginRequest{}
 	if err := parsing_input.ParseRawJson(request, requestDto); err != nil {
 		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
@@ -76,27 +76,27 @@ func Login(rd *RequestData, writer http.ResponseWriter, request *http.Request) r
 	if !bytes.Equal(utils.GeneratePasswordHash(requestDto.Password), userCache.CurrentUser.PasswordHash) {
 		return render.Json(writer, http.StatusUnauthorized, &dto.Err{ErrMessage: "неверный пароль"})
 	}
-	rd.User = userCache
+	rc.User = userCache
 	return render.Next()
 }
 
-func CheckIsAdmin(rd *RequestData, writer http.ResponseWriter, request *http.Request) render.Result {
-	if rd.User == nil || rd.User.CurrentUser.Id != config.GetAdminId() {
+func CheckIsAdmin(rc *RequestContext, writer http.ResponseWriter, request *http.Request) render.Result {
+	if rc.User == nil || rc.User.CurrentUser.Id != config.GetAdminId() {
 		return render.Json(writer, http.StatusForbidden, &dto.Err{ErrMessage: "пользователь не админ"})
 	}
 	return render.Next()
 }
 
-func CheckGracefullyStop(rd *RequestData, writer http.ResponseWriter, request *http.Request) render.Result {
+func CheckGracefullyStop(rc *RequestContext, writer http.ResponseWriter, request *http.Request) render.Result {
 	if cache.IsGracefullyStopped() {
 		return render.Json(writer, http.StatusServiceUnavailable, &dto.Err{ErrMessage: "сервис временно недоступен"})
 	}
 	return render.Next()
 }
 
-func SetAuthCookie(rd *RequestData, writer http.ResponseWriter, request *http.Request) render.Result {
+func SetAuthCookie(rc *RequestContext, writer http.ResponseWriter, request *http.Request) render.Result {
 	cookieDuration := time.Hour * 24 * 3
-	newTokenBytes := CreateToken(rd.User.CurrentUser.Id, time.Now().Add(cookieDuration).UnixNano(), rd.User.CurrentUser.SessionSecret)
+	newTokenBytes := CreateToken(rc.User.CurrentUser.Id, time.Now().Add(cookieDuration).UnixNano(), rc.User.CurrentUser.SessionSecret)
 	newTokenBytes = Shuffle(newTokenBytes)
 	newTokenStr := base64.StdEncoding.EncodeToString(newTokenBytes[:])
 	http.SetCookie(writer, &http.Cookie{
@@ -112,7 +112,7 @@ func SetAuthCookie(rd *RequestData, writer http.ResponseWriter, request *http.Re
 	return render.Next()
 }
 
-func FindAdv(rd *RequestData, writer http.ResponseWriter, request *http.Request) render.Result {
+func FindAdv(rc *RequestContext, writer http.ResponseWriter, request *http.Request) render.Result {
 	advIdStr := request.PathValue("advId")
 	advId, errConv := strconv.ParseInt(advIdStr, 10, 64)
 	if errConv != nil {
@@ -125,12 +125,12 @@ func FindAdv(rd *RequestData, writer http.ResponseWriter, request *http.Request)
 	if advCache == nil {
 		return render.Json(writer, http.StatusNotFound, &dto.Err{ErrMessage: "объявление не найдено"})
 	}
-	rd.Adv = advCache
+	rc.Adv = advCache
 	return render.Next()
 }
 
-func CheckAdvOwner(rd *RequestData, writer http.ResponseWriter, request *http.Request) render.Result {
-	if rd.Adv.CurrentAdv.UserId != rd.User.CurrentUser.Id {
+func CheckAdvOwner(rc *RequestContext, writer http.ResponseWriter, request *http.Request) render.Result {
+	if rc.Adv.CurrentAdv.UserId != rc.User.CurrentUser.Id {
 		return render.Json(writer, http.StatusNotFound, &dto.Err{ErrMessage: "объявление не принадлежит текущему пользователю"})
 	}
 	return render.Next()
