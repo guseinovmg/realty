@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"realty/auth_token"
 	"realty/cache"
+	"realty/chain"
 	"realty/config"
 	"realty/dto"
-	"realty/handlers_chain"
 	"realty/parsing_input"
 	"realty/render"
 	"realty/utils"
@@ -17,7 +17,7 @@ import (
 	"time"
 )
 
-func Auth(rc *handlers_chain.RequestContext, writer http.ResponseWriter, request *http.Request) handlers_chain.Result {
+func Auth(rc *chain.RequestContext, writer http.ResponseWriter, request *http.Request) chain.Result {
 	cookie, err := request.Cookie("auth_token")
 	if err != nil {
 		return render.Json(writer, http.StatusUnauthorized, &dto.Err{ErrMessage: "ошибка авторизации 1"})
@@ -58,10 +58,10 @@ func Auth(rc *handlers_chain.RequestContext, writer http.ResponseWriter, request
 		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: "неверный токен"})
 	}
 	rc.User = userCache
-	return handlers_chain.Next()
+	return chain.Next()
 }
 
-func Login(rc *handlers_chain.RequestContext, writer http.ResponseWriter, request *http.Request) handlers_chain.Result {
+func Login(rc *chain.RequestContext, writer http.ResponseWriter, request *http.Request) chain.Result {
 	requestDto := &dto.LoginRequest{}
 	if err := parsing_input.ParseRawJson(request, requestDto); err != nil {
 		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
@@ -77,24 +77,24 @@ func Login(rc *handlers_chain.RequestContext, writer http.ResponseWriter, reques
 		return render.Json(writer, http.StatusUnauthorized, &dto.Err{ErrMessage: "неверный пароль"})
 	}
 	rc.User = userCache
-	return handlers_chain.Next()
+	return chain.Next()
 }
 
-func CheckIsAdmin(rc *handlers_chain.RequestContext, writer http.ResponseWriter, request *http.Request) handlers_chain.Result {
+func CheckIsAdmin(rc *chain.RequestContext, writer http.ResponseWriter, request *http.Request) chain.Result {
 	if rc.User == nil || rc.User.CurrentUser.Id != config.GetAdminId() {
 		return render.Json(writer, http.StatusForbidden, &dto.Err{ErrMessage: "пользователь не админ"})
 	}
-	return handlers_chain.Next()
+	return chain.Next()
 }
 
-func CheckGracefullyStop(rc *handlers_chain.RequestContext, writer http.ResponseWriter, request *http.Request) handlers_chain.Result {
+func CheckGracefullyStop(rc *chain.RequestContext, writer http.ResponseWriter, request *http.Request) chain.Result {
 	if cache.IsGracefullyStopped() {
 		return render.Json(writer, http.StatusServiceUnavailable, &dto.Err{ErrMessage: "сервис временно недоступен"})
 	}
-	return handlers_chain.Next()
+	return chain.Next()
 }
 
-func SetAuthCookie(rc *handlers_chain.RequestContext, writer http.ResponseWriter, request *http.Request) handlers_chain.Result {
+func SetAuthCookie(rc *chain.RequestContext, writer http.ResponseWriter, request *http.Request) chain.Result {
 	cookieDuration := time.Hour * 24 * 3
 	newTokenBytes := auth_token.CreateToken(rc.User.CurrentUser.Id, time.Now().Add(cookieDuration).UnixNano(), rc.User.CurrentUser.SessionSecret)
 	newTokenBytes = auth_token.Shuffle(newTokenBytes)
@@ -109,10 +109,10 @@ func SetAuthCookie(rc *handlers_chain.RequestContext, writer http.ResponseWriter
 		Secure:   true, // only sent over HTTPS
 		HttpOnly: true, // not accessible via JavaScript
 	})
-	return handlers_chain.Next()
+	return chain.Next()
 }
 
-func FindAdv(rc *handlers_chain.RequestContext, writer http.ResponseWriter, request *http.Request) handlers_chain.Result {
+func FindAdv(rc *chain.RequestContext, writer http.ResponseWriter, request *http.Request) chain.Result {
 	advIdStr := request.PathValue("advId")
 	advId, errConv := strconv.ParseInt(advIdStr, 10, 64)
 	if errConv != nil {
@@ -126,12 +126,12 @@ func FindAdv(rc *handlers_chain.RequestContext, writer http.ResponseWriter, requ
 		return render.Json(writer, http.StatusNotFound, &dto.Err{ErrMessage: "объявление не найдено"})
 	}
 	rc.Adv = advCache
-	return handlers_chain.Next()
+	return chain.Next()
 }
 
-func CheckAdvOwner(rc *handlers_chain.RequestContext, writer http.ResponseWriter, request *http.Request) handlers_chain.Result {
+func CheckAdvOwner(rc *chain.RequestContext, writer http.ResponseWriter, request *http.Request) chain.Result {
 	if rc.Adv.CurrentAdv.UserId != rc.User.CurrentUser.Id {
 		return render.Json(writer, http.StatusNotFound, &dto.Err{ErrMessage: "объявление не принадлежит текущему пользователю"})
 	}
-	return handlers_chain.Next()
+	return chain.Next()
 }

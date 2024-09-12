@@ -1,4 +1,4 @@
-package handlers_chain
+package chain
 
 import (
 	"fmt"

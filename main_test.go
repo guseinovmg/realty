@@ -24,6 +24,8 @@ import (
 	"time"
 )
 
+type H map[string]string
+
 var mux *http.ServeMux
 var cookie string
 var advId int64
@@ -93,6 +95,21 @@ func TestStaticFiles(t *testing.T) {
 	expected := "bla bla bla" // Replace with actual expected content
 	if rr.Body.String() != expected {
 		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
+	}
+	time.Sleep(timeSleepMs * time.Millisecond)
+}
+
+func TestStaticFilesNotFound(t *testing.T) {
+	req, err := NewRequest("GET", nil, "/static/nonexistentfile.txt", nil, nil, nil)
+	if err != nil {
+		t.Fatalf("Failed to create request: %v", err)
+	}
+
+	rr := httptest.NewRecorder()
+	mux.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusNotFound {
+		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusNotFound)
 	}
 	time.Sleep(timeSleepMs * time.Millisecond)
 }
@@ -505,23 +522,6 @@ func TestLogoutAll(t *testing.T) {
 	}
 	time.Sleep(timeSleepMs * time.Millisecond)
 }
-
-func TestStaticFilesNotFound(t *testing.T) {
-	req, err := NewRequest("GET", nil, "/static/nonexistentfile.txt", nil, nil, nil)
-	if err != nil {
-		t.Fatalf("Failed to create request: %v", err)
-	}
-
-	rr := httptest.NewRecorder()
-	mux.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != http.StatusNotFound {
-		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusNotFound)
-	}
-	time.Sleep(timeSleepMs * time.Millisecond)
-}
-
-type H map[string]string
 
 func NewRequest(method string, headers H, url string, pathParams H, queryParams H, body any) (*http.Request, error) {
 	if pathParams != nil {
