@@ -135,3 +135,12 @@ func CheckAdvOwner(rc *chain.RequestContext, writer http.ResponseWriter, request
 	}
 	return chain.Next()
 }
+
+func StopIfUnsavedMoreThan(count int64) chain.HandlerFunction {
+	return func(rc *chain.RequestContext, writer http.ResponseWriter, request *http.Request) chain.Result {
+		if cache.GetToSaveCount() >= count {
+			return render.Json(writer, http.StatusTooManyRequests, &dto.Err{ErrMessage: "попробуйте позже"})
+		}
+		return chain.Next()
+	}
+}
