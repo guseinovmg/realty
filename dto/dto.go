@@ -3,11 +3,11 @@ package dto
 import "time"
 
 type Metrics struct {
-	InstanceStartTime           string `json:"instanceStartTime"`
 	UnSavedChangesQueueCount    int64  `json:"unSavedChangesCount"`
 	MaxUnSavedChangesQueueCount int64  `json:"maxUnSavedChangesCount"`
 	DbErrorCount                int64  `json:"dbErrorCount"`
 	RecoveredPanicsCount        int64  `json:"recoveredPanicsCount"`
+	InstanceStartTime           string `json:"instanceStartTime"`
 }
 
 type GenerateIdResponse struct {
@@ -33,17 +33,17 @@ type RegisterRequest struct {
 type CreateAdvRequest struct {
 	OriginLang   int8    `json:"originLang,omitempty"`
 	TranslatedBy int8    `json:"translatedBy,omitempty"`
+	Price        int64   `json:"price,omitempty"`
+	Latitude     float64 `json:"latitude,omitempty"`
+	Longitude    float64 `json:"longitude,omitempty"`
 	TranslatedTo string  `json:"translatedTo,omitempty"`
 	Title        string  `json:"title,omitempty"`
 	Description  string  `json:"description,omitempty"`
 	Photos       string  `json:"photos,omitempty"`
-	Price        int64   `json:"price,omitempty"`
 	Currency     string  `json:"currency,omitempty"`
 	Country      string  `json:"country,omitempty"`
 	City         string  `json:"city,omitempty"`
 	Address      string  `json:"address,omitempty"`
-	Latitude     float64 `json:"latitude,omitempty"`
-	Longitude    float64 `json:"longitude,omitempty"`
 	UserComment  string  `json:"userComment,omitempty"`
 }
 
@@ -57,17 +57,17 @@ type AddPhotoRequest struct {
 }
 
 type GetAdvListRequest struct {
-	Currency     string  `json:"currency,omitempty"`
+	FirstNew     bool    `json:"firstNew,omitempty"`
+	Page         int     `json:"page,omitempty"`
 	MinPrice     int64   `json:"minPrice,omitempty"`
 	MaxPrice     int64   `json:"maxPrice,omitempty"`
 	MinLongitude float64 `json:"minLongitude,omitempty"`
 	MaxLongitude float64 `json:"maxLongitude,omitempty"`
 	MinLatitude  float64 `json:"minLatitude,omitempty"`
 	MaxLatitude  float64 `json:"maxLatitude,omitempty"`
+	Currency     string  `json:"currency,omitempty"`
 	CountryCode  string  `json:"countryCode,omitempty"`
 	Location     string  `json:"location,omitempty"`
-	Page         int     `json:"page,omitempty"`
-	FirstNew     bool    `json:"firstNew,omitempty"`
 }
 
 type GetUserAdvListRequest struct {
@@ -77,49 +77,49 @@ type GetUserAdvListRequest struct {
 
 type GetAdvResponseItem struct {
 	Id           int64     `json:"id,omitempty"`
-	UserEmail    string    `json:"userEmail,omitempty"`
-	UserName     string    `json:"userName,omitempty"`
-	Created      time.Time `json:"created"`
-	Updated      time.Time `json:"updated"`
+	Price        int64     `json:"price,omitempty"`
+	DollarPrice  int64     `json:"dollarPrice,omitempty"` //не хранится в БД
+	Watches      int64     `json:"watches,omitempty"`
+	Latitude     float64   `json:"latitude,omitempty"`
+	Longitude    float64   `json:"longitude,omitempty"`
 	Approved     bool      `json:"approved,omitempty"`
+	SeVisible    bool      `json:"seVisible,omitempty"`
 	Lang         int8      `json:"lang,omitempty"`
 	OriginLang   int8      `json:"originLang,omitempty"`
 	TranslatedBy int8      `json:"translatedBy,omitempty"`
+	Created      time.Time `json:"created"`
+	Updated      time.Time `json:"updated"`
+	UserEmail    string    `json:"userEmail,omitempty"`
+	UserName     string    `json:"userName,omitempty"`
 	Title        string    `json:"title,omitempty"`
 	Description  string    `json:"description,omitempty"`
-	Photos       []string  `json:"photos,omitempty"`
-	Price        int64     `json:"price,omitempty"`
 	Currency     string    `json:"currency,omitempty"`
-	DollarPrice  int64     `json:"dollarPrice,omitempty"` //не хранится в БД
 	Country      string    `json:"country,omitempty"`
 	City         string    `json:"city,omitempty"`
 	Address      string    `json:"address,omitempty"`
-	Latitude     float64   `json:"latitude,omitempty"`
-	Longitude    float64   `json:"longitude,omitempty"`
-	Watches      int64     `json:"watches,omitempty"`
-	SeVisible    bool      `json:"seVisible,omitempty"`
 	UserComment  string    `json:"userComment,omitempty"`
+	Photos       []string  `json:"photos,omitempty"`
 }
 
 type GetAdvListResponse struct {
-	List  []*GetAdvResponseItem `json:"list"`
 	Count int                   `json:"count"`
+	List  []*GetAdvResponseItem `json:"list"`
 }
 
 type UpdateAdvRequest struct {
 	OriginLang   int8    `json:"originLang,omitempty"`
 	TranslatedBy int8    `json:"translatedBy,omitempty"`
+	Price        int64   `json:"price,omitempty"`
+	Latitude     float64 `json:"latitude,omitempty"`
+	Longitude    float64 `json:"longitude,omitempty"`
 	TranslatedTo string  `json:"translatedTo,omitempty"`
 	Title        string  `json:"title,omitempty"`
 	Description  string  `json:"description,omitempty"`
 	Photos       string  `json:"photos,omitempty"`
-	Price        int64   `json:"price,omitempty"`
 	Currency     string  `json:"currency,omitempty"`
 	Country      string  `json:"country,omitempty"`
 	City         string  `json:"city,omitempty"`
 	Address      string  `json:"address,omitempty"`
-	Latitude     float64 `json:"latitude,omitempty"`
-	Longitude    float64 `json:"longitude,omitempty"`
 	UserComment  string  `json:"userComment,omitempty"`
 }
 

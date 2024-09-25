@@ -6,21 +6,21 @@ import (
 
 type User struct {
 	Id            int64
-	Email         string
-	Name          string
-	PasswordHash  []byte   `json:"-"`
-	SessionSecret [24]byte `json:"-"` //нужно перегенерить для выхода из всех устройств
-	InviteId      string
 	Balance       float64
 	Trusted       bool
 	Enabled       bool
+	Email         string
+	Name          string
+	InviteId      string
 	Description   string
+	PasswordHash  []byte   `json:"-"`
+	SessionSecret [24]byte `json:"-"` //нужно перегенерить для выхода из всех устройств
 }
 
 type Invite struct {
+	Used    bool
 	Id      string
 	Company string
-	Used    bool
 }
 
 type Photo struct {
@@ -37,27 +37,27 @@ type Watches struct {
 type Adv struct {
 	Id           int64
 	UserId       int64
-	User         *User
-	Updated      time.Time
+	Price        int64
+	DollarPrice  int64 //не хранится в БД
+	PaidAdv      int64
+	Latitude     float64
+	Longitude    float64
 	Approved     bool
+	SeVisible    bool
 	Lang         int8
 	OriginLang   int8
 	TranslatedBy int8
+	Updated      time.Time
 	TranslatedTo string
 	Title        string
 	Description  string
-	Price        int64
 	Currency     string
-	DollarPrice  int64 //не хранится в БД
 	Country      string
 	City         string
 	Address      string
-	Latitude     float64
-	Longitude    float64
-	PaidAdv      int64
-	SeVisible    bool
 	UserComment  string
 	AdminComment string
+	User         *User
 }
 
 type CurrencyRate struct {
