@@ -16,6 +16,7 @@ import (
 	"realty/db"
 	"realty/dto"
 	"realty/metrics"
+	"realty/moderation"
 	"realty/render"
 	"realty/router"
 	"realty/validator"
@@ -76,6 +77,17 @@ func TestShuffle(t *testing.T) {
 	fmt.Println(string(unShuffled[:]))
 	if !bytes.Equal(arr[:], unShuffled[:]) {
 		t.Fatal("Shuffle error")
+	}
+}
+
+func TestSearchBadWords(t *testing.T) {
+	text := "aaaaa жопа ффффффф ааааа"
+	badWords := moderation.SearchBadWord(text)
+	if len(badWords) != 1 {
+		t.Fatal("len(badWords)!=1")
+	}
+	if badWords[0] != "жопа" {
+		t.Fatal("badWords[0] != \"жопа\"")
 	}
 }
 

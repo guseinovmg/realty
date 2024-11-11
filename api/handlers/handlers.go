@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"fmt"
 	"math"
 	"net/http"
 	"realty/cache"
@@ -11,6 +12,7 @@ import (
 	"realty/dto"
 	"realty/metrics"
 	"realty/models"
+	"realty/moderation"
 	"realty/parsing_input"
 	"realty/render"
 	"realty/utils"
@@ -119,6 +121,9 @@ func CreateAdv(rc *chain.RequestContext, writer http.ResponseWriter, request *ht
 	}
 	if err := validator.ValidateCreateAdvRequest(requestDto); err != nil {
 		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
+	}
+	if badWords := moderation.SearchBadWord(requestDto.Description); len(badWords) != 0 {
+		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: fmt.Sprintf("в описании присутствуют запрещенные слова: %v", badWords)})
 	}
 	advId := cache.CreateAdv(rc.RequestId, &rc.User.CurrentUser, requestDto)
 	return render.Json(writer, http.StatusOK, &dto.CreateAdvResponse{RequestId: rc.RequestId, AdvId: advId})
@@ -245,6 +250,9 @@ func UpdateAdv(rc *chain.RequestContext, writer http.ResponseWriter, request *ht
 	}
 	if err := validator.ValidateUpdateAdvRequest(requestDto); err != nil {
 		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
+	}
+	if badWords := moderation.SearchBadWord(requestDto.Description); len(badWords) != 0 {
+		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: fmt.Sprintf("в описании присутствуют запрещенные слова: %v", badWords)})
 	}
 	cache.UpdateAdv(rc.RequestId, rc.Adv, requestDto)
 	return render.Json(writer, http.StatusOK, render.ResultOK)
