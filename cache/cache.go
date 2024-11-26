@@ -3,6 +3,7 @@ package cache
 import (
 	"log/slog"
 	"os"
+	"realty/api"
 	"realty/db"
 	"realty/dto"
 	"realty/metrics"
@@ -10,7 +11,6 @@ import (
 	"realty/utils"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 )
 
@@ -34,18 +34,6 @@ var photosRWMutex sync.RWMutex
 var watchesRWMutex sync.RWMutex
 
 var toSave chan SaveTask
-
-var gracefullyStop atomic.Bool
-
-func GracefullyStopAndExitApp() {
-	if !gracefullyStop.Load() {
-		gracefullyStop.Store(true)
-	}
-}
-
-func IsGracefullyStopped() bool {
-	return gracefullyStop.Load()
-}
 
 func GetToSaveCount() int64 {
 	return int64(len(toSave))
@@ -120,7 +108,7 @@ func Initialize() {
 				}
 				time.Sleep(time.Millisecond * 100)
 			}
-			if gracefullyStop.Load() && len(toSave) == 0 {
+			if api.IsGracefullyStopped() && len(toSave) == 0 {
 				break
 			}
 		}
@@ -131,7 +119,7 @@ func Initialize() {
 		for {
 			time.Sleep(time.Minute)
 			for i := range len(advs) {
-				if gracefullyStop.Load() {
+				if api.IsGracefullyStopped() {
 					return
 				}
 				if err := advs[i].Save(); err != nil {
@@ -142,7 +130,7 @@ func Initialize() {
 			}
 			time.Sleep(time.Second)
 			for i := range len(users) {
-				if gracefullyStop.Load() {
+				if api.IsGracefullyStopped() {
 					return
 				}
 				if err := users[i].Save(); err != nil {
@@ -153,7 +141,7 @@ func Initialize() {
 			}
 			time.Sleep(time.Second)
 			for i := range len(photos) {
-				if gracefullyStop.Load() {
+				if api.IsGracefullyStopped() {
 					return
 				}
 				if err := photos[i].Save(); err != nil {
@@ -164,7 +152,7 @@ func Initialize() {
 			}
 			time.Sleep(time.Second)
 			for i := range len(watches) {
-				if gracefullyStop.Load() {
+				if api.IsGracefullyStopped() {
 					return
 				}
 				if err := watches[i].Save(); err != nil {

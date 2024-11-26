@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"realty/api"
 	"realty/cache"
 	"realty/config"
 	"realty/metrics"
@@ -74,7 +75,7 @@ func (m *Chain) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 				}
 			}
 			// в остальных случаях красиво завершаем работу
-			cache.GracefullyStopAndExitApp()
+			api.GracefullyStopAndExitApp()
 		}
 	}()
 	var renderResult Result
