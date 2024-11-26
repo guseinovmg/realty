@@ -1,5 +1,7 @@
 package moderation
 
+import "strings"
+
 // todo надо бы сравнить бенчмарк с поиском через регулярку
 // todo надо полный список матерных слов
 var badWords = []string{"хуй", "хуета", "хуев", "пиписьк", "жопа", "срака", "мудак", "мудила", "пизд", "ебать", "ёбнут", "ебнут", "ебстись", "ебанут", "блядь", "шлюх", "блядск", "fuck", "asshole"}
@@ -90,5 +92,5 @@ func ahoCorasickSearch(text string, root *trieNode) []string {
 }
 
 func SearchBadWord(text string) []string {
-	return ahoCorasickSearch(text, root)
+	return ahoCorasickSearch(strings.ToLower(text), root)
 }
