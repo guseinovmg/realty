@@ -3,10 +3,9 @@ package cache
 import (
 	"log/slog"
 	"os"
-	"realty/api"
+	"realty/application"
 	"realty/db"
 	"realty/dto"
-	"realty/metrics"
 	"realty/models"
 	"realty/utils"
 	"strings"
@@ -103,12 +102,12 @@ func Initialize() {
 					slog.Debug("saving", "requestId", saveCache.RequestId, "msg", "ok")
 					break
 				} else {
-					metrics.IncDbErrorCounter()
+					application.IncDbErrorCounter()
 					slog.Error("saving", "requestId", saveCache.RequestId, "msg", errSave.Error())
 				}
 				time.Sleep(time.Millisecond * 100)
 			}
-			if api.IsGracefullyStopped() && len(toSave) == 0 {
+			if application.IsGracefullyStopped() && len(toSave) == 0 {
 				break
 			}
 		}
@@ -119,44 +118,44 @@ func Initialize() {
 		for {
 			time.Sleep(time.Minute)
 			for i := range len(advs) {
-				if api.IsGracefullyStopped() {
+				if application.IsGracefullyStopped() {
 					return
 				}
 				if err := advs[i].Save(); err != nil {
-					metrics.IncDbErrorCounter()
+					application.IncDbErrorCounter()
 					slog.Error("saving", "msg", err.Error())
 					time.Sleep(time.Millisecond * 100)
 				}
 			}
 			time.Sleep(time.Second)
 			for i := range len(users) {
-				if api.IsGracefullyStopped() {
+				if application.IsGracefullyStopped() {
 					return
 				}
 				if err := users[i].Save(); err != nil {
-					metrics.IncDbErrorCounter()
+					application.IncDbErrorCounter()
 					slog.Error("saving", "msg", err.Error())
 					time.Sleep(time.Millisecond * 100)
 				}
 			}
 			time.Sleep(time.Second)
 			for i := range len(photos) {
-				if api.IsGracefullyStopped() {
+				if application.IsGracefullyStopped() {
 					return
 				}
 				if err := photos[i].Save(); err != nil {
-					metrics.IncDbErrorCounter()
+					application.IncDbErrorCounter()
 					slog.Error("saving", "msg", err.Error())
 					time.Sleep(time.Millisecond * 100)
 				}
 			}
 			time.Sleep(time.Second)
 			for i := range len(watches) {
-				if api.IsGracefullyStopped() {
+				if application.IsGracefullyStopped() {
 					return
 				}
 				if err := watches[i].Save(); err != nil {
-					metrics.IncDbErrorCounter()
+					application.IncDbErrorCounter()
 					slog.Error("saving", "msg", err.Error())
 					time.Sleep(time.Millisecond * 100)
 				}

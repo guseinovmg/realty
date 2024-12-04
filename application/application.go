@@ -1,4 +1,4 @@
-package metrics
+package application
 
 import (
 	"sync/atomic"
@@ -9,9 +9,20 @@ var instanceStartTime time.Time
 var maxUnSavedChangesQueueCount atomic.Int64
 var dbErrCount atomic.Int64
 var recoveredPanicsCount atomic.Int64
+var gracefullyStop atomic.Bool
 
 func init() {
 	instanceStartTime = time.Now()
+}
+
+func GracefullyStopAndExitApp() {
+	if !gracefullyStop.Load() {
+		gracefullyStop.Store(true)
+	}
+}
+
+func IsGracefullyStopped() bool {
+	return gracefullyStop.Load()
 }
 
 // GetInstanceStartTime returns the instance start time

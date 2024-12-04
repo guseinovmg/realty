@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"math"
 	"net/http"
+	"realty/application"
 	"realty/cache"
 	"realty/chain"
 	"realty/config"
 	"realty/currency"
 	"realty/dto"
-	"realty/metrics"
 	"realty/models"
 	"realty/moderation"
 	"realty/parsing_input"
@@ -37,15 +37,16 @@ func JsonOK(rc *chain.RequestContext, writer http.ResponseWriter, request *http.
 
 func GetMetrics(rc *chain.RequestContext, writer http.ResponseWriter, request *http.Request) chain.Result {
 	count := cache.GetToSaveCount()
-	if count > metrics.GetMaxUnSavedChangesQueueCount() {
-		metrics.SetMaxUnSavedChangesQueueCount(count)
+	if count > application.GetMaxUnSavedChangesQueueCount() {
+		application.SetMaxUnSavedChangesQueueCount(count)
 	}
+	//todo надо еще добавить метрики из пакетов runtime и metrics
 	m := dto.Metrics{
-		InstanceStartTime:           metrics.GetInstanceStartTime().Format("2006/01/02 15:04:05"),
+		InstanceStartTime:           application.GetInstanceStartTime().Format("2006/01/02 15:04:05"),
 		UnSavedChangesQueueCount:    count,
-		DbErrorCount:                metrics.GetDbErrorsCount(),
-		RecoveredPanicsCount:        metrics.GetRecoveredPanicsCount(),
-		MaxUnSavedChangesQueueCount: metrics.GetMaxUnSavedChangesQueueCount(),
+		DbErrorCount:                application.GetDbErrorsCount(),
+		RecoveredPanicsCount:        application.GetRecoveredPanicsCount(),
+		MaxUnSavedChangesQueueCount: application.GetMaxUnSavedChangesQueueCount(),
 	}
 	return render.Json(writer, http.StatusOK, &m)
 }

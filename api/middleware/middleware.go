@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"net/http"
-	"realty/api"
+	"realty/application"
 	"realty/auth_token"
 	"realty/cache"
 	"realty/chain"
@@ -89,7 +89,7 @@ func CheckIsAdmin(rc *chain.RequestContext, writer http.ResponseWriter, request 
 }
 
 func CheckGracefullyStop(rc *chain.RequestContext, writer http.ResponseWriter, request *http.Request) chain.Result {
-	if api.IsGracefullyStopped() {
+	if application.IsGracefullyStopped() {
 		return render.Json(writer, http.StatusServiceUnavailable, &dto.Err{ErrMessage: "сервис временно недоступен"})
 	}
 	return chain.Next()

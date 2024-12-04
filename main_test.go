@@ -10,12 +10,12 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"realty/application"
 	"realty/auth_token"
 	"realty/cache"
 	"realty/config"
 	"realty/db"
 	"realty/dto"
-	"realty/metrics"
 	"realty/moderation"
 	"realty/render"
 	"realty/router"
@@ -140,10 +140,10 @@ func TestMetricsHandler(t *testing.T) {
 	}
 
 	expected := dto.Metrics{
-		InstanceStartTime:           metrics.GetInstanceStartTime().Format("2006/01/02 15:04:05"),
+		InstanceStartTime:           application.GetInstanceStartTime().Format("2006/01/02 15:04:05"),
 		UnSavedChangesQueueCount:    cache.GetToSaveCount(),
-		RecoveredPanicsCount:        metrics.GetRecoveredPanicsCount(),
-		MaxUnSavedChangesQueueCount: metrics.GetMaxUnSavedChangesQueueCount(),
+		RecoveredPanicsCount:        application.GetRecoveredPanicsCount(),
+		MaxUnSavedChangesQueueCount: application.GetMaxUnSavedChangesQueueCount(),
 	}
 
 	var response dto.Metrics

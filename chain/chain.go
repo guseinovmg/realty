@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"realty/api"
+	"realty/application"
 	"realty/cache"
 	"realty/config"
-	"realty/metrics"
 	"realty/utils"
 	"strconv"
 	"strings"
@@ -54,7 +53,7 @@ func (m *Chain) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	defer func() {
 		if err := recover(); err != nil {
 			//todo в любом случае нужно создать оповещение админу(sms или email)
-			metrics.IncPanicCounter()
+			application.IncPanicCounter()
 			nanoSec := time.Now().UnixNano() - rc.RequestId
 			slog.Error("panic", "requestId", rc.RequestId, "tm", fmt.Sprintf("%dns", nanoSec), "recovered", err)
 			if m.onPanic != nil {
@@ -75,7 +74,7 @@ func (m *Chain) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 				}
 			}
 			// в остальных случаях красиво завершаем работу
-			api.GracefullyStopAndExitApp()
+			application.GracefullyStopAndExitApp()
 		}
 	}()
 	var renderResult Result
