@@ -5,14 +5,20 @@ import (
 	"time"
 )
 
-var instanceStartTime time.Time
+var instanceStartTime time.Time = time.Now()
 var maxUnSavedChangesQueueCount atomic.Int64
 var dbErrCount atomic.Int64
 var recoveredPanicsCount atomic.Int64
 var gracefullyStop atomic.Bool
+var hitsChan = make(chan string, 5000)
+var hitsMap = make(map[string]int)
 
 func init() {
-	instanceStartTime = time.Now()
+	go func() {
+		for hit := range hitsChan {
+			hitsMap[hit]++
+		}
+	}()
 }
 
 func GracefullyStopAndExitApp() {
@@ -54,4 +60,12 @@ func GetMaxUnSavedChangesQueueCount() int64 {
 
 func SetMaxUnSavedChangesQueueCount(count int64) {
 	maxUnSavedChangesQueueCount.Store(count)
+}
+
+func Hit(pattern string) {
+	hitsChan <- pattern
+}
+
+func GetHitsMap() map[string]int {
+	return hitsMap
 }

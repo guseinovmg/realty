@@ -1,41 +1,17 @@
 package dto
 
 import (
-	"sync/atomic"
 	"time"
 )
 
 type Metrics struct {
-	UnSavedChangesQueueCount    int64         `json:"unSavedChangesCount"`
-	MaxUnSavedChangesQueueCount int64         `json:"maxUnSavedChangesCount"`
-	DbErrorCount                int64         `json:"dbErrorCount"`
-	RecoveredPanicsCount        int64         `json:"recoveredPanicsCount"`
-	InstanceStartTime           string        `json:"instanceStartTime"`
-	IsGracefullyStopped         bool          `json:"isGracefullyStopped"`
-	RequestsCount               RequestsCount `json:"requestsCount"`
-}
-
-type RequestsCount struct {
-	GET__static_                         atomic.Int64 `json:"GET /static/"`
-	GET__metrics                         atomic.Int64 `json:"GET /metrics"`
-	GET__generate_id                     atomic.Int64 `json:"GET /generate/id"`
-	POST__login                          atomic.Int64 `json:"POST /login"`
-	GET__logout_me                       atomic.Int64 `json:"GET /logout/me"`
-	GET__logout_all                      atomic.Int64 `json:"GET /logout/all"`
-	POST__registration                   atomic.Int64 `json:"POST /registration"`
-	PUT__password                        atomic.Int64 `json:"PUT /password"`
-	PUT__user                            atomic.Int64 `json:"PUT /user"`
-	GET__adv__advId_                     atomic.Int64 `json:"GET /adv/{advId}"`
-	GET__adv                             atomic.Int64 `json:"GET /adv"`
-	GET__user_adv__advId_                atomic.Int64 `json:"GET /user/adv/{advId}"`
-	GET__user_adv                        atomic.Int64 `json:"GET /user/adv"`
-	POST__user_adv                       atomic.Int64 `json:"POST /user/adv"`
-	POST__adv                            atomic.Int64 `json:"POST /adv"`
-	PUT__adv__advId_                     atomic.Int64 `json:"PUT /adv/{advId}"`
-	DELETE__adv__advId_                  atomic.Int64 `json:"DELETE /adv/{advId}"`
-	POST__adv__advId__photos             atomic.Int64 `json:"POST /adv/{advId}/photos"`
-	DELETE__adv__advId__photos__photoId_ atomic.Int64 `json:"DELETE /adv/{advId}/photos/{photoId}"`
-	UNKNOWN                              atomic.Int64 `json:"UNKNOWN"`
+	UnSavedChangesQueueCount    int64          `json:"unSavedChangesCount"`
+	MaxUnSavedChangesQueueCount int64          `json:"maxUnSavedChangesCount"`
+	DbErrorCount                int64          `json:"dbErrorCount"`
+	RecoveredPanicsCount        int64          `json:"recoveredPanicsCount"`
+	InstanceStartTime           string         `json:"instanceStartTime"`
+	IsGracefullyStopped         bool           `json:"isGracefullyStopped"`
+	Hits                        map[string]int `json:"hits"`
 }
 
 type GenerateIdResponse struct {

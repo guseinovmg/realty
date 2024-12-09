@@ -126,50 +126,6 @@ func TestStaticFilesNotFound(t *testing.T) {
 	time.Sleep(timeSleepMs * time.Millisecond)
 }
 
-func TestMetricsHandler(t *testing.T) {
-	req, err := http.NewRequest("GET", "/metrics", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	rr := httptest.NewRecorder()
-	mux.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
-	}
-
-	expected := dto.Metrics{
-		InstanceStartTime:           application.GetInstanceStartTime().Format("2006/01/02 15:04:05"),
-		UnSavedChangesQueueCount:    cache.GetToSaveCount(),
-		RecoveredPanicsCount:        application.GetRecoveredPanicsCount(),
-		MaxUnSavedChangesQueueCount: application.GetMaxUnSavedChangesQueueCount(),
-	}
-
-	var response dto.Metrics
-	err = json.NewDecoder(rr.Body).Decode(&response)
-	if err != nil {
-		t.Fatalf("failed to decode response: %v", err)
-	}
-
-	if response.InstanceStartTime != expected.InstanceStartTime {
-		t.Errorf("instanceStartTime mismatch: got %v want %v", response.InstanceStartTime, expected.InstanceStartTime)
-	}
-
-	if response.UnSavedChangesQueueCount != expected.UnSavedChangesQueueCount {
-		t.Errorf("unSavedChangesQueueCount mismatch: got %v want %v", response.UnSavedChangesQueueCount, expected.UnSavedChangesQueueCount)
-	}
-
-	if response.RecoveredPanicsCount != expected.RecoveredPanicsCount {
-		t.Errorf("recoveredPanicsCount mismatch: got %v want %v", response.RecoveredPanicsCount, expected.RecoveredPanicsCount)
-	}
-
-	if response.MaxUnSavedChangesQueueCount != expected.MaxUnSavedChangesQueueCount {
-		t.Errorf("maxUnSavedChangesQueueCount mismatch: got %v want %v", response.MaxUnSavedChangesQueueCount, expected.MaxUnSavedChangesQueueCount)
-	}
-	time.Sleep(timeSleepMs * time.Millisecond)
-}
-
 func TestRegistration(t *testing.T) {
 	req, err := NewRequest("POST", nil, "/registration", nil, nil, &dto.RegisterRequest{
 		Email:    userEmail,
@@ -535,6 +491,50 @@ func TestLogoutAll(t *testing.T) {
 	time.Sleep(timeSleepMs * time.Millisecond)
 }
 
+func TestMetricsHandler(t *testing.T) {
+	req, err := http.NewRequest("GET", "/metrics", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+	mux.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
+
+	expected := dto.Metrics{
+		InstanceStartTime:           application.GetInstanceStartTime().Format("2006/01/02 15:04:05"),
+		UnSavedChangesQueueCount:    cache.GetToSaveCount(),
+		RecoveredPanicsCount:        application.GetRecoveredPanicsCount(),
+		MaxUnSavedChangesQueueCount: application.GetMaxUnSavedChangesQueueCount(),
+	}
+
+	var response dto.Metrics
+	err = json.NewDecoder(rr.Body).Decode(&response)
+	if err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+
+	if response.InstanceStartTime != expected.InstanceStartTime {
+		t.Errorf("instanceStartTime mismatch: got %v want %v", response.InstanceStartTime, expected.InstanceStartTime)
+	}
+
+	if response.UnSavedChangesQueueCount != expected.UnSavedChangesQueueCount {
+		t.Errorf("unSavedChangesQueueCount mismatch: got %v want %v", response.UnSavedChangesQueueCount, expected.UnSavedChangesQueueCount)
+	}
+
+	if response.RecoveredPanicsCount != expected.RecoveredPanicsCount {
+		t.Errorf("recoveredPanicsCount mismatch: got %v want %v", response.RecoveredPanicsCount, expected.RecoveredPanicsCount)
+	}
+
+	if response.MaxUnSavedChangesQueueCount != expected.MaxUnSavedChangesQueueCount {
+		t.Errorf("maxUnSavedChangesQueueCount mismatch: got %v want %v", response.MaxUnSavedChangesQueueCount, expected.MaxUnSavedChangesQueueCount)
+	}
+	time.Sleep(timeSleepMs * time.Millisecond)
+}
+
 func NewRequest(method string, headers H, url string, pathParams H, queryParams H, body any) (*http.Request, error) {
 	if pathParams != nil {
 		for k, v := range pathParams {
@@ -547,11 +547,11 @@ func NewRequest(method string, headers H, url string, pathParams H, queryParams 
 	}
 	var buf io.Reader
 	if body != nil {
-		bytes, err := json.Marshal(body)
+		arr, err := json.Marshal(body)
 		if err != nil {
 			return nil, err
 		}
-		buf = strings.NewReader(string(bytes))
+		buf = strings.NewReader(string(arr))
 	}
 
 	req, err := http.NewRequest(method, url, buf)
@@ -573,21 +573,4 @@ func NewRequest(method string, headers H, url string, pathParams H, queryParams 
 		req.URL.RawQuery = q.Encode()
 	}
 	return req, nil
-}
-
-func parseAuthToken(cookieString string) string {
-	// Split the cookie string by semicolon and space to get individual key-value pairs
-	cookieParts := strings.Split(cookieString, "; ")
-
-	// Iterate through the parts to find the auth_token
-	for _, part := range cookieParts {
-		if strings.HasPrefix(part, "auth_token=") {
-			// Split the part by '=' to get the value of auth_token
-			authToken := strings.SplitN(part, "=", 2)[1]
-			return authToken
-		}
-	}
-
-	// If auth_token is not found, return an empty string
-	return ""
 }

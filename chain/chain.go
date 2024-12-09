@@ -50,6 +50,7 @@ func (m *Chain) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	rc.RequestId = utils.GenerateId()
 	slog.Debug("request", "requestId", rc.RequestId, "method", request.Method, "pattern", request.Pattern, "path", request.URL.Path, "query", request.URL.RawQuery)
 	writer.Header().Set("X-Request-ID", strconv.FormatInt(rc.RequestId, 10))
+	application.Hit(request.Pattern)
 	defer func() {
 		if err := recover(); err != nil {
 			//todo в любом случае нужно создать оповещение админу(sms или email)

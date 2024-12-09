@@ -47,6 +47,7 @@ func GetMetrics(rc *chain.RequestContext, writer http.ResponseWriter, request *h
 		DbErrorCount:                application.GetDbErrorsCount(),
 		RecoveredPanicsCount:        application.GetRecoveredPanicsCount(),
 		MaxUnSavedChangesQueueCount: application.GetMaxUnSavedChangesQueueCount(),
+		Hits:                        application.GetHitsMap(),
 	}
 	return render.Json(writer, http.StatusOK, &m)
 }
