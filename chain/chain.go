@@ -1,6 +1,7 @@
 package chain
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -34,6 +35,7 @@ type RequestContext struct {
 	User      *cache.UserCache
 	Adv       *cache.AdvCache
 	RequestId int64
+	Ctx       context.Context
 }
 
 type HandlerFunction func(rc *RequestContext, writer http.ResponseWriter, request *http.Request) Result
@@ -48,6 +50,7 @@ type Chain struct {
 func (m *Chain) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	rc := &RequestContext{}
 	rc.RequestId = utils.GenerateId()
+	rc.Ctx = request.Context()
 	slog.Debug("request", "requestId", rc.RequestId, "method", request.Method, "pattern", request.Pattern, "path", request.URL.Path, "query", request.URL.RawQuery)
 	writer.Header().Set("X-Request-ID", strconv.FormatInt(rc.RequestId, 10))
 	application.Hit(request.Pattern)
@@ -84,6 +87,11 @@ func (m *Chain) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 		if renderResult != next {
 			break
 		}
+		select {
+		case <-rc.Ctx.Done(): //todo надо бы тест на этот случай
+			break
+		default:
+		}
 	}
 	nanoSec := time.Now().UnixNano() - rc.RequestId
 	if renderResult.WriteErr != nil {
@@ -92,11 +100,8 @@ func (m *Chain) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 		if config.GetLogResponse() {
 			slog.Debug("response", "requestId", rc.RequestId, "tm", fmt.Sprintf("%dns", nanoSec), "httpCode", renderResult.StatusCode, "body", renderResult.Body)
 		} else {
-			slog.Debug("response", "requestId", rc.RequestId, "tm", fmt.Sprintf("%dns", nanoSec), "httpCode", renderResult.StatusCode)
+			slog.Debug("response", "requestId", rc.RequestId, "tm", fmt.Sprintf("%dns", nanoSec), "httpCode", renderResult.StatusCode) //httpCode=-1 значит что ответ не был отправлен клиенту
 		}
-	}
-	if renderResult == next {
-		slog.Error("unreached writing", "requestId", rc.RequestId, "path", request.URL.Path)
 	}
 }
 
