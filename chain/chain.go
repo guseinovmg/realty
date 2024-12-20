@@ -38,6 +38,15 @@ type RequestContext struct {
 	Ctx       context.Context
 }
 
+func (rc *RequestContext) CheckConnection() error {
+	select {
+	case <-rc.Ctx.Done(): //todo надо бы тест на этот случай - воспроизвезти обрыв соединения
+		return rc.Ctx.Err()
+	default:
+		return nil
+	}
+}
+
 type HandlerFunction func(rc *RequestContext, writer http.ResponseWriter, request *http.Request) Result
 
 type PanicHandlerFunction func(recovered any, rc *RequestContext, writer http.ResponseWriter, request *http.Request)
@@ -53,12 +62,12 @@ func (m *Chain) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	rc.Ctx = request.Context()
 	slog.Debug("request", "requestId", rc.RequestId, "method", request.Method, "pattern", request.Pattern, "path", request.URL.Path, "query", request.URL.RawQuery)
 	writer.Header().Set("X-Request-ID", strconv.FormatInt(rc.RequestId, 10))
-	application.Hit(request.Pattern)
 	defer func() {
+		nanoSec := time.Now().UnixNano() - rc.RequestId
+		application.Hit(request.Pattern, nanoSec)
 		if err := recover(); err != nil {
 			//todo в любом случае нужно создать оповещение админу(sms или email)
 			application.IncPanicCounter()
-			nanoSec := time.Now().UnixNano() - rc.RequestId
 			slog.Error("panic", "requestId", rc.RequestId, "tm", fmt.Sprintf("%dns", nanoSec), "recovered", err)
 			if m.onPanic != nil {
 				m.onPanic(err, rc, writer, request)
@@ -86,11 +95,6 @@ func (m *Chain) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 		renderResult = f(rc, writer, request)
 		if renderResult != next {
 			break
-		}
-		select {
-		case <-rc.Ctx.Done(): //todo надо бы тест на этот случай
-			break
-		default:
 		}
 	}
 	nanoSec := time.Now().UnixNano() - rc.RequestId

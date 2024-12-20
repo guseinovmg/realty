@@ -36,18 +36,13 @@ func JsonOK(rc *chain.RequestContext, writer http.ResponseWriter, request *http.
 }
 
 func GetMetrics(rc *chain.RequestContext, writer http.ResponseWriter, request *http.Request) chain.Result {
-	count := cache.GetToSaveCount()
-	if count > application.GetMaxUnSavedChangesQueueCount() {
-		application.SetMaxUnSavedChangesQueueCount(count)
-	}
 	//todo надо еще добавить метрики из пакетов runtime и metrics
 	m := dto.Metrics{
-		InstanceStartTime:           application.GetInstanceStartTime().Format("2006/01/02 15:04:05"),
-		UnSavedChangesQueueCount:    count,
-		DbErrorCount:                application.GetDbErrorsCount(),
-		RecoveredPanicsCount:        application.GetRecoveredPanicsCount(),
-		MaxUnSavedChangesQueueCount: application.GetMaxUnSavedChangesQueueCount(),
-		Hits:                        application.GetHitsMap(),
+		InstanceStartTime:        application.GetInstanceStartTime().Format("2006/01/02 15:04:05"),
+		UnSavedChangesQueueCount: cache.GetToSaveCount(),
+		DbErrorCount:             application.GetDbErrorsCount(),
+		RecoveredPanicsCount:     application.GetRecoveredPanicsCount(),
+		Hits:                     application.GetHitsMap(),
 	}
 	return render.Json(writer, http.StatusOK, &m)
 }
@@ -255,6 +250,9 @@ func UpdateAdv(rc *chain.RequestContext, writer http.ResponseWriter, request *ht
 	}
 	if badWords := moderation.SearchBadWord(requestDto.Description); len(badWords) != 0 {
 		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: fmt.Sprintf("в описании присутствуют запрещенные слова: %v", badWords)})
+	}
+	if err := rc.CheckConnection(); err != nil {
+		return render.Json(writer, http.StatusRequestTimeout, &dto.Err{ErrMessage: fmt.Sprintf("ошибка соединения: %s", err.Error())}) //todo тут надо подумать, по идее ответ и так не дойдет
 	}
 	cache.UpdateAdv(rc.RequestId, rc.Adv, requestDto)
 	return render.Json(writer, http.StatusOK, render.ResultOK)

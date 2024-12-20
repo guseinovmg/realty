@@ -505,10 +505,9 @@ func TestMetricsHandler(t *testing.T) {
 	}
 
 	expected := dto.Metrics{
-		InstanceStartTime:           application.GetInstanceStartTime().Format("2006/01/02 15:04:05"),
-		UnSavedChangesQueueCount:    cache.GetToSaveCount(),
-		RecoveredPanicsCount:        application.GetRecoveredPanicsCount(),
-		MaxUnSavedChangesQueueCount: application.GetMaxUnSavedChangesQueueCount(),
+		InstanceStartTime:        application.GetInstanceStartTime().Format("2006/01/02 15:04:05"),
+		UnSavedChangesQueueCount: cache.GetToSaveCount(),
+		RecoveredPanicsCount:     application.GetRecoveredPanicsCount(),
 	}
 
 	var response dto.Metrics
@@ -529,9 +528,6 @@ func TestMetricsHandler(t *testing.T) {
 		t.Errorf("recoveredPanicsCount mismatch: got %v want %v", response.RecoveredPanicsCount, expected.RecoveredPanicsCount)
 	}
 
-	if response.MaxUnSavedChangesQueueCount != expected.MaxUnSavedChangesQueueCount {
-		t.Errorf("maxUnSavedChangesQueueCount mismatch: got %v want %v", response.MaxUnSavedChangesQueueCount, expected.MaxUnSavedChangesQueueCount)
-	}
 	time.Sleep(timeSleepMs * time.Millisecond)
 }
 

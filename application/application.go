@@ -1,22 +1,31 @@
 package application
 
 import (
+	"realty/dto"
 	"sync/atomic"
 	"time"
 )
 
+type RequestHit struct {
+	DurationNs int64
+	Pattern    string
+}
+
 var instanceStartTime time.Time = time.Now()
-var maxUnSavedChangesQueueCount atomic.Int64
 var dbErrCount atomic.Int64
 var recoveredPanicsCount atomic.Int64
 var gracefullyStop atomic.Bool
-var hitsChan = make(chan string, 5000)
-var hitsMap = make(map[string]int)
+var hitsChan = make(chan RequestHit, 5000)
+var hitsMap = make(map[string]dto.RequestMetric)
 
 func init() {
 	go func() {
 		for hit := range hitsChan {
-			hitsMap[hit]++
+			prevMetric := hitsMap[hit.Pattern]
+			hitsMap[hit.Pattern] = dto.RequestMetric{
+				Count:         prevMetric.Count + 1,
+				DurationSumNs: prevMetric.DurationSumNs + hit.DurationNs,
+			}
 		}
 	}()
 }
@@ -53,19 +62,13 @@ func IncPanicCounter() {
 	recoveredPanicsCount.Add(1)
 }
 
-// GetMaxUnSavedChangesQueueCount returns the maximum count of unsaved changes in the queue
-func GetMaxUnSavedChangesQueueCount() int64 {
-	return maxUnSavedChangesQueueCount.Load()
+func Hit(pattern string, durationNs int64) {
+	hitsChan <- RequestHit{
+		DurationNs: durationNs,
+		Pattern:    pattern,
+	}
 }
 
-func SetMaxUnSavedChangesQueueCount(count int64) {
-	maxUnSavedChangesQueueCount.Store(count)
-}
-
-func Hit(pattern string) {
-	hitsChan <- pattern
-}
-
-func GetHitsMap() map[string]int {
+func GetHitsMap() map[string]dto.RequestMetric {
 	return hitsMap
 }

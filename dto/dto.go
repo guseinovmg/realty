@@ -5,13 +5,17 @@ import (
 )
 
 type Metrics struct {
-	UnSavedChangesQueueCount    int64          `json:"unSavedChangesCount"`
-	MaxUnSavedChangesQueueCount int64          `json:"maxUnSavedChangesCount"`
-	DbErrorCount                int64          `json:"dbErrorCount"`
-	RecoveredPanicsCount        int64          `json:"recoveredPanicsCount"`
-	InstanceStartTime           string         `json:"instanceStartTime"`
-	IsGracefullyStopped         bool           `json:"isGracefullyStopped"`
-	Hits                        map[string]int `json:"hits"`
+	UnSavedChangesQueueCount int64                    `json:"unSavedChangesCount"`
+	DbErrorCount             int64                    `json:"dbErrorCount"`
+	RecoveredPanicsCount     int64                    `json:"recoveredPanicsCount"`
+	InstanceStartTime        string                   `json:"instanceStartTime"`
+	IsGracefullyStopped      bool                     `json:"isGracefullyStopped"`
+	Hits                     map[string]RequestMetric `json:"hits"`
+}
+
+type RequestMetric struct {
+	Count         int64
+	DurationSumNs int64
 }
 
 type GenerateIdResponse struct {
