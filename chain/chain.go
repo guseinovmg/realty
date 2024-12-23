@@ -54,13 +54,14 @@ type PanicHandlerFunction func(recovered any, rc *RequestContext, writer http.Re
 type Chain struct {
 	onPanic  PanicHandlerFunction
 	handlers []HandlerFunction
+	logger   *slog.Logger
 }
 
 func (m *Chain) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	rc := &RequestContext{}
 	rc.RequestId = utils.GenerateId()
 	rc.Ctx = request.Context()
-	slog.Debug("request", "requestId", rc.RequestId, "method", request.Method, "pattern", request.Pattern, "path", request.URL.Path, "query", request.URL.RawQuery)
+	m.logger.Debug("request", "requestId", rc.RequestId, "method", request.Method, "pattern", request.Pattern, "path", request.URL.Path, "query", request.URL.RawQuery)
 	writer.Header().Set("X-Request-ID", strconv.FormatInt(rc.RequestId, 10))
 	defer func() {
 		nanoSec := time.Now().UnixNano() - rc.RequestId
@@ -68,7 +69,7 @@ func (m *Chain) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 		if err := recover(); err != nil {
 			//todo в любом случае нужно создать оповещение админу(sms или email)
 			application.IncPanicCounter()
-			slog.Error("panic", "requestId", rc.RequestId, "tm", fmt.Sprintf("%dns", nanoSec), "recovered", err)
+			m.logger.Error("panic", "requestId", rc.RequestId, "tm", fmt.Sprintf("%dns", nanoSec), "recovered", err)
 			if m.onPanic != nil {
 				m.onPanic(err, rc, writer, request)
 			} else {
@@ -99,12 +100,12 @@ func (m *Chain) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	}
 	nanoSec := time.Now().UnixNano() - rc.RequestId
 	if renderResult.WriteErr != nil {
-		slog.Error("response", "requestId", rc.RequestId, "tm", fmt.Sprintf("%dns", nanoSec), "httpCode", renderResult.StatusCode, "msg", renderResult.WriteErr.Error())
+		m.logger.Error("response", "requestId", rc.RequestId, "tm", fmt.Sprintf("%dns", nanoSec), "httpCode", renderResult.StatusCode, "msg", renderResult.WriteErr.Error())
 	} else {
 		if config.GetLogResponse() {
-			slog.Debug("response", "requestId", rc.RequestId, "tm", fmt.Sprintf("%dns", nanoSec), "httpCode", renderResult.StatusCode, "body", renderResult.Body)
+			m.logger.Debug("response", "requestId", rc.RequestId, "tm", fmt.Sprintf("%dns", nanoSec), "httpCode", renderResult.StatusCode, "body", renderResult.Body)
 		} else {
-			slog.Debug("response", "requestId", rc.RequestId, "tm", fmt.Sprintf("%dns", nanoSec), "httpCode", renderResult.StatusCode) //httpCode=-1 значит что ответ не был отправлен клиенту
+			m.logger.Debug("response", "requestId", rc.RequestId, "tm", fmt.Sprintf("%dns", nanoSec), "httpCode", renderResult.StatusCode) //httpCode=-1 значит что ответ не был отправлен клиенту
 		}
 	}
 }
@@ -114,8 +115,14 @@ func (m *Chain) OnPanic(onPanic PanicHandlerFunction) *Chain {
 	return m
 }
 
+func (m *Chain) SetLogger(logger *slog.Logger) *Chain {
+	m.logger = logger
+	return m
+}
+
 func Handler(handlerFunc ...HandlerFunction) *Chain {
 	return &Chain{
 		handlers: handlerFunc,
+		logger:   slog.Default(),
 	}
 }
