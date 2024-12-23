@@ -15,8 +15,8 @@ type Metrics struct {
 }
 
 type RequestMetric struct {
-	Count         int64
-	DurationSumNs int64
+	Count         int64 `json:"count"`
+	DurationSumNs int64 `json:"durationSumNs"`
 }
 
 type GenerateIdResponse struct {
