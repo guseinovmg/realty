@@ -9,6 +9,7 @@ type Metrics struct {
 	DbErrorCount             int64                    `json:"dbErrorCount"`
 	RecoveredPanicsCount     int64                    `json:"recoveredPanicsCount"`
 	InstanceStartTime        string                   `json:"instanceStartTime"`
+	InstanceCurrentTime      string                   `json:"instanceCurrentTime"`
 	IsGracefullyStopped      bool                     `json:"isGracefullyStopped"`
 	Hits                     map[string]RequestMetric `json:"hits"`
 }
