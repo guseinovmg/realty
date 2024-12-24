@@ -11,12 +11,14 @@ type Metrics struct {
 	InstanceStartTime        string                   `json:"instanceStartTime"`
 	InstanceCurrentTime      string                   `json:"instanceCurrentTime"`
 	IsGracefullyStopped      bool                     `json:"isGracefullyStopped"`
+	GracefullyStopTime       *string                  `json:"gracefullyStopTime,omitempty"`
 	Hits                     map[string]RequestMetric `json:"hits"`
 }
 
 type RequestMetric struct {
 	Count         int64 `json:"count"`
 	DurationSumNs int64 `json:"durationSumNs"`
+	AvgNs         int64 `json:"avgNs"`
 }
 
 type GenerateIdResponse struct {

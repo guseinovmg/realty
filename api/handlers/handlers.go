@@ -40,6 +40,8 @@ func GetMetrics(rc *chain.RequestContext, writer http.ResponseWriter, request *h
 	m := dto.Metrics{
 		InstanceStartTime:        application.GetInstanceStartTime().Format("2006/01/02 15:04:05"),
 		InstanceCurrentTime:      time.Now().Format("2006/01/02 15:04:05"),
+		IsGracefullyStopped:      application.IsGracefullyStopped(),
+		GracefullyStopTime:       application.GetGracefullyStopTime(),
 		UnSavedChangesQueueCount: cache.GetToSaveCount(),
 		DbErrorCount:             application.GetDbErrorsCount(),
 		RecoveredPanicsCount:     application.GetRecoveredPanicsCount(),

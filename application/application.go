@@ -15,6 +15,7 @@ var instanceStartTime time.Time = time.Now()
 var dbErrCount atomic.Int64
 var recoveredPanicsCount atomic.Int64
 var gracefullyStop atomic.Bool
+var gracefullyStopTime time.Time
 var hitsChan = make(chan RequestHit, 5000)
 var hitsMap = make(map[string]dto.RequestMetric)
 
@@ -22,9 +23,12 @@ func init() {
 	go func() {
 		for hit := range hitsChan {
 			prevMetric := hitsMap[hit.Pattern]
+			newCount := prevMetric.Count + 1
+			newDuration := prevMetric.DurationSumNs + hit.DurationNs
 			hitsMap[hit.Pattern] = dto.RequestMetric{
-				Count:         prevMetric.Count + 1,
-				DurationSumNs: prevMetric.DurationSumNs + hit.DurationNs,
+				Count:         newCount,
+				DurationSumNs: newDuration,
+				AvgNs:         newDuration / newCount,
 			}
 		}
 	}()
@@ -32,12 +36,21 @@ func init() {
 
 func GracefullyStopAndExitApp() {
 	if !gracefullyStop.Load() {
+		gracefullyStopTime = time.Now()
 		gracefullyStop.Store(true)
 	}
 }
 
 func IsGracefullyStopped() bool {
 	return gracefullyStop.Load()
+}
+
+func GetGracefullyStopTime() *string {
+	if gracefullyStopTime.IsZero() {
+		return nil
+	}
+	s := gracefullyStopTime.Format("2006/01/02 15:04:05")
+	return &s
 }
 
 // GetInstanceStartTime returns the instance start time
