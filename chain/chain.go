@@ -59,13 +59,14 @@ type Chain struct {
 
 func (m *Chain) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	rc := &RequestContext{}
+	var renderResult Result
 	rc.RequestId = utils.GenerateId()
 	rc.Ctx = request.Context()
 	m.logger.Debug("request", "requestId", rc.RequestId, "method", request.Method, "pattern", request.Pattern, "path", request.URL.Path, "query", request.URL.RawQuery)
 	writer.Header().Set("X-Request-ID", strconv.FormatInt(rc.RequestId, 10))
 	defer func() {
 		nanoSec := time.Now().UnixNano() - rc.RequestId
-		application.Hit(request.Pattern, nanoSec)
+		application.Hit(request.Pattern, renderResult.StatusCode, nanoSec)
 		if err := recover(); err != nil {
 			//todo в любом случае нужно создать оповещение админу(sms или email)
 			application.IncPanicCounter()
@@ -91,7 +92,7 @@ func (m *Chain) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 			application.GracefullyStopAndExitApp()
 		}
 	}()
-	var renderResult Result
+
 	for _, f := range m.handlers {
 		renderResult = f(rc, writer, request)
 		if renderResult != next {

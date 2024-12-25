@@ -8,6 +8,7 @@ import (
 
 type RequestHit struct {
 	DurationNs int64
+	StatusCode int
 	Pattern    string
 }
 
@@ -17,15 +18,18 @@ var recoveredPanicsCount atomic.Int64
 var gracefullyStop atomic.Bool
 var gracefullyStopTime time.Time
 var hitsChan = make(chan RequestHit, 5000)
-var hitsMap = make(map[string]dto.RequestMetric)
+var hitsMap = make(map[string]map[int]dto.RequestMetric)
 
 func init() {
 	go func() {
 		for hit := range hitsChan {
-			prevMetric := hitsMap[hit.Pattern]
+			if hitsMap[hit.Pattern] == nil {
+				hitsMap[hit.Pattern] = make(map[int]dto.RequestMetric)
+			}
+			prevMetric := hitsMap[hit.Pattern][hit.StatusCode]
 			newCount := prevMetric.Count + 1
 			newDuration := prevMetric.DurationSumNs + hit.DurationNs
-			hitsMap[hit.Pattern] = dto.RequestMetric{
+			hitsMap[hit.Pattern][hit.StatusCode] = dto.RequestMetric{
 				Count:         newCount,
 				DurationSumNs: newDuration,
 				AvgNs:         newDuration / newCount,
@@ -75,13 +79,14 @@ func IncPanicCounter() {
 	recoveredPanicsCount.Add(1)
 }
 
-func Hit(pattern string, durationNs int64) {
+func Hit(pattern string, status int, durationNs int64) {
 	hitsChan <- RequestHit{
 		DurationNs: durationNs,
 		Pattern:    pattern,
+		StatusCode: status,
 	}
 }
 
-func GetHitsMap() map[string]dto.RequestMetric {
+func GetHitsMap() map[string]map[int]dto.RequestMetric {
 	return hitsMap
 }

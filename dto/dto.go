@@ -5,14 +5,14 @@ import (
 )
 
 type Metrics struct {
-	UnSavedChangesQueueCount int64                    `json:"unSavedChangesCount"`
-	DbErrorCount             int64                    `json:"dbErrorCount"`
-	RecoveredPanicsCount     int64                    `json:"recoveredPanicsCount"`
-	InstanceStartTime        string                   `json:"instanceStartTime"`
-	InstanceCurrentTime      string                   `json:"instanceCurrentTime"`
-	IsGracefullyStopped      bool                     `json:"isGracefullyStopped"`
-	GracefullyStopTime       *string                  `json:"gracefullyStopTime,omitempty"`
-	Hits                     map[string]RequestMetric `json:"hits"`
+	UnSavedChangesQueueCount int64                            `json:"unSavedChangesCount"`
+	DbErrorCount             int64                            `json:"dbErrorCount"`
+	RecoveredPanicsCount     int64                            `json:"recoveredPanicsCount"`
+	InstanceStartTime        string                           `json:"instanceStartTime"`
+	InstanceCurrentTime      string                           `json:"instanceCurrentTime"`
+	IsGracefullyStopped      bool                             `json:"isGracefullyStopped"`
+	GracefullyStopTime       *string                          `json:"gracefullyStopTime,omitempty"`
+	Hits                     map[string]map[int]RequestMetric `json:"hits"`
 }
 
 type RequestMetric struct {
