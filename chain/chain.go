@@ -1,7 +1,6 @@
 package chain
 
 import (
-	"context"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -29,53 +28,58 @@ func Next() Result {
 	return next
 }
 
-// RequestContext
+// RequestData
 // можно расширять для передачи данных по цепочке обработчиков
-type RequestContext struct {
+type RequestData struct {
 	User      *cache.UserCache
 	Adv       *cache.AdvCache
-	RequestId int64
-	Ctx       context.Context
+	RequestId int64 //также используется в качестве времени старта запроса в ns
+	chain     *Chain
 }
 
-func (rc *RequestContext) CheckConnection() error {
-	select {
-	case <-rc.Ctx.Done(): //todo надо бы тест на этот случай - воспроизвезти обрыв соединения
-		return rc.Ctx.Err()
-	default:
-		return nil
-	}
+func (rd *RequestData) Logger() *slog.Logger {
+	return rd.chain.logger
 }
 
-type HandlerFunction func(rc *RequestContext, writer http.ResponseWriter, request *http.Request) Result
+func (rd *RequestData) Timeout() bool {
+	return time.Now().UnixNano()-rd.RequestId > rd.chain.timeoutNs
+}
 
-type PanicHandlerFunction func(recovered any, rc *RequestContext, writer http.ResponseWriter, request *http.Request)
+func (rd *RequestData) GetOnTimeout() HandlerFunction {
+	return rd.chain.onTimeout
+}
+
+type HandlerFunction func(rd *RequestData, writer http.ResponseWriter, request *http.Request) Result
+
+type PanicHandlerFunction func(recovered any, rc *RequestData, writer http.ResponseWriter, request *http.Request)
 
 type Chain struct {
-	onPanic  PanicHandlerFunction
-	handlers []HandlerFunction
-	logger   *slog.Logger
+	onPanic   PanicHandlerFunction
+	handlers  []HandlerFunction
+	logger    *slog.Logger
+	timeoutNs int64
+	onTimeout HandlerFunction
 }
 
-func (m *Chain) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	rc := &RequestContext{}
+func (chain *Chain) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+	rd := &RequestData{}
+	rd.chain = chain
 	var renderResult Result
-	rc.RequestId = utils.GenerateId()
-	rc.Ctx = request.Context()
-	m.logger.Debug("request", "requestId", rc.RequestId, "method", request.Method, "pattern", request.Pattern, "path", request.URL.Path, "query", request.URL.RawQuery)
-	writer.Header().Set("X-Request-ID", strconv.FormatInt(rc.RequestId, 10))
+	rd.RequestId = utils.GenerateId()
+	chain.logger.Debug("request", "requestId", rd.RequestId, "method", request.Method, "pattern", request.Pattern, "path", request.URL.Path, "query", request.URL.RawQuery)
+	writer.Header().Set("X-Request-ID", strconv.FormatInt(rd.RequestId, 10))
 	defer func() {
-		nanoSec := time.Now().UnixNano() - rc.RequestId
+		nanoSec := time.Now().UnixNano() - rd.RequestId
 		application.Hit(request.Pattern, renderResult.StatusCode, nanoSec)
 		if err := recover(); err != nil {
 			//todo в любом случае нужно создать оповещение админу(sms или email)
 			application.IncPanicCounter()
-			m.logger.Error("panic", "requestId", rc.RequestId, "tm", fmt.Sprintf("%dns", nanoSec), "recovered", err)
-			if m.onPanic != nil {
-				m.onPanic(err, rc, writer, request)
+			chain.logger.Error("panic", "requestId", rd.RequestId, "tm", fmt.Sprintf("%dns", nanoSec), "recovered", err)
+			if chain.onPanic != nil {
+				chain.onPanic(err, rd, writer, request)
 			} else {
 				writer.WriteHeader(500)
-				_, _ = writer.Write([]byte("Internal error. RequestId=" + strconv.FormatInt(rc.RequestId, 10)))
+				_, _ = writer.Write([]byte("Internal error. RequestId=" + strconv.FormatInt(rd.RequestId, 10)))
 			}
 			//todo при некоторых паниках перезапуск сервиса не решит проблем, поэтому не завершаем работу
 			switch err.(type) {
@@ -93,37 +97,64 @@ func (m *Chain) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 		}
 	}()
 
-	for _, f := range m.handlers {
-		renderResult = f(rc, writer, request)
+	for _, f := range chain.handlers {
+		renderResult = f(rd, writer, request)
 		if renderResult != next {
 			break
 		}
+		if rd.Timeout() {
+			renderResult = rd.GetOnTimeout()(rd, writer, request)
+			break
+		}
 	}
-	nanoSec := time.Now().UnixNano() - rc.RequestId
+	nanoSec := time.Now().UnixNano() - rd.RequestId
 	if renderResult.WriteErr != nil {
-		m.logger.Error("response", "requestId", rc.RequestId, "tm", fmt.Sprintf("%dns", nanoSec), "httpCode", renderResult.StatusCode, "msg", renderResult.WriteErr.Error())
+		chain.logger.Error("response", "requestId", rd.RequestId, "tm", fmt.Sprintf("%dns", nanoSec), "httpCode", renderResult.StatusCode, "msg", renderResult.WriteErr.Error())
 	} else {
 		if config.GetLogResponse() {
-			m.logger.Debug("response", "requestId", rc.RequestId, "tm", fmt.Sprintf("%dns", nanoSec), "httpCode", renderResult.StatusCode, "body", renderResult.Body)
+			chain.logger.Debug("response", "requestId", rd.RequestId, "tm", fmt.Sprintf("%dns", nanoSec), "httpCode", renderResult.StatusCode, "body", renderResult.Body)
 		} else {
-			m.logger.Debug("response", "requestId", rc.RequestId, "tm", fmt.Sprintf("%dns", nanoSec), "httpCode", renderResult.StatusCode) //httpCode=-1 значит что ответ не был отправлен клиенту
+			chain.logger.Debug("response", "requestId", rd.RequestId, "tm", fmt.Sprintf("%dns", nanoSec), "httpCode", renderResult.StatusCode) //httpCode=-1 значит что ответ не был отправлен клиенту
 		}
 	}
 }
 
-func (m *Chain) OnPanic(onPanic PanicHandlerFunction) *Chain {
-	m.onPanic = onPanic
-	return m
+func (chain *Chain) OnPanic(handler PanicHandlerFunction) *Chain {
+	chain.onPanic = handler
+	return chain
 }
 
-func (m *Chain) SetLogger(logger *slog.Logger) *Chain {
-	m.logger = logger
-	return m
+func (chain *Chain) SetLogger(logger *slog.Logger) *Chain {
+	chain.logger = logger
+	return chain
+}
+
+func (chain *Chain) SetTimeout(timeoutNs int64) *Chain {
+	chain.timeoutNs = timeoutNs
+	return chain
+}
+
+func (chain *Chain) OnTimeout(handler HandlerFunction) *Chain {
+	chain.onTimeout = handler
+	return chain
+}
+
+func DefaultOnTimeout(rd *RequestData, writer http.ResponseWriter, request *http.Request) Result {
+	writer.WriteHeader(http.StatusRequestTimeout)
+	body := "Request timeout. RequestId=" + strconv.FormatInt(rd.RequestId, 10)
+	_, err := writer.Write([]byte(body))
+	return Result{
+		StatusCode: http.StatusRequestTimeout,
+		WriteErr:   err,
+		Body:       body,
+	}
 }
 
 func Handler(handlerFunc ...HandlerFunction) *Chain {
 	return &Chain{
-		handlers: handlerFunc,
-		logger:   slog.Default(),
+		handlers:  handlerFunc,
+		logger:    slog.Default(),
+		timeoutNs: 30 * 1000 * 1000 * 1000, //30 сек
+		onTimeout: DefaultOnTimeout,
 	}
 }

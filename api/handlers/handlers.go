@@ -22,20 +22,20 @@ import (
 	"time"
 )
 
-func TextError(recovered any, rc *chain.RequestContext, writer http.ResponseWriter, request *http.Request) {
+func TextError(recovered any, rd *chain.RequestData, writer http.ResponseWriter, request *http.Request) {
 	writer.WriteHeader(http.StatusInternalServerError)
-	_, _ = writer.Write(utils.UnsafeStringToBytes("Internal error, requestId=" + strconv.FormatInt(rc.RequestId, 10)))
+	_, _ = writer.Write(utils.UnsafeStringToBytes("Internal error, requestId=" + strconv.FormatInt(rd.RequestId, 10)))
 }
 
-func JsonError(recovered any, rc *chain.RequestContext, writer http.ResponseWriter, request *http.Request) {
-	render.Json(writer, http.StatusInternalServerError, &dto.Err{ErrMessage: "Internal error", RequestId: rc.RequestId})
+func JsonError(recovered any, rd *chain.RequestData, writer http.ResponseWriter, request *http.Request) {
+	render.Json(writer, http.StatusInternalServerError, &dto.Err{ErrMessage: "Internal error", RequestId: rd.RequestId})
 }
 
-func JsonOK(rc *chain.RequestContext, writer http.ResponseWriter, request *http.Request) chain.Result {
+func JsonOK(rd *chain.RequestData, writer http.ResponseWriter, request *http.Request) chain.Result {
 	return render.Json(writer, http.StatusOK, render.ResultOK)
 }
 
-func GetMetrics(rc *chain.RequestContext, writer http.ResponseWriter, request *http.Request) chain.Result {
+func GetMetrics(rd *chain.RequestData, writer http.ResponseWriter, request *http.Request) chain.Result {
 	//todo надо еще добавить метрики из пакетов runtime и metrics
 	m := dto.Metrics{
 		InstanceStartTime:        application.GetInstanceStartTime().Format("2006/01/02 15:04:05"),
@@ -50,11 +50,11 @@ func GetMetrics(rc *chain.RequestContext, writer http.ResponseWriter, request *h
 	return render.Json(writer, http.StatusOK, &m)
 }
 
-func GenerateId(rc *chain.RequestContext, writer http.ResponseWriter, request *http.Request) chain.Result {
+func GenerateId(rd *chain.RequestData, writer http.ResponseWriter, request *http.Request) chain.Result {
 	return render.Json(writer, http.StatusOK, &dto.GenerateIdResponse{Id: utils.GenerateId()})
 }
 
-func LogoutMe(rc *chain.RequestContext, writer http.ResponseWriter, request *http.Request) chain.Result {
+func LogoutMe(rd *chain.RequestData, writer http.ResponseWriter, request *http.Request) chain.Result {
 	http.SetCookie(writer, &http.Cookie{
 		SameSite: http.SameSiteStrictMode,
 		Name:     "auth_token",
@@ -68,12 +68,12 @@ func LogoutMe(rc *chain.RequestContext, writer http.ResponseWriter, request *htt
 	return render.Json(writer, http.StatusOK, render.ResultOK)
 }
 
-func LogoutAll(rc *chain.RequestContext, writer http.ResponseWriter, request *http.Request) chain.Result {
-	cache.UpdateSessionSecret(rc.RequestId, rc.User)
+func LogoutAll(rd *chain.RequestData, writer http.ResponseWriter, request *http.Request) chain.Result {
+	cache.UpdateSessionSecret(rd.RequestId, rd.User)
 	return render.Json(writer, http.StatusOK, render.ResultOK)
 }
 
-func Registration(rc *chain.RequestContext, writer http.ResponseWriter, request *http.Request) chain.Result {
+func Registration(rd *chain.RequestData, writer http.ResponseWriter, request *http.Request) chain.Result {
 	requestDto := &dto.RegisterRequest{}
 	if err := parsing_input.ParseRawJson(request, requestDto); err != nil {
 		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
@@ -81,12 +81,12 @@ func Registration(rc *chain.RequestContext, writer http.ResponseWriter, request 
 	if err := validator.ValidateRegisterRequest(requestDto); err != nil {
 		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
 	}
-	cache.CreateUser(rc.RequestId, requestDto)
+	cache.CreateUser(rd.RequestId, requestDto)
 	return render.Json(writer, http.StatusOK, render.ResultOK)
 
 }
 
-func UpdatePassword(rc *chain.RequestContext, writer http.ResponseWriter, request *http.Request) chain.Result {
+func UpdatePassword(rd *chain.RequestData, writer http.ResponseWriter, request *http.Request) chain.Result {
 	requestDto := &dto.UpdatePasswordRequest{}
 	if err := parsing_input.ParseRawJson(request, requestDto); err != nil {
 		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
@@ -94,15 +94,15 @@ func UpdatePassword(rc *chain.RequestContext, writer http.ResponseWriter, reques
 	if err := validator.ValidateUpdatePasswordRequest(requestDto); err != nil {
 		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
 	}
-	if !bytes.Equal(rc.User.CurrentUser.PasswordHash, utils.GeneratePasswordHash(requestDto.OldPassword)) {
+	if !bytes.Equal(rd.User.CurrentUser.PasswordHash, utils.GeneratePasswordHash(requestDto.OldPassword)) {
 		return render.Json(writer, http.StatusUnauthorized, &dto.Err{ErrMessage: "неверный пароль"})
 	}
-	cache.UpdatePassword(rc.RequestId, rc.User, requestDto)
+	cache.UpdatePassword(rd.RequestId, rd.User, requestDto)
 	return render.Json(writer, http.StatusOK, render.ResultOK)
 
 }
 
-func UpdateUser(rc *chain.RequestContext, writer http.ResponseWriter, request *http.Request) chain.Result {
+func UpdateUser(rd *chain.RequestData, writer http.ResponseWriter, request *http.Request) chain.Result {
 	requestDto := &dto.UpdateUserRequest{}
 	if err := parsing_input.ParseRawJson(request, requestDto); err != nil {
 		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
@@ -110,11 +110,11 @@ func UpdateUser(rc *chain.RequestContext, writer http.ResponseWriter, request *h
 	if err := validator.ValidateUpdateUserRequest(requestDto); err != nil {
 		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
 	}
-	cache.UpdateUser(rc.RequestId, rc.User, requestDto)
+	cache.UpdateUser(rd.RequestId, rd.User, requestDto)
 	return render.Json(writer, http.StatusOK, render.ResultOK)
 }
 
-func CreateAdv(rc *chain.RequestContext, writer http.ResponseWriter, request *http.Request) chain.Result {
+func CreateAdv(rd *chain.RequestData, writer http.ResponseWriter, request *http.Request) chain.Result {
 	requestDto := &dto.CreateAdvRequest{}
 	if err := parsing_input.ParseRawJson(request, requestDto); err != nil {
 		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
@@ -125,12 +125,12 @@ func CreateAdv(rc *chain.RequestContext, writer http.ResponseWriter, request *ht
 	if badWords := moderation.SearchBadWord(requestDto.Description); len(badWords) != 0 {
 		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: fmt.Sprintf("в описании присутствуют запрещенные слова: %v", badWords)})
 	}
-	advId := cache.CreateAdv(rc.RequestId, &rc.User.CurrentUser, requestDto)
-	return render.Json(writer, http.StatusOK, &dto.CreateAdvResponse{RequestId: rc.RequestId, AdvId: advId})
+	advId := cache.CreateAdv(rd.RequestId, &rd.User.CurrentUser, requestDto)
+	return render.Json(writer, http.StatusOK, &dto.CreateAdvResponse{RequestId: rd.RequestId, AdvId: advId})
 }
 
-func GetAdv(rc *chain.RequestContext, writer http.ResponseWriter, request *http.Request) chain.Result {
-	adv := rc.Adv.CurrentAdv
+func GetAdv(rd *chain.RequestData, writer http.ResponseWriter, request *http.Request) chain.Result {
+	adv := rd.Adv.CurrentAdv
 	if !adv.Approved {
 		return render.Json(writer, http.StatusLocked, &dto.Err{ErrMessage: "объявление на проверке"})
 	}
@@ -149,7 +149,7 @@ func GetAdv(rc *chain.RequestContext, writer http.ResponseWriter, request *http.
 		TranslatedBy: adv.TranslatedBy,
 		Title:        adv.Title,
 		Description:  adv.Description,
-		Photos:       rc.Adv.GetPhotosFilenames(),
+		Photos:       rd.Adv.GetPhotosFilenames(),
 		Price:        adv.Price,
 		Currency:     adv.Currency,
 		DollarPrice:  adv.DollarPrice,
@@ -158,15 +158,15 @@ func GetAdv(rc *chain.RequestContext, writer http.ResponseWriter, request *http.
 		Address:      adv.Address,
 		Latitude:     adv.Latitude,
 		Longitude:    adv.Longitude,
-		Watches:      rc.Adv.Watches.Watches.Count,
+		Watches:      rd.Adv.Watches.Watches.Count,
 		SeVisible:    adv.SeVisible,
 		UserComment:  adv.UserComment,
 	}
-	cache.IncAdvWatches(rc.Adv.Watches)
+	cache.IncAdvWatches(rd.Adv.Watches)
 	return render.Json(writer, http.StatusOK, response)
 }
 
-func GetAdvList(rc *chain.RequestContext, writer http.ResponseWriter, request *http.Request) chain.Result {
+func GetAdvList(rd *chain.RequestData, writer http.ResponseWriter, request *http.Request) chain.Result {
 	var (
 		minDollarPrice int64
 		maxDollarPrice int64   = math.MaxInt64
@@ -221,11 +221,11 @@ func GetAdvList(rc *chain.RequestContext, writer http.ResponseWriter, request *h
 	return render.Json(writer, http.StatusOK, &dto.GetAdvListResponse{List: advs, Count: count})
 }
 
-func GetUsersAdv(rc *chain.RequestContext, writer http.ResponseWriter, request *http.Request) chain.Result {
-	return render.Json(writer, http.StatusOK, rc.Adv.CurrentAdv)
+func GetUsersAdv(rd *chain.RequestData, writer http.ResponseWriter, request *http.Request) chain.Result {
+	return render.Json(writer, http.StatusOK, rd.Adv.CurrentAdv)
 }
 
-func GetUsersAdvList(rc *chain.RequestContext, writer http.ResponseWriter, request *http.Request) chain.Result {
+func GetUsersAdvList(rd *chain.RequestData, writer http.ResponseWriter, request *http.Request) chain.Result {
 	var (
 		offset   int
 		limit    int = 20
@@ -239,11 +239,11 @@ func GetUsersAdvList(rc *chain.RequestContext, writer http.ResponseWriter, reque
 		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
 	}
 	offset = (int(requestDto.Page) - 1) * limit
-	advs, count := cache.FindUsersAdvs(rc.User.CurrentUser.Id, offset, limit, firstNew)
+	advs, count := cache.FindUsersAdvs(rd.User.CurrentUser.Id, offset, limit, firstNew)
 	return render.Json(writer, http.StatusOK, &dto.GetAdvListResponse{List: advs, Count: count})
 }
 
-func UpdateAdv(rc *chain.RequestContext, writer http.ResponseWriter, request *http.Request) chain.Result {
+func UpdateAdv(rd *chain.RequestData, writer http.ResponseWriter, request *http.Request) chain.Result {
 	requestDto := &dto.UpdateAdvRequest{}
 	if err := parsing_input.ParseRawJson(request, requestDto); err != nil {
 		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
@@ -254,19 +254,22 @@ func UpdateAdv(rc *chain.RequestContext, writer http.ResponseWriter, request *ht
 	if badWords := moderation.SearchBadWord(requestDto.Description); len(badWords) != 0 {
 		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: fmt.Sprintf("в описании присутствуют запрещенные слова: %v", badWords)})
 	}
-	if err := rc.CheckConnection(); err != nil {
+	if err := request.Context().Err(); err != nil { //todo надо проверить как это работает при обрыве соединения
 		return render.Json(writer, http.StatusRequestTimeout, &dto.Err{ErrMessage: fmt.Sprintf("ошибка соединения: %s", err.Error())}) //todo тут надо подумать, по идее ответ и так не дойдет
 	}
-	cache.UpdateAdv(rc.RequestId, rc.Adv, requestDto)
+	if rd.Timeout() {
+		return rd.GetOnTimeout()(rd, writer, request)
+	}
+	cache.UpdateAdv(rd.RequestId, rd.Adv, requestDto)
 	return render.Json(writer, http.StatusOK, render.ResultOK)
 }
 
-func DeleteAdv(rc *chain.RequestContext, writer http.ResponseWriter, request *http.Request) chain.Result {
-	cache.DeleteAdv(rc.RequestId, rc.Adv)
+func DeleteAdv(rd *chain.RequestData, writer http.ResponseWriter, request *http.Request) chain.Result {
+	cache.DeleteAdv(rd.RequestId, rd.Adv)
 	return render.Json(writer, http.StatusOK, render.ResultOK)
 }
 
-func AddAdvPhoto(rc *chain.RequestContext, writer http.ResponseWriter, request *http.Request) chain.Result {
+func AddAdvPhoto(rd *chain.RequestData, writer http.ResponseWriter, request *http.Request) chain.Result {
 	requestDto := &dto.AddPhotoRequest{}
 	if err := parsing_input.ParseRawJson(request, requestDto); err != nil {
 		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
@@ -284,7 +287,7 @@ func AddAdvPhoto(rc *chain.RequestContext, writer http.ResponseWriter, request *
 		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: "неверный id файла"})
 	}
 	photo := &models.Photo{
-		AdvId: rc.Adv.CurrentAdv.Id,
+		AdvId: rd.Adv.CurrentAdv.Id,
 		Id:    id,
 	}
 	switch ext {
@@ -297,11 +300,11 @@ func AddAdvPhoto(rc *chain.RequestContext, writer http.ResponseWriter, request *
 	default:
 		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: "не поддерживается тип изображения"})
 	}
-	cache.CreatePhoto(rc.RequestId, rc.Adv, photo)
+	cache.CreatePhoto(rd.RequestId, rd.Adv, photo)
 	return render.Json(writer, http.StatusOK, render.ResultOK)
 }
 
-func DeleteAdvPhoto(rc *chain.RequestContext, writer http.ResponseWriter, request *http.Request) chain.Result {
+func DeleteAdvPhoto(rd *chain.RequestData, writer http.ResponseWriter, request *http.Request) chain.Result {
 	photoIdStr := request.PathValue("photoId")
 	photoId, errConv := strconv.ParseInt(photoIdStr, 10, 64)
 	if errConv != nil {
@@ -314,9 +317,9 @@ func DeleteAdvPhoto(rc *chain.RequestContext, writer http.ResponseWriter, reques
 	if photoCache == nil {
 		return render.Json(writer, http.StatusNotFound, &dto.Err{ErrMessage: "фото не найдено"})
 	}
-	if rc.Adv.CurrentAdv.Id != photoCache.Photo.AdvId {
+	if rd.Adv.CurrentAdv.Id != photoCache.Photo.AdvId {
 		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: "фото принадлежит другому объявлению"})
 	}
-	cache.DeletePhoto(rc.RequestId, rc.Adv, photoCache)
+	cache.DeletePhoto(rd.RequestId, rd.Adv, photoCache)
 	return render.Json(writer, http.StatusOK, render.ResultOK)
 }

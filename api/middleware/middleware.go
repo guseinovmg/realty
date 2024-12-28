@@ -18,7 +18,7 @@ import (
 	"time"
 )
 
-func Auth(rc *chain.RequestContext, writer http.ResponseWriter, request *http.Request) chain.Result {
+func Auth(rd *chain.RequestData, writer http.ResponseWriter, request *http.Request) chain.Result {
 	cookie, err := request.Cookie("auth_token")
 	if err != nil {
 		return render.Json(writer, http.StatusUnauthorized, &dto.Err{ErrMessage: "ошибка авторизации 1"})
@@ -58,11 +58,11 @@ func Auth(rc *chain.RequestContext, writer http.ResponseWriter, request *http.Re
 	if !auth_token.IsValidToken(tokenBytesArr, userCache.CurrentUser.SessionSecret) {
 		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: "неверный токен"})
 	}
-	rc.User = userCache
+	rd.User = userCache
 	return chain.Next()
 }
 
-func Login(rc *chain.RequestContext, writer http.ResponseWriter, request *http.Request) chain.Result {
+func Login(rd *chain.RequestData, writer http.ResponseWriter, request *http.Request) chain.Result {
 	requestDto := &dto.LoginRequest{}
 	if err := parsing_input.ParseRawJson(request, requestDto); err != nil {
 		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
@@ -77,27 +77,27 @@ func Login(rc *chain.RequestContext, writer http.ResponseWriter, request *http.R
 	if !bytes.Equal(utils.GeneratePasswordHash(requestDto.Password), userCache.CurrentUser.PasswordHash) {
 		return render.Json(writer, http.StatusUnauthorized, &dto.Err{ErrMessage: "неверный пароль"})
 	}
-	rc.User = userCache
+	rd.User = userCache
 	return chain.Next()
 }
 
-func CheckIsAdmin(rc *chain.RequestContext, writer http.ResponseWriter, request *http.Request) chain.Result {
-	if rc.User == nil || rc.User.CurrentUser.Id != config.GetAdminId() {
+func CheckIsAdmin(rd *chain.RequestData, writer http.ResponseWriter, request *http.Request) chain.Result {
+	if rd.User == nil || rd.User.CurrentUser.Id != config.GetAdminId() {
 		return render.Json(writer, http.StatusForbidden, &dto.Err{ErrMessage: "пользователь не админ"})
 	}
 	return chain.Next()
 }
 
-func CheckGracefullyStop(rc *chain.RequestContext, writer http.ResponseWriter, request *http.Request) chain.Result {
+func CheckGracefullyStop(rd *chain.RequestData, writer http.ResponseWriter, request *http.Request) chain.Result {
 	if application.IsGracefullyStopped() {
 		return render.Json(writer, http.StatusServiceUnavailable, &dto.Err{ErrMessage: "сервис временно недоступен"})
 	}
 	return chain.Next()
 }
 
-func SetAuthCookie(rc *chain.RequestContext, writer http.ResponseWriter, request *http.Request) chain.Result {
+func SetAuthCookie(rd *chain.RequestData, writer http.ResponseWriter, request *http.Request) chain.Result {
 	cookieDuration := time.Hour * 24 * 3
-	newTokenBytes := auth_token.CreateToken(rc.User.CurrentUser.Id, time.Now().Add(cookieDuration).UnixNano(), rc.User.CurrentUser.SessionSecret)
+	newTokenBytes := auth_token.CreateToken(rd.User.CurrentUser.Id, time.Now().Add(cookieDuration).UnixNano(), rd.User.CurrentUser.SessionSecret)
 	newTokenBytes = auth_token.Shuffle(newTokenBytes)
 	newTokenStr := base64.StdEncoding.EncodeToString(newTokenBytes[:])
 	http.SetCookie(writer, &http.Cookie{
@@ -113,7 +113,7 @@ func SetAuthCookie(rc *chain.RequestContext, writer http.ResponseWriter, request
 	return chain.Next()
 }
 
-func FindAdv(rc *chain.RequestContext, writer http.ResponseWriter, request *http.Request) chain.Result {
+func FindAdv(rd *chain.RequestData, writer http.ResponseWriter, request *http.Request) chain.Result {
 	advIdStr := request.PathValue("advId")
 	advId, errConv := strconv.ParseInt(advIdStr, 10, 64)
 	if errConv != nil {
@@ -126,19 +126,19 @@ func FindAdv(rc *chain.RequestContext, writer http.ResponseWriter, request *http
 	if advCache == nil {
 		return render.Json(writer, http.StatusNotFound, &dto.Err{ErrMessage: "объявление не найдено"})
 	}
-	rc.Adv = advCache
+	rd.Adv = advCache
 	return chain.Next()
 }
 
-func CheckAdvOwner(rc *chain.RequestContext, writer http.ResponseWriter, request *http.Request) chain.Result {
-	if rc.Adv.CurrentAdv.UserId != rc.User.CurrentUser.Id {
+func CheckAdvOwner(rd *chain.RequestData, writer http.ResponseWriter, request *http.Request) chain.Result {
+	if rd.Adv.CurrentAdv.UserId != rd.User.CurrentUser.Id {
 		return render.Json(writer, http.StatusNotFound, &dto.Err{ErrMessage: "объявление не принадлежит текущему пользователю"})
 	}
 	return chain.Next()
 }
 
 func StopIfUnsavedMoreThan(count int64) chain.HandlerFunction {
-	return func(rc *chain.RequestContext, writer http.ResponseWriter, request *http.Request) chain.Result {
+	return func(rd *chain.RequestData, writer http.ResponseWriter, request *http.Request) chain.Result {
 		if cache.GetToSaveCount() >= count {
 			return render.Json(writer, http.StatusTooManyRequests, &dto.Err{ErrMessage: "попробуйте позже"})
 		}
