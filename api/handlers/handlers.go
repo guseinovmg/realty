@@ -36,7 +36,7 @@ func JsonOK(rd *chain.RequestData, writer http.ResponseWriter, request *http.Req
 }
 
 func GetMetrics(rd *chain.RequestData, writer http.ResponseWriter, request *http.Request) chain.Result {
-	//todo надо еще добавить метрики из пакетов runtime и metrics
+	//todo надо еще добавить метрики из пакета metrics
 	m := dto.Metrics{
 		InstanceStartTime:        application.GetInstanceStartTime().Format("2006/01/02 15:04:05"),
 		InstanceCurrentTime:      time.Now().Format("2006/01/02 15:04:05"),

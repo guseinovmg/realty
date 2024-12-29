@@ -66,7 +66,7 @@ func (chain *Chain) ServeHTTP(writer http.ResponseWriter, request *http.Request)
 	rd.chain = chain
 	var renderResult Result
 	rd.RequestId = utils.GenerateId()
-	chain.logger.Debug("request", "requestId", rd.RequestId, "method", request.Method, "pattern", request.Pattern, "path", request.URL.Path, "query", request.URL.RawQuery)
+	chain.logger.Debug("request", "rid", rd.RequestId, "method", request.Method, "pattern", request.Pattern, "path", request.URL.Path, "query", request.URL.RawQuery)
 	writer.Header().Set("X-Request-ID", strconv.FormatInt(rd.RequestId, 10))
 	defer func() {
 		nanoSec := time.Now().UnixNano() - rd.RequestId
@@ -74,7 +74,7 @@ func (chain *Chain) ServeHTTP(writer http.ResponseWriter, request *http.Request)
 		if err := recover(); err != nil {
 			//todo в любом случае нужно создать оповещение админу(sms или email)
 			application.IncPanicCounter()
-			chain.logger.Error("panic", "requestId", rd.RequestId, "tm", fmt.Sprintf("%dns", nanoSec), "recovered", err)
+			chain.logger.Error("panic", "rid", rd.RequestId, "tm", fmt.Sprintf("%dns", nanoSec), "recovered", err)
 			if chain.onPanic != nil {
 				chain.onPanic(err, rd, writer, request)
 			} else {
@@ -102,20 +102,22 @@ func (chain *Chain) ServeHTTP(writer http.ResponseWriter, request *http.Request)
 		if renderResult != next {
 			break
 		}
+		//todo if err := request.Context().Err(); err != nil {
 		if rd.Timeout() {
 			renderResult = rd.GetOnTimeout()(rd, writer, request)
 			break
 		}
 	}
 	nanoSec := time.Now().UnixNano() - rd.RequestId
+	logArgs := []any{"rid", rd.RequestId, "tm", fmt.Sprintf("%dns", nanoSec), "code", renderResult.StatusCode} //httpCode=-1 значит что ответ не был отправлен клиенту
 	if renderResult.WriteErr != nil {
-		chain.logger.Error("response", "requestId", rd.RequestId, "tm", fmt.Sprintf("%dns", nanoSec), "httpCode", renderResult.StatusCode, "msg", renderResult.WriteErr.Error())
+		logArgs = append(logArgs, "msg", renderResult.WriteErr)
+		chain.logger.Error("response", logArgs...)
 	} else {
 		if config.GetLogResponse() {
-			chain.logger.Debug("response", "requestId", rd.RequestId, "tm", fmt.Sprintf("%dns", nanoSec), "httpCode", renderResult.StatusCode, "body", renderResult.Body)
-		} else {
-			chain.logger.Debug("response", "requestId", rd.RequestId, "tm", fmt.Sprintf("%dns", nanoSec), "httpCode", renderResult.StatusCode) //httpCode=-1 значит что ответ не был отправлен клиенту
+			logArgs = append(logArgs, "body", renderResult.Body)
 		}
+		chain.logger.Debug("response", logArgs...)
 	}
 }
 
