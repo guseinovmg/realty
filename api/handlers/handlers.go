@@ -85,6 +85,9 @@ func Registration(rd *chain.RequestData, writer http.ResponseWriter, request *ht
 	if result := middleware.CheckConnectionAndTimeout(rd, writer, request); result != chain.Next() {
 		return result
 	}
+	if result := middleware.CheckGracefullyStop(rd, writer, request); result != chain.Next() {
+		return result
+	}
 	cache.CreateUser(rd.RequestId, requestDto)
 	return render.Json(writer, http.StatusOK, render.ResultOK)
 
@@ -104,6 +107,9 @@ func UpdatePassword(rd *chain.RequestData, writer http.ResponseWriter, request *
 	if result := middleware.CheckConnectionAndTimeout(rd, writer, request); result != chain.Next() {
 		return result
 	}
+	if result := middleware.CheckGracefullyStop(rd, writer, request); result != chain.Next() {
+		return result
+	}
 	cache.UpdatePassword(rd.RequestId, rd.User, requestDto)
 	return render.Json(writer, http.StatusOK, render.ResultOK)
 
@@ -118,6 +124,9 @@ func UpdateUser(rd *chain.RequestData, writer http.ResponseWriter, request *http
 		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
 	}
 	if result := middleware.CheckConnectionAndTimeout(rd, writer, request); result != chain.Next() {
+		return result
+	}
+	if result := middleware.CheckGracefullyStop(rd, writer, request); result != chain.Next() {
 		return result
 	}
 	cache.UpdateUser(rd.RequestId, rd.User, requestDto)
@@ -136,6 +145,9 @@ func CreateAdv(rd *chain.RequestData, writer http.ResponseWriter, request *http.
 		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: fmt.Sprintf("в описании присутствуют запрещенные слова: %v", badWords)})
 	}
 	if result := middleware.CheckConnectionAndTimeout(rd, writer, request); result != chain.Next() {
+		return result
+	}
+	if result := middleware.CheckGracefullyStop(rd, writer, request); result != chain.Next() {
 		return result
 	}
 	advId := cache.CreateAdv(rd.RequestId, &rd.User.CurrentUser, requestDto)
@@ -225,6 +237,9 @@ func GetAdvList(rd *chain.RequestData, writer http.ResponseWriter, request *http
 	if result := middleware.CheckConnectionAndTimeout(rd, writer, request); result != chain.Next() {
 		return result
 	}
+	if result := middleware.CheckGracefullyStop(rd, writer, request); result != chain.Next() {
+		return result
+	}
 	advs, count := cache.FindAdvs(
 		minDollarPrice,
 		maxDollarPrice,
@@ -261,6 +276,9 @@ func GetUsersAdvList(rd *chain.RequestData, writer http.ResponseWriter, request 
 	if result := middleware.CheckConnectionAndTimeout(rd, writer, request); result != chain.Next() {
 		return result
 	}
+	if result := middleware.CheckGracefullyStop(rd, writer, request); result != chain.Next() {
+		return result
+	}
 	advs, count := cache.FindUsersAdvs(rd.User.CurrentUser.Id, offset, limit, firstNew)
 	return render.Json(writer, http.StatusOK, &dto.GetAdvListResponse{List: advs, Count: count})
 }
@@ -277,6 +295,9 @@ func UpdateAdv(rd *chain.RequestData, writer http.ResponseWriter, request *http.
 		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: fmt.Sprintf("в описании присутствуют запрещенные слова: %v", badWords)})
 	}
 	if result := middleware.CheckConnectionAndTimeout(rd, writer, request); result != chain.Next() {
+		return result
+	}
+	if result := middleware.CheckGracefullyStop(rd, writer, request); result != chain.Next() {
 		return result
 	}
 	cache.UpdateAdv(rd.RequestId, rd.Adv, requestDto)
@@ -322,6 +343,9 @@ func AddAdvPhoto(rd *chain.RequestData, writer http.ResponseWriter, request *htt
 	if result := middleware.CheckConnectionAndTimeout(rd, writer, request); result != chain.Next() {
 		return result
 	}
+	if result := middleware.CheckGracefullyStop(rd, writer, request); result != chain.Next() {
+		return result
+	}
 	cache.CreatePhoto(rd.RequestId, rd.Adv, photo)
 	return render.Json(writer, http.StatusOK, render.ResultOK)
 }
@@ -343,6 +367,9 @@ func DeleteAdvPhoto(rd *chain.RequestData, writer http.ResponseWriter, request *
 		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: "фото принадлежит другому объявлению"})
 	}
 	if result := middleware.CheckConnectionAndTimeout(rd, writer, request); result != chain.Next() {
+		return result
+	}
+	if result := middleware.CheckGracefullyStop(rd, writer, request); result != chain.Next() {
 		return result
 	}
 	cache.DeletePhoto(rd.RequestId, rd.Adv, photoCache)
