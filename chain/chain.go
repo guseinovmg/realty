@@ -1,6 +1,7 @@
 package chain
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -102,22 +103,19 @@ func (chain *Chain) ServeHTTP(writer http.ResponseWriter, request *http.Request)
 		if renderResult != next {
 			break
 		}
-		//todo if err := request.Context().Err(); err != nil {
-		if rd.Timeout() {
-			renderResult = rd.GetOnTimeout()(rd, writer, request)
-			break
-		}
 	}
-	nanoSec := time.Now().UnixNano() - rd.RequestId
-	logArgs := []any{"rid", rd.RequestId, "tm", fmt.Sprintf("%dns", nanoSec), "code", renderResult.StatusCode} //httpCode=-1 значит что ответ не был отправлен клиенту
-	if renderResult.WriteErr != nil {
-		logArgs = append(logArgs, "msg", renderResult.WriteErr)
-		chain.logger.Error("response", logArgs...)
-	} else {
-		if config.GetLogResponse() {
-			logArgs = append(logArgs, "body", renderResult.Body)
+	if renderResult.WriteErr != nil || chain.logger.Enabled(context.Background(), slog.LevelDebug) {
+		nanoSec := time.Now().UnixNano() - rd.RequestId
+		logArgs := []any{"rid", rd.RequestId, "tm", fmt.Sprintf("%dns", nanoSec), "code", renderResult.StatusCode} //httpCode=-1 или 0 значит что ответ не был отправлен клиенту
+		if renderResult.WriteErr != nil {
+			logArgs = append(logArgs, "msg", renderResult.WriteErr)
+			chain.logger.Error("response", logArgs...)
+		} else {
+			if config.GetLogResponse() {
+				logArgs = append(logArgs, "body", renderResult.Body)
+			}
+			chain.logger.Debug("response", logArgs...)
 		}
-		chain.logger.Debug("response", logArgs...)
 	}
 }
 

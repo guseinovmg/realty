@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"net/http"
+	"realty/api/middleware"
 	"realty/application"
 	"realty/cache"
 	"realty/chain"
@@ -36,7 +37,7 @@ func JsonOK(rd *chain.RequestData, writer http.ResponseWriter, request *http.Req
 }
 
 func GetMetrics(rd *chain.RequestData, writer http.ResponseWriter, request *http.Request) chain.Result {
-	//todo надо еще добавить метрики из пакета metrics
+	//todo надо еще добавить метрики из пакета metrics или pprof задействовать
 	m := dto.Metrics{
 		InstanceStartTime:        application.GetInstanceStartTime().Format("2006/01/02 15:04:05"),
 		InstanceCurrentTime:      time.Now().Format("2006/01/02 15:04:05"),
@@ -81,6 +82,9 @@ func Registration(rd *chain.RequestData, writer http.ResponseWriter, request *ht
 	if err := validator.ValidateRegisterRequest(requestDto); err != nil {
 		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
 	}
+	if result := middleware.CheckConnectionAndTimeout(rd, writer, request); result != chain.Next() {
+		return result
+	}
 	cache.CreateUser(rd.RequestId, requestDto)
 	return render.Json(writer, http.StatusOK, render.ResultOK)
 
@@ -97,6 +101,9 @@ func UpdatePassword(rd *chain.RequestData, writer http.ResponseWriter, request *
 	if !bytes.Equal(rd.User.CurrentUser.PasswordHash, utils.GeneratePasswordHash(requestDto.OldPassword)) {
 		return render.Json(writer, http.StatusUnauthorized, &dto.Err{ErrMessage: "неверный пароль"})
 	}
+	if result := middleware.CheckConnectionAndTimeout(rd, writer, request); result != chain.Next() {
+		return result
+	}
 	cache.UpdatePassword(rd.RequestId, rd.User, requestDto)
 	return render.Json(writer, http.StatusOK, render.ResultOK)
 
@@ -109,6 +116,9 @@ func UpdateUser(rd *chain.RequestData, writer http.ResponseWriter, request *http
 	}
 	if err := validator.ValidateUpdateUserRequest(requestDto); err != nil {
 		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
+	}
+	if result := middleware.CheckConnectionAndTimeout(rd, writer, request); result != chain.Next() {
+		return result
 	}
 	cache.UpdateUser(rd.RequestId, rd.User, requestDto)
 	return render.Json(writer, http.StatusOK, render.ResultOK)
@@ -124,6 +134,9 @@ func CreateAdv(rd *chain.RequestData, writer http.ResponseWriter, request *http.
 	}
 	if badWords := moderation.SearchBadWord(requestDto.Description); len(badWords) != 0 {
 		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: fmt.Sprintf("в описании присутствуют запрещенные слова: %v", badWords)})
+	}
+	if result := middleware.CheckConnectionAndTimeout(rd, writer, request); result != chain.Next() {
+		return result
 	}
 	advId := cache.CreateAdv(rd.RequestId, &rd.User.CurrentUser, requestDto)
 	return render.Json(writer, http.StatusOK, &dto.CreateAdvResponse{RequestId: rd.RequestId, AdvId: advId})
@@ -161,6 +174,9 @@ func GetAdv(rd *chain.RequestData, writer http.ResponseWriter, request *http.Req
 		Watches:      rd.Adv.Watches.Watches.Count,
 		SeVisible:    adv.SeVisible,
 		UserComment:  adv.UserComment,
+	}
+	if result := middleware.CheckConnectionAndTimeout(rd, writer, request); result != chain.Next() {
+		return result
 	}
 	cache.IncAdvWatches(rd.Adv.Watches)
 	return render.Json(writer, http.StatusOK, response)
@@ -206,6 +222,9 @@ func GetAdvList(rd *chain.RequestData, writer http.ResponseWriter, request *http
 		maxLatitude = requestDto.MaxLatitude
 	}
 	offset = (requestDto.Page - 1) * limit
+	if result := middleware.CheckConnectionAndTimeout(rd, writer, request); result != chain.Next() {
+		return result
+	}
 	advs, count := cache.FindAdvs(
 		minDollarPrice,
 		maxDollarPrice,
@@ -239,6 +258,9 @@ func GetUsersAdvList(rd *chain.RequestData, writer http.ResponseWriter, request 
 		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: err.Error()})
 	}
 	offset = (int(requestDto.Page) - 1) * limit
+	if result := middleware.CheckConnectionAndTimeout(rd, writer, request); result != chain.Next() {
+		return result
+	}
 	advs, count := cache.FindUsersAdvs(rd.User.CurrentUser.Id, offset, limit, firstNew)
 	return render.Json(writer, http.StatusOK, &dto.GetAdvListResponse{List: advs, Count: count})
 }
@@ -254,11 +276,8 @@ func UpdateAdv(rd *chain.RequestData, writer http.ResponseWriter, request *http.
 	if badWords := moderation.SearchBadWord(requestDto.Description); len(badWords) != 0 {
 		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: fmt.Sprintf("в описании присутствуют запрещенные слова: %v", badWords)})
 	}
-	if err := request.Context().Err(); err != nil { //todo надо проверить как это работает при обрыве соединения
-		return render.Json(writer, http.StatusRequestTimeout, &dto.Err{ErrMessage: fmt.Sprintf("ошибка соединения: %s", err.Error())}) //todo тут надо подумать, по идее ответ и так не дойдет
-	}
-	if rd.Timeout() {
-		return rd.GetOnTimeout()(rd, writer, request)
+	if result := middleware.CheckConnectionAndTimeout(rd, writer, request); result != chain.Next() {
+		return result
 	}
 	cache.UpdateAdv(rd.RequestId, rd.Adv, requestDto)
 	return render.Json(writer, http.StatusOK, render.ResultOK)
@@ -300,6 +319,9 @@ func AddAdvPhoto(rd *chain.RequestData, writer http.ResponseWriter, request *htt
 	default:
 		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: "не поддерживается тип изображения"})
 	}
+	if result := middleware.CheckConnectionAndTimeout(rd, writer, request); result != chain.Next() {
+		return result
+	}
 	cache.CreatePhoto(rd.RequestId, rd.Adv, photo)
 	return render.Json(writer, http.StatusOK, render.ResultOK)
 }
@@ -319,6 +341,9 @@ func DeleteAdvPhoto(rd *chain.RequestData, writer http.ResponseWriter, request *
 	}
 	if rd.Adv.CurrentAdv.Id != photoCache.Photo.AdvId {
 		return render.Json(writer, http.StatusBadRequest, &dto.Err{ErrMessage: "фото принадлежит другому объявлению"})
+	}
+	if result := middleware.CheckConnectionAndTimeout(rd, writer, request); result != chain.Next() {
+		return result
 	}
 	cache.DeletePhoto(rd.RequestId, rd.Adv, photoCache)
 	return render.Json(writer, http.StatusOK, render.ResultOK)

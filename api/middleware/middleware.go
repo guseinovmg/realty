@@ -145,3 +145,13 @@ func StopIfUnsavedMoreThan(count int64) chain.HandlerFunction {
 		return chain.Next()
 	}
 }
+
+func CheckConnectionAndTimeout(rd *chain.RequestData, writer http.ResponseWriter, request *http.Request) chain.Result {
+	if err := request.Context().Err(); err != nil {
+		return chain.Result{WriteErr: err}
+	}
+	if rd.Timeout() {
+		return rd.GetOnTimeout()(rd, writer, request)
+	}
+	return chain.Next()
+}

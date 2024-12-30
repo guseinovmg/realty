@@ -37,7 +37,7 @@ func Initialize() *http.ServeMux {
 	mux.Handle("POST /user/adv", chain.Handler(mw.Auth, mw.SetAuthCookie, handlers.GetUsersAdvList))
 
 	mux.Handle("POST /adv", chain.Handler(mw.CheckGracefullyStop, mw.StopIfUnsavedMoreThan(500), mw.Auth, mw.SetAuthCookie, handlers.CreateAdv))
-	mux.Handle("PUT /adv/{advId}", chain.Handler(mw.CheckGracefullyStop, mw.StopIfUnsavedMoreThan(300), mw.Auth, mw.FindAdv, mw.CheckAdvOwner, mw.SetAuthCookie, handlers.UpdateAdv))
+	mux.Handle("PUT /adv/{advId}", chain.Handler(mw.CheckGracefullyStop, mw.StopIfUnsavedMoreThan(300), mw.Auth, mw.FindAdv, mw.CheckAdvOwner, mw.CheckConnectionAndTimeout, mw.SetAuthCookie, handlers.UpdateAdv))
 	mux.Handle("DELETE /adv/{advId}", chain.Handler(mw.CheckGracefullyStop, mw.StopIfUnsavedMoreThan(300), mw.Auth, mw.FindAdv, mw.CheckAdvOwner, mw.SetAuthCookie, handlers.DeleteAdv))
 
 	mux.Handle("POST /adv/{advId}/photos", chain.Handler(mw.CheckGracefullyStop, mw.StopIfUnsavedMoreThan(200), mw.Auth, mw.FindAdv, mw.CheckAdvOwner, mw.SetAuthCookie, handlers.AddAdvPhoto))
