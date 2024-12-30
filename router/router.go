@@ -25,23 +25,23 @@ func Initialize() *http.ServeMux {
 	mux.Handle("GET /logout/me", chain.Handler(handlers.LogoutMe))
 	mux.Handle("GET /logout/all", chain.Handler(mw.CheckGracefullyStop, mw.Auth, mw.StopIfUnsavedMoreThan(900), handlers.LogoutAll))
 	mux.Handle("POST /registration", chain.Handler(mw.CheckGracefullyStop, mw.StopIfUnsavedMoreThan(900), handlers.Registration))
-	mux.Handle("PUT /password", chain.Handler(mw.CheckGracefullyStop, mw.StopIfUnsavedMoreThan(900), mw.Auth, mw.SetAuthCookie, handlers.UpdatePassword))
+	mux.Handle("PUT /password", chain.Handler(mw.CheckGracefullyStop, mw.StopIfUnsavedMoreThan(900), mw.Auth, mw.CheckConnectionAndTimeout, mw.SetAuthCookie, handlers.UpdatePassword))
 
-	mux.Handle("PUT /user", chain.Handler(mw.CheckGracefullyStop, mw.StopIfUnsavedMoreThan(700), mw.Auth, mw.SetAuthCookie, handlers.UpdateUser).OnPanic(handlers.JsonError))
+	mux.Handle("PUT /user", chain.Handler(mw.CheckGracefullyStop, mw.StopIfUnsavedMoreThan(700), mw.Auth, mw.CheckConnectionAndTimeout, mw.SetAuthCookie, handlers.UpdateUser).OnPanic(handlers.JsonError))
 
 	mux.Handle("GET /adv/{advId}", chain.Handler(mw.FindAdv, handlers.GetAdv))
 	mux.Handle("GET /adv", chain.Handler(handlers.GetAdvList))
 
-	mux.Handle("GET /user/adv/{advId}", chain.Handler(mw.Auth, mw.FindAdv, mw.CheckAdvOwner, mw.SetAuthCookie, handlers.GetUsersAdv))
-	mux.Handle("GET /user/adv", chain.Handler(mw.Auth, mw.SetAuthCookie, handlers.GetUsersAdvList))
-	mux.Handle("POST /user/adv", chain.Handler(mw.Auth, mw.SetAuthCookie, handlers.GetUsersAdvList))
+	mux.Handle("GET /user/adv/{advId}", chain.Handler(mw.Auth, mw.FindAdv, mw.CheckAdvOwner, mw.CheckConnectionAndTimeout, mw.SetAuthCookie, handlers.GetUsersAdv))
+	mux.Handle("GET /user/adv", chain.Handler(mw.Auth, mw.CheckConnectionAndTimeout, mw.SetAuthCookie, handlers.GetUsersAdvList))
+	mux.Handle("POST /user/adv", chain.Handler(mw.Auth, mw.CheckConnectionAndTimeout, mw.SetAuthCookie, handlers.GetUsersAdvList))
 
-	mux.Handle("POST /adv", chain.Handler(mw.CheckGracefullyStop, mw.StopIfUnsavedMoreThan(500), mw.Auth, mw.SetAuthCookie, handlers.CreateAdv))
+	mux.Handle("POST /adv", chain.Handler(mw.CheckGracefullyStop, mw.StopIfUnsavedMoreThan(500), mw.Auth, mw.CheckConnectionAndTimeout, mw.SetAuthCookie, handlers.CreateAdv))
 	mux.Handle("PUT /adv/{advId}", chain.Handler(mw.CheckGracefullyStop, mw.StopIfUnsavedMoreThan(300), mw.Auth, mw.FindAdv, mw.CheckAdvOwner, mw.CheckConnectionAndTimeout, mw.SetAuthCookie, handlers.UpdateAdv))
-	mux.Handle("DELETE /adv/{advId}", chain.Handler(mw.CheckGracefullyStop, mw.StopIfUnsavedMoreThan(300), mw.Auth, mw.FindAdv, mw.CheckAdvOwner, mw.SetAuthCookie, handlers.DeleteAdv))
+	mux.Handle("DELETE /adv/{advId}", chain.Handler(mw.CheckGracefullyStop, mw.StopIfUnsavedMoreThan(300), mw.Auth, mw.FindAdv, mw.CheckAdvOwner, mw.CheckConnectionAndTimeout, mw.SetAuthCookie, handlers.DeleteAdv))
 
-	mux.Handle("POST /adv/{advId}/photos", chain.Handler(mw.CheckGracefullyStop, mw.StopIfUnsavedMoreThan(200), mw.Auth, mw.FindAdv, mw.CheckAdvOwner, mw.SetAuthCookie, handlers.AddAdvPhoto))
-	mux.Handle("DELETE /adv/{advId}/photos/{photoId}", chain.Handler(mw.CheckGracefullyStop, mw.StopIfUnsavedMoreThan(200), mw.Auth, mw.FindAdv, mw.CheckAdvOwner, mw.SetAuthCookie, handlers.DeleteAdvPhoto))
+	mux.Handle("POST /adv/{advId}/photos", chain.Handler(mw.CheckGracefullyStop, mw.StopIfUnsavedMoreThan(200), mw.Auth, mw.FindAdv, mw.CheckAdvOwner, mw.CheckConnectionAndTimeout, mw.SetAuthCookie, handlers.AddAdvPhoto))
+	mux.Handle("DELETE /adv/{advId}/photos/{photoId}", chain.Handler(mw.CheckGracefullyStop, mw.StopIfUnsavedMoreThan(200), mw.Auth, mw.FindAdv, mw.CheckAdvOwner, mw.CheckConnectionAndTimeout, mw.SetAuthCookie, handlers.DeleteAdvPhoto))
 
 	serveMux = mux
 	return mux
